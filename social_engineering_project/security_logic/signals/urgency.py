@@ -1,6 +1,6 @@
 import re
 from typing import List, Tuple
-from .base import SignalResult
+from ..base import SignalResult
 
 # Phrase-based patterns for urgency detection
 DEADLINE_PATTERNS = [

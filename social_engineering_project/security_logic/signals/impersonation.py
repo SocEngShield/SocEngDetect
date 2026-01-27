@@ -1,6 +1,6 @@
 import re
 from typing import List
-from .base import SignalResult
+from ..base import SignalResult
 
 def analyze(text: str) -> SignalResult:
     """

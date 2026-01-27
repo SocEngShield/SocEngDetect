@@ -1,10 +1,8 @@
 import re
 from typing import List
-from .base import SignalResult
+from ..base import SignalResult
 
 """Authority-based social engineering detection signal."""
-
-
 
 # Phase 1: Authority claim patterns
 AUTHORITY_TITLES = [
