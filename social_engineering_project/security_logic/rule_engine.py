@@ -1,45 +1,77 @@
-"""
-Rule-based engine for evaluating social engineering threats.
-"""
+from .signals.urgency import analyze as analyze_urgency
+from .signals.authority import analyze as analyze_authority
+from .signals.impersonation import analyze as analyze_impersonation
+from .signals.reward_lure import analyze as analyze_reward_lure
+from .signals.fear_threat import analyze as analyze_fear_threat
 
 
-def assess_risk(signal_results: dict) -> dict:
-    """Evaluate social engineering threat level based on triggered signals.
-
-    Risk assessment relies on signal count alone (no weights or statistics).
-    Higher counts indicate compounding behavioral indicators of manipulation.
-
-    Args:
-        signal_results: dict mapping signal names (str) to boolean values.
-                       Example: {"urgency": True, "authority_claim": False, ...}
-
-    Returns:
-        dict with keys:
-            - risk_level (str): "LOW", "MEDIUM", or "HIGH"
-            - triggered_signals (list): names of all signals that evaluated to True
-
-    Risk Logic:
-        0–1 signals  → LOW risk (isolated indicators are weak)
-        2–3 signals  → MEDIUM risk (combination suggests targeted social engineering)
-        4+ signals   → HIGH risk (multiple concurrent tactics indicate sophisticated attack)
+def analyze_text(text: str) -> dict:
     """
-    if not isinstance(signal_results, dict):
-        return {"risk_level": "LOW", "triggered_signals": []}
-
-    # Collect all signals that are explicitly True.
-    triggered_signals = [name for name, result in signal_results.items() if result is True]
-
-    # Count and classify by simple threshold.
-    signal_count = len(triggered_signals)
-
-    if signal_count <= 1:
-        risk_level = "LOW"
-    elif signal_count <= 3:
-        risk_level = "MEDIUM"
+    Run all signal analyzers and apply aggregation rules for social engineering detection.
+    
+    Args:
+        text: Input text to analyze
+        
+    Returns:
+        Dictionary with verdict, score, active signals, and evidence
+    """
+    
+    # Run all signal analyzers
+    signal_results = [
+        analyze_urgency(text),
+        analyze_authority(text),
+        analyze_impersonation(text),
+        analyze_reward_lure(text),
+        analyze_fear_threat(text),
+    ]
+    
+    # Compute active signals and total score
+    active_signals = [
+        result.signal_name
+        for result in signal_results
+        if result.score > 0
+    ]
+    
+    total_score = min(sum(result.score for result in signal_results), 1.0)
+    
+    # Extract signal-specific results for easy lookup
+    signal_map = {result.signal_name: result for result in signal_results}
+    
+    # Apply escalation rules
+    escalated = False
+    
+    # Rule 1: Impersonation + Authority
+    if "impersonation" in active_signals and "authority" in active_signals:
+        escalated = True
+    
+    # Rule 2: Fear/Threat + Urgency
+    if "fear_threat" in active_signals and "urgency" in active_signals:
+        escalated = True
+    
+    # Rule 3: 3+ active signals
+    if len(active_signals) >= 3:
+        escalated = True
+    
+    # Determine verdict
+    if escalated:
+        verdict = "critical"
+    elif total_score >= 0.7:
+        verdict = "high"
+    elif total_score >= 0.4:
+        verdict = "medium"
     else:
-        risk_level = "HIGH"
-
+        verdict = "low"
+    
+    # Collect combined evidence (capped at 20 items)
+    combined_evidence = []
+    for result in signal_results:
+        combined_evidence.extend(result.evidence)
+    combined_evidence = combined_evidence[:20]
+    
     return {
-        "risk_level": risk_level,
-        "triggered_signals": triggered_signals,
+        "verdict": verdict,
+        "total_score": total_score,
+        "active_signals": active_signals,
+        "per_signal_results": signal_results,
+        "combined_evidence": combined_evidence,
     }
