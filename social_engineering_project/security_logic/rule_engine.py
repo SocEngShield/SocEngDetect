@@ -8,15 +8,37 @@ from .signals.fear_threat import analyze as analyze_fear_threat
 def analyze_text(text: str) -> dict:
     """
     Run all signal analyzers and apply aggregation rules for social engineering detection.
-    
-    Args:
-        text: Input text to analyze
-        
+
     Returns:
-        Dictionary with verdict, score, active signals, and evidence
+        {
+            verdict: str,
+            total_score: float,
+            active_signals: list[str],
+            strong_signals: list[str],
+            per_signal_breakdown: dict,
+            combined_evidence: list[str]
+        }
     """
-    
-    # Run all signal analyzers
+
+    # --- Activation thresholds (calibrated to actual signal behavior) ---
+    ACTIVATION_THRESHOLDS = {
+        "urgency": 0.2,
+        "authority": 0.25,
+        "impersonation": 0.4,   # intentionally higher to prevent dominance
+        "reward_lure": 0.15,
+        "fear_threat": 0.2,
+    }
+
+    def strength_tier(score: float) -> str:
+        """Convert score to qualitative strength."""
+        if score >= 0.6:
+            return "high"
+        elif score >= 0.35:
+            return "medium"
+        else:
+            return "low"
+
+    # --- Run all signal analyzers ---
     signal_results = [
         analyze_urgency(text),
         analyze_authority(text),
@@ -24,35 +46,54 @@ def analyze_text(text: str) -> dict:
         analyze_reward_lure(text),
         analyze_fear_threat(text),
     ]
-    
-    # Compute active signals and total score
-    active_signals = [
-        result.signal_name
-        for result in signal_results
-        if result.score > 0
-    ]
-    
-    total_score = min(sum(result.score for result in signal_results), 1.0)
-    
-    # Extract signal-specific results for easy lookup
-    signal_map = {result.signal_name: result for result in signal_results}
-    
-    # Apply escalation rules
+
+    active_signals = []
+    strong_signals = []
+    per_signal_breakdown = {}
+
+    # --- Process signals ---
+    for result in signal_results:
+        name = result.signal_name
+        score = result.score
+        confidence = result.confidence
+        evidence = result.evidence
+
+        threshold = ACTIVATION_THRESHOLDS.get(name, 0.25)
+        is_active = score >= threshold
+        strength = strength_tier(score)
+
+        if is_active:
+            active_signals.append(name)
+            if strength == "high":
+                strong_signals.append(name)
+
+        per_signal_breakdown[name] = {
+            "score": round(score, 3),
+            "confidence": round(confidence, 3),
+            "strength": strength,
+            "is_active": is_active,
+            "evidence": evidence,
+        }
+
+    # --- Aggregate total score (bounded) ---
+    total_score = min(sum(r.score for r in signal_results), 1.0)
+
+    # --- Escalation logic (pressure-based, not naive counting) ---
     escalated = False
-    
-    # Rule 1: Impersonation + Authority
-    if "impersonation" in active_signals and "authority" in active_signals:
+
+    # Identity pressure
+    if "impersonation" in strong_signals and "authority" in strong_signals:
         escalated = True
-    
-    # Rule 2: Fear/Threat + Urgency
-    if "fear_threat" in active_signals and "urgency" in active_signals:
+
+    # Time + fear pressure
+    if "fear_threat" in strong_signals and "urgency" in strong_signals:
         escalated = True
-    
-    # Rule 3: 3+ active signals
-    if len(active_signals) >= 3:
+
+    # Multiple strong signals
+    if len(strong_signals) >= 3:
         escalated = True
-    
-    # Determine verdict
+
+    # --- Verdict determination ---
     if escalated:
         verdict = "critical"
     elif total_score >= 0.7:
@@ -61,17 +102,19 @@ def analyze_text(text: str) -> dict:
         verdict = "medium"
     else:
         verdict = "low"
-    
-    # Collect combined evidence (capped at 20 items)
+
+    # --- Evidence aggregation (only from active signals) ---
     combined_evidence = []
-    for result in signal_results:
-        combined_evidence.extend(result.evidence)
+    for name in active_signals:
+        combined_evidence.extend(per_signal_breakdown[name]["evidence"])
+
     combined_evidence = combined_evidence[:20]
-    
+
     return {
         "verdict": verdict,
-        "total_score": total_score,
+        "total_score": round(total_score, 3),
         "active_signals": active_signals,
-        "per_signal_results": signal_results,
+        "strong_signals": strong_signals,
+        "per_signal_breakdown": per_signal_breakdown,
         "combined_evidence": combined_evidence,
     }
