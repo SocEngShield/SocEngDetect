@@ -28,7 +28,8 @@ class IntegratedSocialEngineeringDetector:
         "suspended", "hacked", "compromised", "ransomware",
         "encrypted", "dark web", "webcam", "leaked", "breach",
         "income tax", "deactivated", "permanently", "frozen",
-        "action will be taken", "credentials", "share info",
+        "action will be taken", "credentials", "share info","card blocked", "payment failed", "transaction declined"
+
     ]
 
     DEADLINE_KW = [
@@ -77,7 +78,9 @@ class IntegratedSocialEngineeringDetector:
             r"\brouting number\b", r"\bshare your\b", r"\bsend your\b",
             r"\bprovide your\b", r"\bsubmit your\b",
             r"\bconfirm your card\b", r"\bconfirm card\b",
-            r"\blogin credential", r"\bverify your identity\b",
+            r"\blogin credential", r"\bverify your identity\b",r"\bconfirm your card details\b"
+            r"\bconfirm your banking\b",r"\bconfirm your payment\b",r"\bverify card\b"
+
         ]
     ]
 
@@ -169,6 +172,10 @@ class IntegratedSocialEngineeringDetector:
         rag_conf, rag_cat = self.rag.detect(message)
         rule_conf, rule_cats = self._rule_engine(sig)
 
+        if not sig["fear"] and not sig["sensitive"] and not sig["reward"] and not sig["deadline"]:
+            rag_conf = min(rag_conf, 20.0)
+            rule_conf = min(rule_conf, 20.0)
+    
         return self._combine(msg, rag_conf, rag_cat, rule_conf, rule_cats, sig)
 
     def _rule_engine(self, sig: Dict) -> Tuple[float, List[str]]:
