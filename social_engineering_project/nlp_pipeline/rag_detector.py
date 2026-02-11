@@ -24,7 +24,7 @@ class RAGSocialEngineeringDetector:
         "suspended", "hacked", "compromised", "ransomware",
         "encrypted", "dark web", "webcam", "browsing activity",
         "leaked", "breach", "income tax", "frozen",
-        "permanently", "deactivated","share","credentials","login details","financial",
+        "permanently", "deactivated","share info","credentials","login details","financial",
     ]
 
     DEADLINE_KW = [
