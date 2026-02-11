@@ -1,6 +1,6 @@
 """
-Integrated Social Engineering Detector — v5.0 STRICT.
-Output contains ONLY the 7 required keys. No extras.
+Integrated Social Engineering Detector — v6.0.
+Output contains ONLY the 7 required keys.
 Weights: 0.6 RAG + 0.4 Rules. Risk: SAFE/LOW/POTENTIAL/HIGH.
 """
 
@@ -18,10 +18,6 @@ except ImportError:
 
 class IntegratedSocialEngineeringDetector:
 
-    # ═══════════════════════════════════════════════════
-    #  KEYWORD REGISTRIES
-    # ═══════════════════════════════════════════════════
-
     FEAR_KW = [
         "legal action", "court", "police", "fir", "arrest",
         "investigation", "permanently closed", "terminated",
@@ -32,7 +28,7 @@ class IntegratedSocialEngineeringDetector:
         "suspended", "hacked", "compromised", "ransomware",
         "encrypted", "dark web", "webcam", "leaked", "breach",
         "income tax", "deactivated", "permanently", "frozen",
-        "action will be taken","credentials","share info",
+        "action will be taken", "credentials", "share info",
     ]
 
     DEADLINE_KW = [
@@ -91,8 +87,6 @@ class IntegratedSocialEngineeringDetector:
         "bonus", "90%",
     ]
 
-    # ═══════════════════════════════════════════════════
-
     def __init__(self):
         self.rag = get_detector()
 
@@ -117,10 +111,6 @@ class IntegratedSocialEngineeringDetector:
             re.IGNORECASE,
         )
 
-    # ───────────────────────────────────────────────
-    # Helpers
-    # ───────────────────────────────────────────────
-
     @staticmethod
     def _any(msg: str, kws: list) -> bool:
         return any(kw in msg for kw in kws)
@@ -132,10 +122,6 @@ class IntegratedSocialEngineeringDetector:
     @classmethod
     def _any_rx(cls, msg: str, rxs: list) -> bool:
         return any(rx.search(msg) for rx in rxs)
-
-    # ───────────────────────────────────────────────
-    # Signal extraction
-    # ───────────────────────────────────────────────
 
     def _signals(self, msg: str) -> Dict:
         return {
@@ -156,18 +142,10 @@ class IntegratedSocialEngineeringDetector:
             ),
         }
 
-    # ───────────────────────────────────────────────
-    # Whitelist
-    # ───────────────────────────────────────────────
-
     def _whitelisted(self, msg: str, sig: Dict) -> bool:
         if sig["fear"] or sig["sensitive"]:
             return False
         return any(rx.search(msg) for rx in self._whitelist_rx)
-
-    # ───────────────────────────────────────────────
-    # Public API  → returns ONLY 7 keys
-    # ───────────────────────────────────────────────
 
     def analyze_message(self, message: str) -> Dict:
         msg = message.lower()
@@ -182,7 +160,7 @@ class IntegratedSocialEngineeringDetector:
                 "rule_confidence": 0.0,
                 "overall_confidence": 0.0,
                 "confidence_calculation": (
-                    "Overall Confidence = (0.6 × 0.00) + (0.4 × 0.00)\n"
+                    "Overall Confidence = (0.6 x 0.00) + (0.4 x 0.00)\n"
                     "= 0.00 + 0.00\n"
                     "= 0.00%"
                 ),
@@ -192,10 +170,6 @@ class IntegratedSocialEngineeringDetector:
         rule_conf, rule_cats = self._rule_engine(sig)
 
         return self._combine(msg, rag_conf, rag_cat, rule_conf, rule_cats, sig)
-
-    # ═══════════════════════════════════════════════
-    #  RULE ENGINE → rule_confidence (0-100), categories
-    # ═══════════════════════════════════════════════
 
     def _rule_engine(self, sig: Dict) -> Tuple[float, List[str]]:
         score = 0.0
@@ -226,7 +200,6 @@ class IntegratedSocialEngineeringDetector:
 
         score = min(score, 100.0)
 
-        # Category detection (priority: fear > impersonation > authority > urgency > reward)
         cats: List[str] = []
 
         if sig["fear"]:
@@ -244,7 +217,6 @@ class IntegratedSocialEngineeringDetector:
         if sig["reward"]:
             cats.append("Reward/Lure")
 
-        # Override: impersonation + sensitive → inject Fear/Threat
         if "Impersonation" in cats and sig["sensitive"]:
             if "Fear/Threat" not in cats:
                 cats.insert(0, "Fear/Threat")
@@ -252,7 +224,6 @@ class IntegratedSocialEngineeringDetector:
         if sig["verify_suspicious"] and not cats:
             cats.append("Impersonation")
 
-        # Deduplicate, max 2
         seen: List[str] = []
         for c in cats:
             if c not in seen:
@@ -261,10 +232,6 @@ class IntegratedSocialEngineeringDetector:
                 break
 
         return score, seen
-
-    # ═══════════════════════════════════════════════
-    #  COMBINE → strict 7-key output
-    # ═══════════════════════════════════════════════
 
     def _combine(
         self,
@@ -276,7 +243,6 @@ class IntegratedSocialEngineeringDetector:
         sig: Dict,
     ) -> Dict:
 
-        # ── Merge categories: rules authoritative, RAG supplementary ──
         CAT_MAP = {
             "fear_threat": "Fear/Threat",
             "impersonation": "Impersonation",
@@ -290,7 +256,6 @@ class IntegratedSocialEngineeringDetector:
         if rag_cat_display and rag_cat_display not in cats:
             cats.append(rag_cat_display)
 
-        # Ensure Fear/Threat is primary when fear keywords exist
         n_fear = len(sig["fear"])
         if n_fear >= 1 and "Fear/Threat" not in cats:
             cats.insert(0, "Fear/Threat")
@@ -301,12 +266,10 @@ class IntegratedSocialEngineeringDetector:
 
         cats = list(dict.fromkeys(cats))[:2]
 
-        # ── Weighted fusion: 0.6 RAG + 0.4 Rules ──
         rag_part = round(0.6 * rag_conf, 2)
         rule_part = round(0.4 * rule_conf, 2)
         overall = round(rag_part + rule_part, 2)
 
-        # ── Severity floors ──
         has_gov = bool(sig["gov"])
         has_sens = sig["sensitive"]
         has_dl = bool(sig["deadline"])
@@ -328,7 +291,6 @@ class IntegratedSocialEngineeringDetector:
 
         overall = round(max(0.0, min(100.0, overall)), 2)
 
-        # ── Risk level (strict mapping) ──
         if overall >= 76:
             risk = "HIGH"
         elif overall >= 56:
@@ -338,15 +300,13 @@ class IntegratedSocialEngineeringDetector:
         else:
             risk = "SAFE"
 
-        # Fear/Threat override: conf >= 60 → minimum POTENTIAL
         if "Fear/Threat" in cats and overall >= 60 and risk == "LOW":
             risk = "POTENTIAL"
 
         attack = overall > 30.0
 
-        # ── Build calculation string ──
         calc = (
-            f"Overall Confidence = (0.6 × {rag_conf:.2f}) + (0.4 × {rule_conf:.2f})\n"
+            f"Overall Confidence = (0.6 x {rag_conf:.2f}) + (0.4 x {rule_conf:.2f})\n"
             f"= {rag_part:.2f} + {rule_part:.2f}\n"
             f"= {round(rag_part + rule_part, 2):.2f}%"
         )
