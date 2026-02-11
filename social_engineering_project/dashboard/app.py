@@ -15,9 +15,8 @@ from nlp_pipeline.knowledge_base import SOCIAL_ENGINEERING_DATASET
 from nlp_pipeline.rag_detector import get_detector
 
 
-# ============================================================================
+
 # PAGE CONFIGURATION
-# ============================================================================
 
 st.set_page_config(
     page_title="Social Engineering Detection System",
@@ -26,9 +25,7 @@ st.set_page_config(
 )
 
 
-# ============================================================================
 # CUSTOM CSS STYLING
-# ============================================================================
 
 st.markdown("""
 <style>
@@ -111,9 +108,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ============================================================================
 # INITIALIZE DETECTOR (CACHED)
-# ============================================================================
 
 @st.cache_resource(show_spinner=False)
 def initialize_detector():
@@ -137,18 +132,14 @@ if error:
     st.stop()
 
 
-# ============================================================================
 # HEADER SECTION
-# ============================================================================
 
 st.title("Social Engineering Detection System")
 st.markdown("### Message Analysis using RAG, NLP & Machine Learning")
 st.markdown("---")
 
 
-# ============================================================================
 # SIDEBAR
-# ============================================================================
 
 with st.sidebar:
     st.markdown("## About This System")
@@ -195,9 +186,7 @@ with st.sidebar:
     st.metric("Average Response Time", "< 2 sec")
 
 
-# ============================================================================
 # MAIN CONTENT - USER INPUT SECTION
-# ============================================================================
 
 st.markdown("##  Enter Message to Analyze")
 st.markdown("Type or paste any message, email, SMS, or communication you want to check for social engineering attacks.")
@@ -215,9 +204,7 @@ user_message = st.text_area(
 analyze_clicked = st.button(" ANALYZE MESSAGE", type="primary", use_container_width=True)
 
 
-# ============================================================================
 # ANALYSIS SECTION
-# ============================================================================
 
 if analyze_clicked:
     if not user_message or len(user_message.strip()) < 10:
@@ -386,9 +373,7 @@ No significant threats detected.
                 st.info(" Please try again. If the issue persists, contact support.")
 
 
-# ============================================================================
 # INFORMATION SECTION
-# ============================================================================
 
 st.markdown("---")
 st.markdown("## How It Works")
@@ -420,9 +405,7 @@ with col3:
     """)
 
 
-# ============================================================================
 # FOOTER
-# ============================================================================
 
 st.markdown("---")
 st.markdown("""
