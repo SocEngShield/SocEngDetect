@@ -23,7 +23,7 @@ class RAGSocialEngineeringDetector:
 
     THREAT_KEYWORDS = [
         "legal action", "court", "police", "fir filed", "fir has been filed",
-        "arrest", "investigation", "permanently closed", "terminated",
+        "arrest", "investigation", "permanently closed", "terminated","share",
         "account frozen", "account has been frozen", "service termination",
         "aadhaar misuse", "aadhaar", "pan blocked", "pan card",
         "sim deactivated", "sim card", "bank account frozen",
