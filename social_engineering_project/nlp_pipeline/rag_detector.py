@@ -90,7 +90,7 @@ class RAGSocialEngineeringDetector:
         if top_score <= 0:
             prob = 0.0
         else:
-            prob = 1.0 / (1.0 + math.exp(-12.0 * (top_score - 0.45)))
+            prob = 1.0 / (1.0 + math.exp(-9.0 * (top_score - 0.40)))
             prob *= 0.92
 
         if top_score < 0.30:
