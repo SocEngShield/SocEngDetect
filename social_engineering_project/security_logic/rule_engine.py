@@ -1,3 +1,4 @@
+from math import pow
 from .signals.urgency import analyze as analyze_urgency
 from .signals.authority import analyze as analyze_authority
 from .signals.impersonation import analyze as analyze_impersonation
@@ -7,12 +8,14 @@ from .signals.fear_threat import analyze as analyze_fear_threat
 
 def analyze_text(text: str) -> dict:
     """
-    Run all signal analyzers and apply aggregation rules for social engineering detection.
+    Advanced rule-based aggregation engine.
 
     Returns:
         {
             verdict: str,
             total_score: float,
+            rule_confidence: float,
+            primary_category: str | None,
             active_signals: list[str],
             strong_signals: list[str],
             per_signal_breakdown: dict,
@@ -20,17 +23,29 @@ def analyze_text(text: str) -> dict:
         }
     """
 
-    # --- Activation thresholds (calibrated to actual signal behavior) ---
+    # -----------------------------
+    # Signal activation thresholds
+    # -----------------------------
     ACTIVATION_THRESHOLDS = {
         "urgency": 0.2,
         "authority": 0.25,
-        "impersonation": 0.4,   # intentionally higher to prevent dominance
+        "impersonation": 0.4,     # intentionally stricter
         "reward_lure": 0.15,
         "fear_threat": 0.2,
     }
 
+    # -----------------------------
+    # Signal weight importance
+    # -----------------------------
+    WEIGHTS = {
+        "urgency": 1.0,
+        "authority": 1.1,
+        "impersonation": 1.4,
+        "reward_lure": 0.8,
+        "fear_threat": 1.2,
+    }
+
     def strength_tier(score: float) -> str:
-        """Convert score to qualitative strength."""
         if score >= 0.6:
             return "high"
         elif score >= 0.35:
@@ -38,7 +53,9 @@ def analyze_text(text: str) -> dict:
         else:
             return "low"
 
-    # --- Run all signal analyzers ---
+    # -----------------------------
+    # Run analyzers
+    # -----------------------------
     signal_results = [
         analyze_urgency(text),
         analyze_authority(text),
@@ -47,15 +64,19 @@ def analyze_text(text: str) -> dict:
         analyze_fear_threat(text),
     ]
 
+    per_signal_breakdown = {}
     active_signals = []
     strong_signals = []
-    per_signal_breakdown = {}
 
-    # --- Process signals ---
+    # -----------------------------
+    # Process signals
+    # -----------------------------
+    weighted_sum = 0.0
+
     for result in signal_results:
         name = result.signal_name
-        score = result.score
-        confidence = result.confidence
+        score = float(result.score)
+        confidence = float(result.confidence)
         evidence = result.evidence
 
         threshold = ACTIVATION_THRESHOLDS.get(name, 0.25)
@@ -64,6 +85,8 @@ def analyze_text(text: str) -> dict:
 
         if is_active:
             active_signals.append(name)
+            weighted_sum += score * WEIGHTS.get(name, 1.0)
+
             if strength == "high":
                 strong_signals.append(name)
 
@@ -75,17 +98,35 @@ def analyze_text(text: str) -> dict:
             "evidence": evidence,
         }
 
-    # --- Aggregate total score (bounded) ---
-    total_score = min(sum(r.score for r in signal_results), 1.0)
+    # -----------------------------
+    # Nonlinear Severity Scaling
+    # -----------------------------
+    weighted_sum = min(weighted_sum, 1.5)  # soft cap before scaling
 
-    # --- Escalation logic (pressure-based, not naive counting) ---
+    # Nonlinear amplification curve
+    total_score = 1 - pow((1 - min(weighted_sum, 1.0)), 1.3)
+    total_score = round(min(total_score, 1.0), 3)
+
+    # -----------------------------
+    # Primary Category Selection
+    # -----------------------------
+    primary_category = None
+    if active_signals:
+        primary_category = max(
+            [r for r in signal_results if r.signal_name in active_signals],
+            key=lambda r: r.score,
+        ).signal_name
+
+    # -----------------------------
+    # Escalation Logic
+    # -----------------------------
     escalated = False
 
-    # Identity pressure
+    # Identity pressure escalation
     if "impersonation" in strong_signals and "authority" in strong_signals:
         escalated = True
 
-    # Time + fear pressure
+    # Time-pressure + threat escalation
     if "fear_threat" in strong_signals and "urgency" in strong_signals:
         escalated = True
 
@@ -93,26 +134,50 @@ def analyze_text(text: str) -> dict:
     if len(strong_signals) >= 3:
         escalated = True
 
-    # --- Verdict determination ---
+    # -----------------------------
+    # Verdict Determination
+    # -----------------------------
     if escalated:
         verdict = "critical"
-    elif total_score >= 0.7:
+    elif total_score >= 0.75:
         verdict = "high"
-    elif total_score >= 0.4:
+    elif total_score >= 0.45:
         verdict = "medium"
     else:
         verdict = "low"
 
-    # --- Evidence aggregation (only from active signals) ---
+    # -----------------------------
+    # Continuous Confidence Model
+    # -----------------------------
+    if not active_signals:
+        rule_confidence = 0.5
+    else:
+        avg_conf = sum(
+            r.confidence for r in signal_results if r.signal_name in active_signals
+        ) / len(active_signals)
+
+        signal_factor = min(len(active_signals) / 3, 1.0)
+
+        rule_confidence = (avg_conf * 0.7) + (signal_factor * 0.3)
+        rule_confidence = round(min(rule_confidence, 0.95), 3)
+
+    # -----------------------------
+    # Evidence Aggregation
+    # -----------------------------
     combined_evidence = []
     for name in active_signals:
         combined_evidence.extend(per_signal_breakdown[name]["evidence"])
 
     combined_evidence = combined_evidence[:20]
 
+    # -----------------------------
+    # Final Output
+    # -----------------------------
     return {
         "verdict": verdict,
-        "total_score": round(total_score, 3),
+        "total_score": total_score,
+        "rule_confidence": rule_confidence,
+        "primary_category": primary_category,
         "active_signals": active_signals,
         "strong_signals": strong_signals,
         "per_signal_breakdown": per_signal_breakdown,
