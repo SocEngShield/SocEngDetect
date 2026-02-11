@@ -1,12 +1,12 @@
 """
-Combined detector integrating RAG, NLP, Regex, and security rules
-False-positive controlled, exam-safe version
+Integrated Social Engineering Detector — v6.0.
+Output contains ONLY the 7 required keys.
+Weights: 0.6 RAG + 0.4 Rules. Risk: SAFE/LOW/POTENTIAL/HIGH.
 """
 
-from typing import Dict
 import re
+from typing import Dict, List, Tuple
 
-# Import RAG detector
 try:
     from .rag_detector import get_detector
 except ImportError:
@@ -17,212 +17,308 @@ except ImportError:
 
 
 class IntegratedSocialEngineeringDetector:
-    """
-    Multi-layer detection system combining:
-    1. RAG-based semantic detection
-    2. Context-aware rule-based detection
-    3. Weighted ensemble with explainability
-    """
+
+    FEAR_KW = [
+        "legal action", "court", "police", "fir", "arrest",
+        "investigation", "permanently closed", "terminated",
+        "account frozen", "frozen account", "service termination",
+        "aadhaar", "pan blocked", "pan card", "sim deactivated",
+        "bank account frozen", "money laundering", "prosecution",
+        "seized", "non-bailable", "blacklisted", "cyber cell",
+        "suspended", "hacked", "compromised", "ransomware",
+        "encrypted", "dark web", "webcam", "leaked", "breach",
+        "income tax", "deactivated", "permanently", "frozen",
+        "action will be taken", "credentials", "share info",
+    ]
+
+    DEADLINE_KW = [
+        "immediately", "within 24 hours", "within 48 hours",
+        "right now", "act now", "in 1 hour", "in 2 hours",
+        "within the next", "before authorities", "final warning",
+        "within 10 minutes", "in 10 minutes", "in 30 minutes",
+        "30 minutes", "last warning", "last chance", "expires",
+    ]
+
+    GOV_KW = [
+        "income tax", "aadhaar", "court", "police", "fir",
+        "prosecution", "arrest", "non-bailable", "cyber cell",
+        "irs", "tax department", "income tax department",
+    ]
+
+    _IDENTITY_RX = [
+        re.compile(p, re.IGNORECASE) for p in [
+            r"\bthis is\b", r"\bi am\b", r"\bi'm\b", r"\bwe are\b",
+            r"\bfrom it department\b", r"\bfrom it\b",
+            r"\bcustomer support\b", r"\bbank team\b",
+            r"\bsupport team\b", r"\bhelp\s?desk\b",
+            r"\btechnical support\b", r"\btech support\b",
+            r"\bamazon support\b", r"\bamazon customer support\b",
+        ]
+    ]
+
+    BRAND_KW = [
+        "netflix", "amazon", "paypal", "apple", "microsoft",
+        "google", "instagram", "linkedin", "dropbox", "spotify",
+        "fedex", "irs", "income tax department",
+    ]
+
+    AUTHORITY_KW = [
+        "ceo", "cfo", "cto", "manager", "director", "supervisor",
+        "president", "chairman", "head of", "department head",
+        "team lead", "executive", "boss", "vp of",
+    ]
+
+    _SENSITIVE_RX = [
+        re.compile(p, re.IGNORECASE) for p in [
+            r"\bpassword\b", r"\bcredential", r"\blogin\b",
+            r"\bcard detail", r"\bbank detail", r"\bfinancial detail",
+            r"\bsubmit financial\b", r"\bssn\b", r"\bsocial security\b",
+            r"\botp\b", r"\bpin\b", r"\bcvv\b", r"\baccount number\b",
+            r"\brouting number\b", r"\bshare your\b", r"\bsend your\b",
+            r"\bprovide your\b", r"\bsubmit your\b",
+            r"\bconfirm your card\b", r"\bconfirm card\b",
+            r"\blogin credential", r"\bverify your identity\b",
+        ]
+    ]
+
+    REWARD_KW = [
+        "won", "winner", "prize", "reward", "free", "gift",
+        "discount", "cashback", "lottery", "selected", "chosen",
+        "bonus", "90%",
+    ]
 
     def __init__(self):
-        self.rag_detector = get_detector()
+        self.rag = get_detector()
 
-        # Ensemble weights
-        self.weights = {
-            "rag": 0.65,
-            "rules": 0.35
-        }
-
-        # ── Whitelist for known safe informational messages ──
-        self._whitelist_patterns = [
-            r"(ceo|director|manager|president|executive)\s+(announced|said|reported|mentioned|shared)",
-            r"scheduled\s+meeting",
-            r"product\s+launch",
-            r"press\s+release",
-            r"no\s+action\s+required",
-            r"confirm\s+(your\s+)?(appointment|meeting|booking|reservation)",
+        self._whitelist_rx = [
+            re.compile(p, re.IGNORECASE) for p in [
+                r"(ceo|director|manager|president|executive)\s+"
+                r"(announced|said|reported|mentioned|shared|presented)",
+                r"scheduled\s+(meeting|maintenance)",
+                r"product\s+launch", r"press\s+release",
+                r"no\s+action\s+(required|needed|is needed)",
+                r"confirm\s+(your\s+)?(appointment|meeting|booking|reservation)",
+                r"verify\s+(your\s+)?email\s+(address\s+)?to\s+complete",
+            ]
         ]
-        self._compiled_whitelist = [
-            re.compile(p, re.IGNORECASE) for p in self._whitelist_patterns
-        ]
-
-        # Authority benign context
-        self._authority_benign = re.compile(
-            r"(announced|said|reported|mentioned|shared|presented|discussed|confirmed\s+that)",
-            re.IGNORECASE
+        self._auth_benign = re.compile(
+            r"\b(announced|said|reported|mentioned|shared|presented|discussed)\b",
+            re.IGNORECASE,
         )
-
-        # Verify benign context
         self._verify_benign = re.compile(
-            r"(appointment|meeting|booking|reservation|schedule|calendar|tomorrow|today)",
-            re.IGNORECASE
+            r"\b(appointment|meeting|booking|reservation|schedule|"
+            r"calendar|registration|sign.?up)\b",
+            re.IGNORECASE,
         )
 
-    # ───────────────────────────────────────────────
-    # Whitelist handling
-    # ───────────────────────────────────────────────
+    @staticmethod
+    def _any(msg: str, kws: list) -> bool:
+        return any(kw in msg for kw in kws)
 
-    def _is_whitelisted(self, message: str) -> bool:
-        for pattern in self._compiled_whitelist:
-            if pattern.search(message):
-                return True
-        return False
+    @staticmethod
+    def _count(msg: str, kws: list) -> int:
+        return sum(1 for kw in kws if kw in msg)
 
-    def _safe_result(self) -> Dict:
+    @classmethod
+    def _any_rx(cls, msg: str, rxs: list) -> bool:
+        return any(rx.search(msg) for rx in rxs)
+
+    def _signals(self, msg: str) -> Dict:
         return {
-            "is_social_engineering": False,
-            "confidence_score": 0.0,
-            "category": "safe",
-            "details": {
-                "rag_confidence": 0.0,
-                "rule_confidence": 0.0,
-                "confidence_breakdown": {
-                    "rag_weight": self.weights["rag"],
-                    "rule_weight": self.weights["rules"],
-                    "formula": "final = 0.65 × RAG + 0.35 × Rules"
-                }
-            },
-            "risk_level": "SAFE",
-            "explanation": "Message is informational and matches known safe patterns."
+            "fear": [kw for kw in self.FEAR_KW if kw in msg],
+            "deadline": [kw for kw in self.DEADLINE_KW if kw in msg],
+            "gov": [kw for kw in self.GOV_KW if kw in msg],
+            "identity": any(rx.search(msg) for rx in self._IDENTITY_RX),
+            "brand": [kw for kw in self.BRAND_KW if kw in msg],
+            "authority": [
+                kw for kw in self.AUTHORITY_KW
+                if kw in msg and not self._auth_benign.search(msg)
+            ],
+            "sensitive": any(rx.search(msg) for rx in self._SENSITIVE_RX),
+            "reward": [kw for kw in self.REWARD_KW if kw in msg],
+            "verify_suspicious": (
+                ("verify" in msg or "confirm" in msg)
+                and not self._verify_benign.search(msg)
+            ),
         }
 
-    # ───────────────────────────────────────────────
-    # Public API
-    # ───────────────────────────────────────────────
+    def _whitelisted(self, msg: str, sig: Dict) -> bool:
+        if sig["fear"] or sig["sensitive"]:
+            return False
+        return any(rx.search(msg) for rx in self._whitelist_rx)
 
     def analyze_message(self, message: str) -> Dict:
-        if self._is_whitelisted(message):
-            return self._safe_result()
-
-        rag_result = self.rag_detector.detect(message)
-        rule_result = self._run_rule_based_detection(message)
-
-        return self._ensemble_detection(rag_result, rule_result)
-
-    # ───────────────────────────────────────────────
-    # Rule-based detection
-    # ───────────────────────────────────────────────
-
-    def _run_rule_based_detection(self, message: str) -> Dict:
-        score = self._basic_rule_detection(message)
-        return {
-            "is_social_engineering": score > 0.55,
-            "confidence_score": score,
-            "category": self._detect_category_from_rules(message)
-        }
-
-    def _basic_rule_detection(self, message: str) -> float:
         msg = message.lower()
+        sig = self._signals(msg)
+
+        if self._whitelisted(msg, sig):
+            return {
+                "attack_detected": False,
+                "categories": [],
+                "risk_level": "SAFE",
+                "rag_confidence": 0.0,
+                "rule_confidence": 0.0,
+                "overall_confidence": 0.0,
+                "confidence_calculation": (
+                    "Overall Confidence = (0.6 x 0.00) + (0.4 x 0.00)\n"
+                    "= 0.00 + 0.00\n"
+                    "= 0.00%"
+                ),
+            }
+
+        rag_conf, rag_cat = self.rag.detect(message)
+        rule_conf, rule_cats = self._rule_engine(sig)
+
+        return self._combine(msg, rag_conf, rag_cat, rule_conf, rule_cats, sig)
+
+    def _rule_engine(self, sig: Dict) -> Tuple[float, List[str]]:
         score = 0.0
 
-        # Urgency requires pressure keywords
-        urgency_keywords = ["urgent", "immediately", "act now", "expires", "final warning"]
-        if any(k in msg for k in urgency_keywords):
-            score += 0.30
+        n_fear = len(sig["fear"])
+        if n_fear >= 1:
+            score += 35.0
+        if n_fear >= 2:
+            score += 15.0
 
-        # Threat / fear
-        fear_keywords = ["suspended", "terminated", "legal action", "compromised", "hacked"]
-        if any(k in msg for k in fear_keywords):
-            score += 0.35
+        if sig["deadline"]:
+            score += 25.0
 
-        # Reward lure
-        reward_keywords = ["won", "prize", "reward", "claim", "free"]
-        if any(k in msg for k in reward_keywords):
-            score += 0.30
+        if sig["identity"] or sig["brand"]:
+            score += 20.0
 
-        # Authority abuse (non-informational)
-        authority_keywords = ["ceo", "manager", "director", "boss"]
-        for k in authority_keywords:
-            if k in msg and not self._authority_benign.search(msg):
-                score += 0.20
+        if sig["authority"]:
+            score += 20.0
 
-        # Impersonation via verify/confirm (not appointments)
-        if "verify" in msg or "confirm" in msg:
-            if not self._verify_benign.search(msg):
-                score += 0.25
+        if sig["sensitive"]:
+            score += 25.0
 
-        return min(score, 1.0)
+        if sig["reward"]:
+            score += 20.0
 
-    def _detect_category_from_rules(self, message: str) -> str:
-        msg = message.lower()
+        if sig["verify_suspicious"]:
+            score += 10.0
 
-        if any(k in msg for k in ["urgent", "act now", "expires"]):
-            return "urgency"
-        if any(k in msg for k in ["won", "reward", "prize", "free"]):
-            return "reward_lure"
-        if any(k in msg for k in ["ceo", "director", "manager"]) and not self._authority_benign.search(msg):
-            return "authority"
-        if any(k in msg for k in ["verify", "confirm"]) and not self._verify_benign.search(msg):
-            return "impersonation"
-        if any(k in msg for k in ["suspended", "legal action", "hacked", "terminated"]):
-            return "fear_threat"
+        score = min(score, 100.0)
 
-        return "unknown"
+        cats: List[str] = []
 
-    # ───────────────────────────────────────────────
-    # Ensemble logic
-    # ───────────────────────────────────────────────
+        if sig["fear"]:
+            cats.append("Fear/Threat")
 
-    def _ensemble_detection(self, rag: Dict, rules: Dict) -> Dict:
-        rag_conf = rag["confidence_score"]
-        rule_conf = rules["confidence_score"]
+        if sig["identity"] or sig["brand"]:
+            cats.append("Impersonation")
 
-        final_conf = (
-            self.weights["rag"] * rag_conf +
-            self.weights["rules"] * rule_conf
+        if sig["authority"]:
+            cats.append("Authority")
+
+        if sig["deadline"]:
+            cats.append("Urgency")
+
+        if sig["reward"]:
+            cats.append("Reward/Lure")
+
+        if "Impersonation" in cats and sig["sensitive"]:
+            if "Fear/Threat" not in cats:
+                cats.insert(0, "Fear/Threat")
+
+        if sig["verify_suspicious"] and not cats:
+            cats.append("Impersonation")
+
+        seen: List[str] = []
+        for c in cats:
+            if c not in seen:
+                seen.append(c)
+            if len(seen) == 2:
+                break
+
+        return score, seen
+
+    def _combine(
+        self,
+        msg: str,
+        rag_conf: float,
+        rag_cat: str,
+        rule_conf: float,
+        rule_cats: List[str],
+        sig: Dict,
+    ) -> Dict:
+
+        CAT_MAP = {
+            "fear_threat": "Fear/Threat",
+            "impersonation": "Impersonation",
+            "authority": "Authority",
+            "urgency": "Urgency",
+            "reward_lure": "Reward/Lure",
+        }
+        rag_cat_display = CAT_MAP.get(rag_cat, None)
+
+        cats = list(rule_cats)
+        if rag_cat_display and rag_cat_display not in cats:
+            cats.append(rag_cat_display)
+
+        n_fear = len(sig["fear"])
+        if n_fear >= 1 and "Fear/Threat" not in cats:
+            cats.insert(0, "Fear/Threat")
+        elif n_fear >= 1 and cats and cats[0] != "Fear/Threat":
+            if "Fear/Threat" in cats:
+                cats.remove("Fear/Threat")
+            cats.insert(0, "Fear/Threat")
+
+        cats = list(dict.fromkeys(cats))[:2]
+
+        rag_part = round(0.6 * rag_conf, 2)
+        rule_part = round(0.4 * rule_conf, 2)
+        overall = round(rag_part + rule_part, 2)
+
+        has_gov = bool(sig["gov"])
+        has_sens = sig["sensitive"]
+        has_dl = bool(sig["deadline"])
+
+        if has_gov:
+            overall = max(overall, 70.0)
+        if has_sens and has_dl:
+            overall = max(overall, 65.0)
+        if has_sens and (sig["identity"] or sig["brand"]):
+            overall = max(overall, 65.0)
+        if n_fear >= 2:
+            overall = max(overall, 60.0)
+        if n_fear >= 1 and has_dl:
+            overall = max(overall, 60.0)
+        if n_fear >= 1:
+            overall = max(overall, 40.0)
+        if rule_conf > 70.0 and "Fear/Threat" in cats:
+            overall = max(overall, 65.0)
+
+        overall = round(max(0.0, min(100.0, overall)), 2)
+
+        if overall >= 76:
+            risk = "HIGH"
+        elif overall >= 56:
+            risk = "POTENTIAL"
+        elif overall >= 31:
+            risk = "LOW"
+        else:
+            risk = "SAFE"
+
+        if "Fear/Threat" in cats and overall >= 60 and risk == "LOW":
+            risk = "POTENTIAL"
+
+        attack = overall > 30.0
+
+        calc = (
+            f"Overall Confidence = (0.6 x {rag_conf:.2f}) + (0.4 x {rule_conf:.2f})\n"
+            f"= {rag_part:.2f} + {rule_part:.2f}\n"
+            f"= {round(rag_part + rule_part, 2):.2f}%"
         )
-
-        final_conf = max(0.0, min(1.0, final_conf))
-        is_attack = final_conf > 0.55
-
-        category = rag["category"] if rag_conf >= rule_conf else rules["category"]
-        if category == "psychological_coercion":
-            category = "fear_threat"
+        if overall != round(rag_part + rule_part, 2):
+            calc += f"\nAfter severity floors: {overall:.2f}%"
 
         return {
-            "is_social_engineering": is_attack,
-            "confidence_score": round(final_conf, 4),
-            "category": category,
-            "details": {
-                "rag_confidence": round(rag_conf, 4),
-                "rule_confidence": round(rule_conf, 4),
-                "confidence_breakdown": {
-                    "rag_weight": self.weights["rag"],
-                    "rag_contribution": round(self.weights["rag"] * rag_conf, 4),
-                    "rule_weight": self.weights["rules"],
-                    "rule_contribution": round(self.weights["rules"] * rule_conf, 4),
-                    "formula": "final = 0.65 × RAG + 0.35 × Rules"
-                },
-                "similar_patterns": rag.get("similar_patterns", []),
-            },
-            "risk_level": self._get_risk_level(final_conf),
-            "explanation": self._final_explanation(is_attack, category, final_conf)
+            "attack_detected": attack,
+            "categories": cats if attack else [],
+            "risk_level": risk,
+            "rag_confidence": round(rag_conf, 2),
+            "rule_confidence": round(rule_conf, 2),
+            "overall_confidence": overall,
+            "confidence_calculation": calc,
         }
-
-    # ───────────────────────────────────────────────
-    # Helpers
-    # ───────────────────────────────────────────────
-
-    def _get_risk_level(self, confidence: float) -> str:
-        if confidence >= 0.85:
-            return "CRITICAL"
-        elif confidence >= 0.7:
-            return "HIGH"
-        elif confidence >= 0.55:
-            return "MEDIUM"
-        elif confidence >= 0.3:
-            return "LOW"
-        return "SAFE"
-
-    def _final_explanation(self, is_attack: bool, category: str, confidence: float) -> str:
-        if not is_attack:
-            return (
-                f"Message appears legitimate.\n"
-                f"Confidence: {(1-confidence)*100:.1f}%"
-            )
-        return (
-            f"Social Engineering Attack Detected\n"
-            f"Category: {category.replace('_', ' ').title()}\n"
-            f"Confidence: {confidence*100:.1f}%\n"
-            f"Risk Level: {self._get_risk_level(confidence)}"
-        )

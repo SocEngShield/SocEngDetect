@@ -1,172 +1,142 @@
 """
-RAG-based Social Engineering Detection using Embeddings
-False-positive controlled version (exam-safe)
+RAG-based Social Engineering Detection — v6.0.
+Returns ONLY: rag_confidence (0-100) and voted_category.
 """
 
 import math
 import numpy as np
 from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity as _vector_match
 from typing import Dict, List, Tuple
-from sklearn.metrics.pairwise import cosine_similarity
 
 
 class RAGSocialEngineeringDetector:
-    """
-    Uses Retrieval Augmented Generation (RAG) approach for detecting social engineering.
-    Optimized to reduce false positives and resolve urgency / impersonation confusion.
-    """
+
+    THREAT_KW = [
+        "legal action", "court", "police", "fir filed", "fir has been filed",
+        "arrest", "investigation", "permanently closed", "terminated",
+        "account frozen", "account has been frozen", "service termination",
+        "aadhaar misuse", "aadhaar", "pan blocked", "pan card",
+        "sim deactivated", "sim card", "bank account frozen",
+        "money laundering", "prosecution", "seized", "non-bailable",
+        "blacklisted", "look-out notice", "cyber cell",
+        "suspended", "hacked", "compromised", "ransomware",
+        "encrypted", "dark web", "webcam", "browsing activity",
+        "leaked", "breach", "income tax", "frozen",
+        "permanently", "deactivated", "share info", "credentials",
+        "login details", "financial",
+    ]
+
+    DEADLINE_KW = [
+        "immediately", "within 24 hours", "within 48 hours",
+        "right now", "act now", "in 1 hour", "in 2 hours",
+        "within the next", "before authorities", "final warning",
+        "within 10 minutes", "in 10 minutes", "in 30 minutes",
+        "30 minutes", "last warning", "last chance", "expires",
+    ]
+
+    SAFE_CONTEXT = [
+        "announced", "reported", "mentioned",
+        "during today", "presentation", "product launch",
+        "press release", "scheduled maintenance",
+        "no action required", "no action is needed",
+    ]
 
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
         print(f"Loading embedding model: {model_name}")
-        self.embedding_model = SentenceTransformer(model_name)
-
-        self.patterns = []
+        self.model = SentenceTransformer(model_name)
+        self.patterns: List[str] = []
         self.embeddings = None
-        self.metadatas = []
+        self.metadatas: List[Dict] = []
+        print("RAG Detector ready.")
 
-        print("RAG Detector initialized successfully!")
-
-    def add_patterns_to_knowledge_base(self, patterns: List[Dict]):
+    def add_patterns(self, patterns: List[Dict]):
         texts = [p["text"] for p in patterns]
-
-        embeddings = self.embedding_model.encode(
-            texts, convert_to_tensor=False, show_progress_bar=False
+        self.embeddings = np.array(
+            self.model.encode(texts, convert_to_tensor=False, show_progress_bar=False)
         )
-
         self.patterns = texts
-        self.embeddings = np.array(embeddings)
         self.metadatas = [
             {
                 "label": p["label"],
-                "category": p["category"],
-                "base_confidence": p["confidence"],
+                "category": (
+                    "fear_threat"
+                    if p["category"] in ("psychological_coercion", "fear_threat_severe")
+                    else p["category"]
+                ),
+                "base_conf": p["confidence"],
             }
             for p in patterns
         ]
+        print(f"Knowledge base: {len(patterns)} patterns loaded.")
 
-        print(f"Added {len(patterns)} patterns to knowledge base")
+    def detect(self, message: str) -> Tuple[float, str]:
+        """
+        Returns:
+            rag_confidence: float 0-100 (probability message is malicious)
+            voted_category: str (neighbor-voted category signal)
+        """
+        emb = self.model.encode([message], show_progress_bar=False)[0].reshape(1, -1)
+        scores = _vector_match(emb, self.embeddings)[0]
+        top_idx = np.argsort(scores)[::-1][:5]
+        top_score = float(scores[top_idx[0]]) if top_idx.size else 0.0
 
-    def detect(self, message: str, top_k: int = 5) -> Dict:
-        message_embedding = self.embedding_model.encode(
-            [message], show_progress_bar=False
-        )[0].reshape(1, -1)
+        msg = message.lower()
+        n_threat = sum(1 for kw in self.THREAT_KW if kw in msg)
+        has_deadline = any(kw in msg for kw in self.DEADLINE_KW)
+        is_safe_ctx = any(p in msg for p in self.SAFE_CONTEXT) and n_threat == 0
 
-        similarities = cosine_similarity(message_embedding, self.embeddings)[0]
-        top_indices = np.argsort(similarities)[::-1][:top_k]
-
-        best_sim = float(similarities[top_indices[0]]) if top_indices.size else 0.0
-        raw_similarity = round(best_sim, 4)
-
-        # ── FIX 1: Suppress informational / reporting messages ──
-        msg_lower = message.lower()
-        informational_phrases = [
-            "announced",
-            "reported",
-            "mentioned",
-            "shared",
-            "during today",
-            "meeting",
-            "presentation",
-            "product launch",
-            "press release",
-        ]
-
-        is_informational = any(p in msg_lower for p in informational_phrases)
-
-        # Sigmoid calibration
-        if best_sim <= 0:
-            calibrated = 0.0
+        # Convert top embedding score to malicious probability
+        if top_score <= 0:
+            prob = 0.0
         else:
-            calibrated = 1 / (1 + math.exp(-12 * (best_sim - 0.45)))
-            calibrated *= 0.90
+            prob = 1.0 / (1.0 + math.exp(-9.0 * (top_score - 0.40)))
+            prob *= 0.92
 
-        if is_informational:
-            calibrated = min(calibrated, 0.35)
+        if top_score < 0.30:
+            prob = min(prob, 0.15)
+        if is_safe_ctx:
+            prob = min(prob, 0.25)
 
-        calibrated_confidence = round(calibrated, 4)
+        # Neighbor agreement
+        metas = [self.metadatas[i] for i in top_idx]
+        n_attack = sum(1 for m in metas if m["label"] == "social_engineering")
+        agreement = n_attack / max(len(metas), 1)
+        if agreement >= 0.7 and prob > 0.20:
+            prob = min(prob * 1.18, 0.95)
 
-        results = {
-            "documents": [[self.patterns[i] for i in top_indices]],
-            "distances": [[1 - similarities[i] for i in top_indices]],
-            "metadatas": [[self.metadatas[i] for i in top_indices]],
-        }
+        # Threat keyword floors
+        if n_threat >= 2 and has_deadline:
+            prob = max(prob, 0.75)
+        elif n_threat >= 2:
+            prob = max(prob, 0.60)
+        elif n_threat >= 1 and has_deadline:
+            prob = max(prob, 0.55)
+        elif n_threat >= 1:
+            prob = max(prob, 0.40)
 
-        vote_conf, is_attack, category = self._calculate_confidence(results)
+        # Neighbor vote for category
+        cat_scores: Dict[str, float] = {}
+        for i in top_idx:
+            m = self.metadatas[i]
+            s = float(scores[i])
+            cat = m["category"]
+            if cat in ("psychological_coercion", "fear_threat_severe"):
+                cat = "fear_threat"
+            if m["label"] == "social_engineering":
+                cat_scores[cat] = cat_scores.get(cat, 0.0) + s * m["base_conf"]
 
-        if category == "psychological_coercion":
-            category = "fear_threat"
+        voted_cat = max(cat_scores, key=cat_scores.get) if cat_scores else "unknown"
+        rag_confidence = round(max(0.0, min(100.0, prob * 100)), 2)
 
-        similar_patterns = results["documents"][0]
-        distances = results["distances"][0]
-
-        return {
-            "is_social_engineering": is_attack and not is_informational,
-            "confidence_score": calibrated_confidence,
-            "raw_similarity": raw_similarity,
-            "calibrated_confidence": calibrated_confidence,
-            "category": category,
-            "similar_patterns": [
-                {"pattern": p, "similarity": round(1 - d, 4)}
-                for p, d in zip(similar_patterns[:3], distances[:3])
-            ],
-            "explanation": self._generate_explanation(
-                is_attack and not is_informational,
-                category,
-                calibrated_confidence,
-            ),
-        }
-
-    def _calculate_confidence(self, results: Dict) -> Tuple[float, bool, str]:
-        if not results["distances"]:
-            return 0.0, False, "unknown"
-
-        similarities = [1 - d for d in results["distances"][0]]
-        metadatas = results["metadatas"][0]
-
-        attack_score = 0.0
-        legit_score = 0.0
-        category_scores = {}
-
-        for sim, meta in zip(similarities, metadatas):
-            weight = sim * float(meta["base_confidence"])
-            category = meta["category"]
-
-            if category == "psychological_coercion":
-                category = "fear_threat"
-
-            if meta["label"] == "social_engineering":
-                attack_score += weight
-                category_scores[category] = category_scores.get(category, 0) + weight
-            else:
-                legit_score += weight
-
-        total = attack_score + legit_score
-        attack_conf = attack_score / total if total > 0 else 0.0
-
-        is_attack = attack_conf > 0.55
-        category = max(category_scores, key=category_scores.get) if category_scores else "unknown"
-
-        return attack_conf, is_attack, category
-
-    def _generate_explanation(self, is_attack: bool, category: str, confidence: float) -> str:
-        if not is_attack:
-            return f"Message appears legitimate with {(1-confidence)*100:.1f}% confidence"
-
-        explanations = {
-            "urgency": "The message pressures immediate action using urgency",
-            "reward_lure": "The message promises rewards to manipulate the user",
-            "authority": "The message abuses authority to force compliance",
-            "impersonation": "The message pretends to be from a trusted source",
-            "fear_threat": "The message uses fear or threats to coerce action",
-        }
-
-        return f"{explanations.get(category, 'Suspicious social engineering detected')}. Confidence: {confidence*100:.1f}%"
+        return rag_confidence, voted_cat
 
 
-_detector_instance = None
+_instance = None
+
 
 def get_detector() -> RAGSocialEngineeringDetector:
-    global _detector_instance
-    if _detector_instance is None:
-        _detector_instance = RAGSocialEngineeringDetector()
-    return _detector_instance
+    global _instance
+    if _instance is None:
+        _instance = RAGSocialEngineeringDetector()
+    return _instance
