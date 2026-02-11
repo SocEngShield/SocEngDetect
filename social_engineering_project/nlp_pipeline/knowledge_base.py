@@ -2,13 +2,13 @@
 Social Engineering Attack Patterns Knowledge Base.
 Balanced dataset for RAG-based detection.
 
-Distribution (15 each x 8 categories = 120 total):
+Distribution (15 each x 9 categories = 135 total):
   - urgency               (social_engineering) : 15
   - reward_lure           (social_engineering) : 15
   - authority             (social_engineering) : 15
   - impersonation         (social_engineering) : 15
-  - fear_threat           (social_engineering) : 15
-  - psychological_coercion (social_engineering): 15   <-- NEW
+  - fear_threat           (social_engineering) : 30  (15 original + 15 merged from psychological_coercion)
+  - fear_threat_severe    (social_engineering) : 15  NEW — service termination / legal / India-specific
   - legitimate_but_tricky (legitimate)         : 15
   - normal_communication  (legitimate)         : 15
 """
@@ -32,6 +32,7 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "IMPORTANT: Your cloud storage is 99% full and files will be deleted in 3 hours. Upgrade immediately at this link", "label": "social_engineering", "category": "urgency", "confidence": 0.86},
     {"text": "Act fast — your tax refund of $4,200 will expire at midnight tonight. Submit your bank info now to receive it", "label": "social_engineering", "category": "urgency", "confidence": 0.93},
     {"text": "WARNING: If you don't reset your password within 20 minutes, all your saved data will be permanently erased", "label": "social_engineering", "category": "urgency", "confidence": 0.92},
+    {"text": "Your verification window closes in 5 minutes. Failure to act will result in permanent account termination", "label": "social_engineering", "category": "urgency", "confidence": 0.91},
 
     # ═══════════════════════════════════════════════════════════════
     #  REWARD LURE  (15)
@@ -54,7 +55,7 @@ SOCIAL_ENGINEERING_DATASET = [
 
     # ═══════════════════════════════════════════════════════════════
     #  AUTHORITY  (15)
-    # ═══════════════════════════════════════════════════════════════
+    # ═══════════���═══════════════════════════════════════════════════
     {"text": "I'm the CEO and I need you to transfer funds immediately. This is confidential.", "label": "social_engineering", "category": "authority", "confidence": 0.92},
     {"text": "This is your manager. I need you to purchase gift cards worth $5000 urgently for a client meeting", "label": "social_engineering", "category": "authority", "confidence": 0.94},
     {"text": "Director of Operations here. Send me employee payroll information immediately for audit purposes", "label": "social_engineering", "category": "authority", "confidence": 0.90},
@@ -95,7 +96,7 @@ SOCIAL_ENGINEERING_DATASET = [
     # ═══════════════════════════════════════════════════════════════
     {"text": "Security alert: Suspicious activity detected. Click here to secure your account NOW!", "label": "social_engineering", "category": "fear_threat", "confidence": 0.93},
     {"text": "WARNING: Your computer is infected with a virus. Download our security software immediately!", "label": "social_engineering", "category": "fear_threat", "confidence": 0.95},
-    {"text": "Legal notice: You have unpaid taxes. Failure to respond within 24 hours will result in legal action", "label": "social_engineering", "category": "fear_threat", "confidence": 0.94},
+    {"text": "Legal notice: You have unpaid taxes. Failure to respond within 24 hours will result in legal action", "label": "social_engineering", "category": "fear_threat", "confidence": 0.95},
     {"text": "Your personal data has been compromised in a breach. Click here immediately to secure your information", "label": "social_engineering", "category": "fear_threat", "confidence": 0.90},
     {"text": "ALERT: We have recorded your browsing activity. Pay $500 in Bitcoin within 48 hours or the information will be shared with your contacts", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
     {"text": "Your device has been compromised by ransomware. All files are encrypted. Send $1,000 to this wallet address to recover your data", "label": "social_engineering", "category": "fear_threat", "confidence": 0.98},
@@ -106,28 +107,47 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "Your social media accounts have been flagged for suspicious content. Verify your identity now or your accounts will be permanently banned", "label": "social_engineering", "category": "fear_threat", "confidence": 0.89},
     {"text": "DANGER: Your router has been hacked. All your network traffic is being intercepted. Install this security patch immediately", "label": "social_engineering", "category": "fear_threat", "confidence": 0.93},
     {"text": "We've detected someone trying to steal your identity. Your credit score is at risk. Click here now to activate identity protection", "label": "social_engineering", "category": "fear_threat", "confidence": 0.91},
-    {"text": "A complaint has been filed against you and legal proceedings will begin in 72 hours unless you respond to this notice immediately", "label": "social_engineering", "category": "fear_threat", "confidence": 0.94},
+    {"text": "A complaint has been filed against you and legal proceedings will begin in 72 hours unless you respond to this notice immediately", "label": "social_engineering", "category": "fear_threat", "confidence": 0.95},
     {"text": "CRITICAL WARNING: Multiple failed login attempts detected. Your account will be permanently locked. Verify your identity now to prevent lockout", "label": "social_engineering", "category": "fear_threat", "confidence": 0.91},
 
     # ═══════════════════════════════════════════════════════════════
-    #  PSYCHOLOGICAL COERCION  (15)  — NEW: no URL, no credential ask
-    #  These fill the RAG coverage gap that caused 0% confidence
+    #  PSYCHOLOGICAL COERCION  (15) — merged into fear_threat category
     # ═══════════════════════════════════════════════════════════════
-    {"text": "We know where you live and we know your family. Cooperate or face the consequences.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.96},
-    {"text": "I have recorded you through your webcam. Pay up or the footage goes to everyone you know.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.97},
-    {"text": "Comply with our demands or we will ruin your career and destroy your reputation permanently.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.95},
-    {"text":  "Do as I say or I will expose your private conversations and browsing history to your employer.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.96},
-    {"text": "We have accessed your email and phone. We have everything. Do exactly what we tell you or face the consequences.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.97},
-    {"text": "This is your last warning. You have 24 hours to comply. There will be no second chance and no way back.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.93},
-    {"text": "Keep this between us. Do not tell anyone. If you disobey there will be severe consequences for you and your family.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.95},
-    {"text": "I am ordering you to process this now. No questions asked. Do it quietly or I will make sure you regret it.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.94},
-    {"text": "Your files are encrypted and there is no recovery without our key. This is permanent. Pay now or lose everything forever.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.97},
-    {"text": "We will leak your personal photos and private data to the public unless you cooperate immediately.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.96},
-    {"text": "I know your secrets. I have proof. Do what I ask or everyone will know. You have 48 hours.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.95},
-    {"text": "You will be held personally responsible. This will follow you for the rest of your career. Comply now.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.92},
-    {"text": "If you don't do exactly as instructed, we will release damaging information about you. This is not a bluff.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.96},
-    {"text": "We are watching your every move. We have hacked your camera and microphone. Obey or suffer the consequences.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.97},
-    {"text": "Disappoint me on this and it will reflect very badly on you. Keep this confidential and do it now without question.", "label": "social_engineering", "category": "psychological_coercion", "confidence": 0.90},
+    {"text": "We know where you live and we know your family. Cooperate or face the consequences.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
+    {"text": "I have recorded you through your webcam. Pay up or the footage goes to everyone you know.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
+    {"text": "Comply with our demands or we will ruin your career and destroy your reputation permanently.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
+    {"text": "Do as I say or I will expose your private conversations and browsing history to your employer.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
+    {"text": "We have accessed your email and phone. We have everything. Do exactly what we tell you or face the consequences.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
+    {"text": "This is your last warning. You have 24 hours to comply. There will be no second chance and no way back.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.94},
+    {"text": "Keep this between us. Do not tell anyone. If you disobey there will be severe consequences for you and your family.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
+    {"text": "I am ordering you to process this now. No questions asked. Do it quietly or I will make sure you regret it.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.95},
+    {"text": "Your files are encrypted and there is no recovery without our key. This is permanent. Pay now or lose everything forever.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
+    {"text": "We will leak your personal photos and private data to the public unless you cooperate immediately.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
+    {"text": "I know your secrets. I have proof. Do what I ask or everyone will know. You have 48 hours.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.95},
+    {"text": "You will be held personally responsible. This will follow you for the rest of your career. Comply now.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.93},
+    {"text": "If you don't do exactly as instructed, we will release damaging information about you. This is not a bluff.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
+    {"text": "We are watching your every move. We have hacked your camera and microphone. Obey or suffer the consequences.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
+    {"text": "Disappoint me on this and it will reflect very badly on you. Keep this confidential and do it now without question.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.91},
+
+    # ═══════════════════════════════════════════════════════════════
+    #  FEAR / THREAT — SEVERE  (15)  NEW: service termination, legal,
+    #  India-specific scams (Aadhaar, PAN, SIM, court, police, FIR)
+    # ═══════════════════════════════════════════════════════════════
+    {"text": "Your bank account has been frozen due to suspicious activity. Contact us immediately or your funds will be permanently seized", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
+    {"text": "Your Aadhaar number has been misused for illegal activities. Your Aadhaar will be deactivated within 24 hours unless you verify now", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
+    {"text": "Your PAN card has been blocked by the Income Tax Department due to suspicious transactions. Call immediately to unblock", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
+    {"text": "Your SIM card will be deactivated within 2 hours due to illegal usage detected. Press 1 to speak to a telecom officer immediately", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
+    {"text": "An FIR has been filed against you for financial fraud. Report to the nearest police station or face arrest within 48 hours", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
+    {"text": "A court summon has been issued in your name. Failure to appear will result in a non-bailable arrest warrant", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
+    {"text": "The Income Tax Department has initiated an investigation against you. Settle your dues within 24 hours to avoid prosecution", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
+    {"text": "A police complaint has been registered against your phone number for fraud. Your number will be blacklisted permanently", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
+    {"text": "Your bank account will be permanently closed within 24 hours due to KYC non-compliance. Update immediately to prevent closure", "label": "social_engineering", "category": "fear_threat", "confidence": 0.95},
+    {"text": "Your internet service will be terminated immediately due to illegal content accessed from your IP. Contact cyber cell now", "label": "social_engineering", "category": "fear_threat", "confidence": 0.95},
+    {"text": "Legal action has been initiated against you. Your property and bank assets will be seized unless you settle immediately", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
+    {"text": "Your passport has been flagged and a look-out notice has been issued. You are prohibited from leaving the country until further notice", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
+    {"text": "Your electricity connection will be disconnected today due to unpaid dues. Pay immediately through this link to avoid disconnection", "label": "social_engineering", "category": "fear_threat", "confidence": 0.94},
+    {"text": "Your credit card has been used for money laundering. The bank has reported this to authorities. Call now to avoid criminal charges", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
+    {"text": "Your email account will be permanently deleted due to violation of terms. Verify your identity within 1 hour to prevent deletion", "label": "social_engineering", "category": "fear_threat", "confidence": 0.93},
 
     # ═══════════════════════════════════════════════════════════════
     #  LEGITIMATE BUT TRICKY  (15)
