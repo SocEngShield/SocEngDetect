@@ -1,7 +1,6 @@
 """
-Social Engineering Detection System - Professional Dashboard
-v3.0 — Clean confidence display: RAG + Rules + Final only.
-       Multi-label category display. No raw_similarity / rag_vote.
+Social Engineering Detection System — Dashboard v4.0.
+Clean confidence display • Multi-label categories • Evaluation tab.
 """
 
 import streamlit as st
@@ -14,330 +13,299 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from nlp_pipeline.integrated_detector import IntegratedSocialEngineeringDetector
 from nlp_pipeline.knowledge_base import SOCIAL_ENGINEERING_DATASET
 from nlp_pipeline.rag_detector import get_detector
+from nlp_pipeline.evaluation import DetectionEvaluator
 
 
-# PAGE CONFIGURATION
+# ── Page config ──
 st.set_page_config(
     page_title="Social Engineering Detection System",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
-
-# CUSTOM CSS
+# ── CSS ──
 st.markdown("""
 <style>
-    .main { padding: 2rem; }
     .block-container { padding-top: 2rem; padding-bottom: 2rem; }
-    .metric-card {
-        background-color: rgba(255, 255, 255, 0.05);
-        padding: 1.5rem; border-radius: 0.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        margin-bottom: 1rem;
-    }
     .status-box {
         padding: 1.5rem; border-radius: 0.5rem; text-align: center;
-        margin: 2rem 0; font-size: 1.5rem; font-weight: bold;
-    }
-    .status-threat {
-        background-color: rgba(255, 193, 7, 0.2);
-        border: 2px solid #ffc107; color: #ffc107;
+        margin: 1.5rem 0; font-size: 1.4rem; font-weight: bold;
     }
     .status-critical {
-        background-color: rgba(220, 53, 69, 0.2);
-        border: 2px solid #dc3545; color: #dc3545;
+        background: rgba(220,53,69,.15); border: 2px solid #dc3545; color: #dc3545;
+    }
+    .status-threat {
+        background: rgba(255,193,7,.15); border: 2px solid #ffc107; color: #ffc107;
     }
     .status-safe {
-        background-color: rgba(40, 167, 69, 0.2);
-        border: 2px solid #28a745; color: #28a745;
+        background: rgba(40,167,69,.15); border: 2px solid #28a745; color: #28a745;
     }
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+    #MainMenu, footer { visibility: hidden; }
     .stButton>button {
-        width: 100%; border-radius: 0.5rem;
-        padding: 0.75rem 1rem; font-weight: 600;
-        background-color: #dc3545; color: white;
+        width: 100%; border-radius: .5rem; padding: .75rem 1rem;
+        font-weight: 600;
     }
-    .stButton>button:hover { background-color: #c82333; }
-    .stTextArea textarea { border-radius: 0.5rem; }
-    hr { margin: 2rem 0; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# INITIALIZE DETECTOR (CACHED)
+# ── Init ──
 @st.cache_resource(show_spinner=False)
-def initialize_detector():
+def init():
     try:
-        rag_detector = get_detector()
-        rag_detector.add_patterns_to_knowledge_base(SOCIAL_ENGINEERING_DATASET)
-        detector = IntegratedSocialEngineeringDetector()
-        return detector, None
+        rag = get_detector()
+        rag.add_patterns_to_knowledge_base(SOCIAL_ENGINEERING_DATASET)
+        det = IntegratedSocialEngineeringDetector()
+        return det, None
     except Exception as e:
         return None, str(e)
 
-
-with st.spinner("⏳ Initializing models... Please wait (~30 seconds on first run)"):
-    detector, error = initialize_detector()
-
-if error:
-    st.error(f" Error initializing detector: {error}")
-    st.info("🔄 Please refresh the page. If the error persists, contact the administrator.")
+with st.spinner("⏳ Loading models (~30 s first time)…"):
+    detector, err = init()
+if err:
+    st.error(f"❌ {err}")
     st.stop()
 
 
-# HEADER
-st.title(" Social Engineering Detection System")
-st.markdown("### Message Analysis using RAG, NLP & Machine Learning")
+# ── Header ──
+st.title("🛡️ Social Engineering Detection System")
+st.caption("RAG + NLP + Rule Engine — Weighted Ensemble")
 st.markdown("---")
 
-
-# SIDEBAR
-with st.sidebar:
-    st.markdown("## ℹ About This System")
-    st.info("""
-    **RAG** — Semantic similarity via embeddings
-    **Rules** — Keyword + heuristic detection
-    **Ensemble** — 65% RAG + 35% Rules
-    """)
-
-    st.markdown("---")
-    st.markdown("##  Detection Categories")
-    st.markdown("""
-    ⏰ **Urgency** — Pressure for quick action
-    🎁 **Reward/Lure** — Fake rewards
-    👔 **Authority** — Fake authority figures
-    🎭 **Impersonation** — Trusted entity spoofing
-    😨 **Fear/Threat** — Intimidation & scare tactics
-    """)
-
-    st.markdown("---")
-    st.markdown("System Statistics")
-    st.metric("Knowledge Base Patterns", len(SOCIAL_ENGINEERING_DATASET))
-    st.metric("Detection Accuracy", "88-95%")
-    st.metric("Average Response Time", "< 2 sec")
+# ── Tabs ──
+tab_analyze, tab_eval = st.tabs(["🔍 Analyze Message", "📊 Evaluation"])
 
 
-# MAIN INPUT
-st.markdown("Enter Message to Analyze")
-st.markdown("Type or paste any message, email, SMS, or communication you want to check.")
+# ═══════════════════════════════════════════════════════
+#  TAB 1: ANALYZE
+# ═══════════════════════════════════════════════════════
 
-user_message = st.text_area(
-    label="Message Content",
-    height=200,
-    placeholder="Example: Income Tax Department. Submit financial details immediately.",
-    help="Enter the complete message you want to analyze.",
-    key="user_input_message"
-)
+with tab_analyze:
+    msg = st.text_area(
+        "Enter message to analyze",
+        height=150,
+        placeholder="Income Tax Department. Submit financial details immediately.",
+    )
 
-analyze_clicked = st.button("🔍 ANALYZE MESSAGE", type="primary", use_container_width=True)
+    if st.button("🔍 ANALYZE", type="primary", use_container_width=True):
+        if not msg or len(msg.strip()) < 10:
+            st.warning("⚠️ Enter at least 10 characters.")
+        else:
+            with st.spinner("Analyzing…"):
+                time.sleep(0.2)
+                r = detector.analyze_message(msg)
 
+            is_att = r["is_social_engineering"]
+            conf = r["confidence_score"]
+            risk = r["risk_level"]
+            cats = r.get("categories", [r["category"]])
+            det_d = r.get("details", {})
+            rag_c = det_d.get("rag_confidence", 0)
+            rule_c = det_d.get("rule_confidence", 0)
+            bd = det_d.get("confidence_breakdown", {})
+            expl = r.get("explanation", "")
 
-# ANALYSIS
-if analyze_clicked:
-    if not user_message or len(user_message.strip()) < 10:
-        st.warning(" Please enter a message with at least 10 characters.")
-    else:
-        with st.spinner(" Analyzing message..."):
-            time.sleep(0.3)
+            cat_label = " + ".join(c.replace("_", " ").title() for c in cats)
 
-            try:
-                result = detector.analyze_message(user_message)
+            # ── Status banner ──
+            if is_att and risk in ("HIGH", "CRITICAL"):
+                st.markdown(f"""<div class='status-box status-critical'>
+                    🔴 {risk} THREAT DETECTED</div>""", unsafe_allow_html=True)
+            elif is_att:
+                st.markdown(f"""<div class='status-box status-threat'>
+                    🟡 POTENTIAL THREAT ({risk})</div>""", unsafe_allow_html=True)
+            else:
+                st.markdown("""<div class='status-box status-safe'>
+                    🟢 MESSAGE APPEARS SAFE</div>""", unsafe_allow_html=True)
 
-                st.markdown("---")
-                st.markdown("Analysis Results")
-
-                is_attack = result["is_social_engineering"]
-                confidence = result["confidence_score"]
-                risk_level = result["risk_level"]
-                categories = result.get("categories", [result["category"]])
-                details = result.get("details", {})
-
-                rag_conf = details.get("rag_confidence", 0)
-                rule_conf = details.get("rule_confidence", 0)
-                breakdown = details.get("confidence_breakdown", {})
-
-                # ── Status banner ──
-                if is_attack:
-                    if risk_level in ("HIGH", "CRITICAL"):
-                        st.markdown(f"""
-                        <div class='status-box status-critical'>
-                            🔴 {risk_level} THREAT DETECTED
-                        </div>""", unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"""
-                        <div class='status-box status-threat'>
-                            🟡 POTENTIAL THREAT DETECTED ({risk_level})
-                        </div>""", unsafe_allow_html=True)
-                else:
-                    st.markdown("""
-                    <div class='status-box status-safe'>
-                        🟢 MESSAGE APPEARS SAFE
-                    </div>""", unsafe_allow_html=True)
-
-                st.markdown("<br>", unsafe_allow_html=True)
-
-                # ── Category + confidence summary ──
-                cat_display = " + ".join(
-                    c.replace("_", " ").title() for c in categories
+            # ── Result summary ──
+            if is_att:
+                st.error(
+                    f"🚨 **Social Engineering Attack Detected**\n\n"
+                    f"**Category:** {cat_label}\n\n"
+                    f"**Confidence:** {conf * 100:.1f}%\n\n"
+                    f"**Risk Level:** {risk}"
+                )
+            else:
+                st.success(
+                    f"✅ **Message Appears Legitimate**\n\n"
+                    f"**Safety:** {(1 - conf) * 100:.1f}% confidence"
                 )
 
-                st.markdown("Detailed Explanation")
+            # ── Explainability ──
+            if expl and is_att:
+                with st.expander("💡 Why was this flagged?", expanded=True):
+                    st.markdown(expl)
 
-                if is_attack:
-                    st.error(f"""
- **Social Engineering Attack Detected**
+            # ── Confidence Breakdown ──
+            with st.expander("📐 Confidence Breakdown", expanded=is_att):
 
-**Category:** {cat_display}
-**Confidence:** {confidence * 100:.1f}%
-**Risk Level:** {risk_level}
-                    """)
-                else:
-                    st.success(f"""
- **Message Appears Legitimate**
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    st.markdown("**🧠 RAG Confidence**")
+                    st.progress(min(rag_c, 1.0))
+                    st.metric("RAG", f"{rag_c * 100:.1f}%")
+                with c2:
+                    st.markdown("**📋 Rule Engine**")
+                    st.progress(min(rule_c, 1.0))
+                    st.metric("Rules", f"{rule_c * 100:.1f}%")
+                with c3:
+                    st.markdown("**⚖️ Final Combined**")
+                    st.progress(min(conf, 1.0))
+                    st.metric("Final", f"{conf * 100:.1f}%")
 
-**Safety Confidence:** {(1 - confidence) * 100:.1f}%
-No significant threats detected.
-                    """)
+                st.markdown("---")
 
-                # ── Confidence Breakdown ──
-                with st.expander(" View Confidence Breakdown", expanded=True):
+                rag_part = round(0.65 * rag_c, 4)
+                rule_part = round(0.35 * rule_c, 4)
+                raw_sum = round(rag_part + rule_part, 4)
 
-                    col1, col2, col3 = st.columns(3)
+                st.code(
+                    f"RAG Confidence:  {rag_c:.4f}\n"
+                    f"Rule Confidence: {rule_c:.4f}\n\n"
+                    f"Final = (0.65 × {rag_c:.4f}) + (0.35 × {rule_c:.4f})\n"
+                    f"      = {rag_part:.4f} + {rule_part:.4f}\n"
+                    f"      = {raw_sum:.4f}  (before severity floors)\n\n"
+                    f"Final (after floors): {conf:.4f} → {conf*100:.1f}%",
+                    language="text",
+                )
 
-                    with col1:
-                        st.markdown(" RAG Confidence**")
-                        st.markdown("_How unsafe per semantic similarity_")
-                        st.progress(min(rag_conf, 1.0))
-                        st.metric("RAG", f"{rag_conf * 100:.1f}%")
+                st.caption(
+                    "Final score is a weighted ensemble of semantic similarity "
+                    "(RAG) and rule-based keyword signals. Severity floors "
+                    "ensure high-risk messages (government, financial, legal) "
+                    "are never classified as SAFE."
+                )
 
-                    with col2:
-                        st.markdown(" Rule Engine Confidence**")
-                        st.markdown("_How unsafe per keyword signals_")
-                        st.progress(min(rule_conf, 1.0))
-                        st.metric("Rules", f"{rule_conf * 100:.1f}%")
+            # ── Similar patterns ──
+            pats = det_d.get("similar_patterns", [])
+            if pats:
+                with st.expander("🔗 Similar Known Patterns"):
+                    for i, p in enumerate(pats, 1):
+                        st.markdown(f"**{i}.** {p['pattern']}")
+                        st.caption(f"Similarity: {p['similarity']*100:.1f}%")
 
-                    with col3:
-                        st.markdown(" Final Combined Confidence**")
-                        st.markdown("_Weighted ensemble result_")
-                        st.progress(min(confidence, 1.0))
-                        st.metric("Final", f"{confidence * 100:.1f}%")
+            # ── Recommendations ──
+            if is_att:
+                st.markdown("---")
+                with st.expander("🛡️ Security Recommendations", expanded=True):
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.markdown(
+                            "#### ❌ DO NOT\n"
+                            "- Click any links\n"
+                            "- Download attachments\n"
+                            "- Share personal/financial info\n"
+                            "- Respond to the sender\n"
+                            "- Call numbers provided"
+                        )
+                    with c2:
+                        st.markdown(
+                            "#### ✅ DO\n"
+                            "- Report to IT security\n"
+                            "- Delete the message\n"
+                            "- Verify via official channels\n"
+                            "- Change passwords if compromised\n"
+                            "- Enable two-factor auth"
+                        )
 
-                    # ── Formula display ──
-                    st.markdown("---")
-                    st.markdown("Ensemble Calculation")
-
-                    rag_c = round(0.65 * rag_conf, 4)
-                    rule_c = round(0.35 * rule_conf, 4)
-                    raw_sum = round(rag_c + rule_c, 4)
-
-                    st.code(
-                        f"RAG confidence:  {rag_conf:.4f}\n"
-                        f"Rule confidence: {rule_conf:.4f}\n"
-                        f"\n"
-                        f"Final confidence:\n"
-                        f"  (0.65 × {rag_conf:.4f}) + (0.35 × {rule_conf:.4f})\n"
-                        f"= {rag_c:.4f} + {rule_c:.4f}\n"
-                        f"= {raw_sum:.4f}  (before severity floors)\n"
-                        f"\n"
-                        f"Final (after floors): {confidence:.4f}",
-                        language="text",
-                    )
-
-                    st.caption(
-                        "Final score is weighted ensemble of semantic similarity "
-                        "and rule-based signals. Severity floors may raise the "
-                        "score when high-risk keywords (legal, government, "
-                        "financial) are detected."
-                    )
-
-                # ── Similar patterns ──
-                similar = details.get("similar_patterns", [])
-                if similar:
-                    with st.expander("Similar Known Attack Patterns"):
-                        for i, pat in enumerate(similar, 1):
-                            pct = pat["similarity"] * 100
-                            st.markdown(f"**{i}.** {pat['pattern']}")
-                            st.caption(f"Similarity: {pct:.1f}%")
-
-                # ── Security recommendations ──
-                if is_attack:
-                    st.markdown("---")
-                    with st.expander("Security Recommendations", expanded=True):
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            st.markdown("#### DO NOT")
-                            st.markdown("""
-                            - Click any links in this message
-                            - Download any attachments
-                            - Share personal or financial information
-                            - Respond to the sender
-                            - Call any phone numbers provided
-                            """)
-                        with c2:
-                            st.markdown("####  DO")
-                            st.markdown("""
-                            - Report to IT security team immediately
-                            - Delete the message
-                            - Verify through official channels
-                            - Change passwords if you responded
-                            - Enable two-factor authentication
-                            """)
-
-                # ── Technical details (clean — no raw_similarity, no rag_vote) ──
-                with st.expander("Technical Details", expanded=False):
-                    st.markdown(f"""
-**Result:** {"Attack Detected" if is_attack else "Legitimate"}
-**Categories:** {cat_display}
-**Final Confidence:** {confidence * 100:.1f}%
-**Risk Level:** {risk_level}
-**RAG Confidence:** {rag_conf * 100:.1f}%
-**Rule Confidence:** {rule_conf * 100:.1f}%
-**Formula:** final = (0.65 × RAG) + (0.35 × Rules) + severity floors
-                    """)
-
-            except Exception as e:
-                st.error(f" Error during analysis: {str(e)}")
-                st.info("🔄 Please try again.")
+            # ── Technical details (CLEAN — no raw_similarity, no rag_vote) ──
+            with st.expander("⚙️ Technical Details"):
+                st.markdown(
+                    f"**Result:** {'Attack' if is_att else 'Legitimate'}\n\n"
+                    f"**Categories:** {cat_label}\n\n"
+                    f"**Final Confidence:** {conf*100:.1f}%\n\n"
+                    f"**Risk Level:** {risk}\n\n"
+                    f"**RAG Confidence:** {rag_c*100:.1f}%\n\n"
+                    f"**Rule Confidence:** {rule_c*100:.1f}%\n\n"
+                    f"**Formula:** `final = (0.65 × RAG) + (0.35 × Rules) + severity floors`"
+                )
 
 
-# HOW IT WORKS
+# ═══════════════════════════════════════════════════════
+#  TAB 2: EVALUATION
+# ═══════════════════════════════════════════════════════
+
+with tab_eval:
+    st.markdown("### 📊 System Evaluation")
+    st.markdown(
+        "Run the built-in 20-case test suite to measure "
+        "accuracy, precision, recall, and F1 score."
+    )
+
+    if st.button("▶️ Run Evaluation", type="primary", use_container_width=True):
+        with st.spinner("Evaluating 20 test cases…"):
+            evaluator = DetectionEvaluator(detector)
+            metrics = evaluator.evaluate()
+
+        # Summary metrics
+        st.markdown("---")
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Accuracy", f"{metrics['accuracy']}%")
+        c2.metric("Precision", f"{metrics['precision']:.2f}")
+        c3.metric("Recall", f"{metrics['recall']:.2f}")
+        c4.metric("F1 Score", f"{metrics['f1_score']:.2f}")
+
+        st.markdown(
+            f"**Total:** {metrics['total_samples']} &nbsp;|&nbsp; "
+            f"**Correct:** {metrics['correct']} &nbsp;|&nbsp; "
+            f"**TP:** {metrics['confusion']['true_positive']} &nbsp;|&nbsp; "
+            f"**FP:** {metrics['confusion']['false_positive']} &nbsp;|&nbsp; "
+            f"**FN:** {metrics['confusion']['false_negative']} &nbsp;|&nbsp; "
+            f"**TN:** {metrics['confusion']['true_negative']}"
+        )
+
+        # Per-case details
+        st.markdown("---")
+        st.markdown("#### Per-Case Results")
+
+        for i, pc in enumerate(metrics["per_case"], 1):
+            icon = "✅" if pc["correct"] else "❌"
+            exp_label = "ATTACK" if pc["expected_attack"] else "SAFE"
+            got_label = "ATTACK" if pc["predicted_attack"] else "SAFE"
+            cats_str = ", ".join(pc["predicted_categories"])
+
+            st.markdown(
+                f"{icon} **Case {i}:** {pc['text']}\n\n"
+                f"&nbsp;&nbsp;&nbsp;&nbsp;"
+                f"Expected: `{exp_label}` → Got: `{got_label}` "
+                f"| Conf: `{pc['confidence']:.2f}` "
+                f"| Risk: `{pc['risk_level']}` "
+                f"| Categories: `{cats_str}`"
+            )
+
+        # Full text report
+        with st.expander("📄 Full Text Report"):
+            report = evaluator.format_report(metrics)
+            st.code(report, language="text")
+
+
+# ── Sidebar ──
+with st.sidebar:
+    st.markdown("## ℹ️ About")
+    st.info(
+        "**RAG** — Semantic similarity (65%)\n\n"
+        "**Rules** — Keyword signals (35%)\n\n"
+        "**Ensemble** — Weighted combination + severity floors"
+    )
+    st.markdown("---")
+    st.markdown("## Categories")
+    st.markdown(
+        "😨 Fear/Threat\n\n"
+        "🎭 Impersonation\n\n"
+        "👔 Authority\n\n"
+        "⏰ Urgency\n\n"
+        "🎁 Reward Lure"
+    )
+    st.markdown("---")
+    st.metric("KB Patterns", len(SOCIAL_ENGINEERING_DATASET))
+
+
+# ── Footer ──
 st.markdown("---")
-st.markdown("##  How It Works")
-
-c1, c2, c3 = st.columns(3)
-with c1:
-    st.markdown("""
-    #### 1️⃣ Input Processing
-    - Text normalization
-    - Feature extraction
-    """)
-with c2:
-    st.markdown("""
-    #### 2️⃣ AI Analysis
-    - RAG embedding search (confidence)
-    - Rule-based classification (category)
-    - Weighted ensemble
-    """)
-with c3:
-    st.markdown("""
-    #### 3️⃣ Results
-    - Multi-label categories (max 2)
-    - Severity-aware risk levels
-    - Actionable recommendations
-    """)
-
-
-# FOOTER
-st.markdown("---")
-st.markdown("""
-<div style='text-align: center; padding: 2rem; background-color: rgba(255,255,255,0.05); border-radius: 10px;'>
-    <p> RAG + Embeddings + NLP</p>
-    <p style='color: #888; font-size: 0.9rem;'>
-        All analysis is performed in real-time. No data is stored.
-    </p>
-    <p style='font-size: 0.8rem; color: #666;'>
-        © 2026 Social Engineering Detection System | Version 3.0.0
-    </p>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(
+    "<div style='text-align:center;color:#666;font-size:.8rem'>"
+    "© 2026 Social Engineering Detection System v4.0 — "
+    "All analysis is real-time. No data stored.</div>",
+    unsafe_allow_html=True,
+)
