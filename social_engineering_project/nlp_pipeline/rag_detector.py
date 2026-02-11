@@ -1,13 +1,12 @@
 """
-RAG-based Social Engineering Detection — v5.0 STRICT.
+RAG-based Social Engineering Detection — v6.0.
 Returns ONLY: rag_confidence (0-100) and voted_category.
-No similarity scores, no calibrated values, no intermediate metrics.
 """
 
 import math
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity as _cos_sim
+from sklearn.metrics.pairwise import cosine_similarity as _vector_match
 from typing import Dict, List, Tuple
 
 
@@ -24,7 +23,8 @@ class RAGSocialEngineeringDetector:
         "suspended", "hacked", "compromised", "ransomware",
         "encrypted", "dark web", "webcam", "browsing activity",
         "leaked", "breach", "income tax", "frozen",
-        "permanently", "deactivated","share info","credentials","login details","financial",
+        "permanently", "deactivated", "share info", "credentials",
+        "login details", "financial",
     ]
 
     DEADLINE_KW = [
@@ -70,10 +70,6 @@ class RAGSocialEngineeringDetector:
         ]
         print(f"Knowledge base: {len(patterns)} patterns loaded.")
 
-    # ──────────────────────────────────────────────────
-    # Core detection → returns rag_confidence (0-100)
-    # ──────────────────────────────────────────────────
-
     def detect(self, message: str) -> Tuple[float, str]:
         """
         Returns:
@@ -81,7 +77,7 @@ class RAGSocialEngineeringDetector:
             voted_category: str (neighbor-voted category signal)
         """
         emb = self.model.encode([message], show_progress_bar=False)[0].reshape(1, -1)
-        scores = _cos_sim(emb, self.embeddings)[0]
+        scores = _vector_match(emb, self.embeddings)[0]
         top_idx = np.argsort(scores)[::-1][:5]
         top_score = float(scores[top_idx[0]]) if top_idx.size else 0.0
 
@@ -90,7 +86,7 @@ class RAGSocialEngineeringDetector:
         has_deadline = any(kw in msg for kw in self.DEADLINE_KW)
         is_safe_ctx = any(p in msg for p in self.SAFE_CONTEXT) and n_threat == 0
 
-        # ── Convert top embedding score to malicious probability ──
+        # Convert top embedding score to malicious probability
         if top_score <= 0:
             prob = 0.0
         else:
@@ -102,14 +98,14 @@ class RAGSocialEngineeringDetector:
         if is_safe_ctx:
             prob = min(prob, 0.25)
 
-        # ── Neighbor agreement ──
+        # Neighbor agreement
         metas = [self.metadatas[i] for i in top_idx]
         n_attack = sum(1 for m in metas if m["label"] == "social_engineering")
         agreement = n_attack / max(len(metas), 1)
         if agreement >= 0.7 and prob > 0.20:
             prob = min(prob * 1.18, 0.95)
 
-        # ── Threat keyword floors ──
+        # Threat keyword floors
         if n_threat >= 2 and has_deadline:
             prob = max(prob, 0.75)
         elif n_threat >= 2:
@@ -119,7 +115,7 @@ class RAGSocialEngineeringDetector:
         elif n_threat >= 1:
             prob = max(prob, 0.40)
 
-        # ── Neighbor vote for category ──
+        # Neighbor vote for category
         cat_scores: Dict[str, float] = {}
         for i in top_idx:
             m = self.metadatas[i]
@@ -131,14 +127,13 @@ class RAGSocialEngineeringDetector:
                 cat_scores[cat] = cat_scores.get(cat, 0.0) + s * m["base_conf"]
 
         voted_cat = max(cat_scores, key=cat_scores.get) if cat_scores else "unknown"
-
         rag_confidence = round(max(0.0, min(100.0, prob * 100)), 2)
 
         return rag_confidence, voted_cat
 
 
-# ── Singleton ──
 _instance = None
+
 
 def get_detector() -> RAGSocialEngineeringDetector:
     global _instance
