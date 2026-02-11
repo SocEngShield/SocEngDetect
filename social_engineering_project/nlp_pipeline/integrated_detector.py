@@ -28,7 +28,8 @@ class IntegratedSocialEngineeringDetector:
         "suspended", "hacked", "compromised", "ransomware",
         "encrypted", "dark web", "webcam", "leaked", "breach",
         "income tax", "deactivated", "permanently", "frozen",
-        "action will be taken", "credentials", "share info",
+        "action will be taken", "credentials", "share info","card blocked", "payment failed", "transaction declined",
+
     ]
 
     DEADLINE_KW = [
@@ -77,7 +78,9 @@ class IntegratedSocialEngineeringDetector:
             r"\brouting number\b", r"\bshare your\b", r"\bsend your\b",
             r"\bprovide your\b", r"\bsubmit your\b",
             r"\bconfirm your card\b", r"\bconfirm card\b",
-            r"\blogin credential", r"\bverify your identity\b",
+            r"\blogin credential", r"\bverify your identity\b",r"\bconfirm your card details\b"
+            r"\bconfirm your banking\b",r"\bconfirm your payment\b",r"\bverify card\b",
+
         ]
     ]
 
@@ -183,14 +186,14 @@ class IntegratedSocialEngineeringDetector:
         if sig["deadline"]:
             score += 25.0
 
-        if sig["identity"] or sig["brand"]:
+        if (sig["identity"] or sig["brand"]) and (sig["sensitive"] or sig["fear"] or sig["deadline"]):
             score += 20.0
 
         if sig["authority"]:
             score += 20.0
 
         if sig["sensitive"]:
-            score += 25.0
+            score += 30.0
 
         if sig["reward"]:
             score += 20.0
