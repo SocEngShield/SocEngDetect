@@ -93,6 +93,9 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
         with st.spinner("Analyzing..."):
             time.sleep(0.2)
             r = detector.analyze_message(msg)
+            from security_logic.rule_engine import analyze_text
+
+            rule_output = analyze_text(msg)
 
         attack = r["attack_detected"]
         cats = r["categories"]
