@@ -131,6 +131,30 @@ class RAGSocialEngineeringDetector:
 
         return rag_confidence, voted_cat
 
+    def retrieve_top_k(self, message: str, k: int = 5) -> List[Dict]:
+        """
+        Returns top-k similar knowledge base examples with metadata.
+        This is read-only retrieval for explainability and does not affect scoring.
+        """
+        emb = self.model.encode([message], show_progress_bar=False)[0].reshape(1, -1)
+        scores = _vector_match(emb, self.embeddings)[0]
+        top_idx = np.argsort(scores)[::-1][:k]
+
+        results: List[Dict] = []
+        for i in top_idx:
+            meta = self.metadatas[i]
+            results.append(
+                {
+                    "text": self.patterns[i],
+                    "label": meta["label"],
+                    "category": meta["category"],
+                    "base_confidence": meta["base_conf"],
+                    "similarity": round(float(scores[i]), 4),
+                }
+            )
+
+        return results
+
 
 _instance = None
 
