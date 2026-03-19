@@ -1,23 +1,23 @@
 """
 Social Engineering Attack Patterns Knowledge Base.
-Balanced dataset for RAG-based detection.
+Static expanded dataset, grouped by category.
 
-Distribution (15 each x 9 categories = 135 total):
-  - urgency               (social_engineering) : 15
-  - reward_lure           (social_engineering) : 15
-  - authority             (social_engineering) : 15
-  - impersonation         (social_engineering) : 15
-  - fear_threat           (social_engineering) : 30  (15 original + 15 merged from psychological_coercion)
-  - fear_threat_severe    (social_engineering) : 15  NEW — service termination / legal / India-specific
-  - legitimate_but_tricky (legitimate)         : 15
-  - normal_communication  (legitimate)         : 15
+Distribution:
+  - urgency             : 46
+  - reward_lure         : 46
+  - authority           : 46
+  - impersonation       : 46
+  - fear_threat         : 46
+  - legitimate_but_tricky: 46
+  - normal_communication: 46
+  - total               : 322
 """
 
 SOCIAL_ENGINEERING_DATASET = [
 
-    # ═══════════════════════════════════════════════════════════════
-    #  URGENCY  (15)
-    # ═══════════════════════════════════════════════════════════════
+    # ==============================================================
+    #  URGENCY (46)
+    # ==============================================================
     {"text": "URGENT: Your account will be suspended unless you verify your identity immediately by clicking this link", "label": "social_engineering", "category": "urgency", "confidence": 0.95},
     {"text": "ACTION REQUIRED: You have 24 hours to confirm your email or your account will be deleted permanently", "label": "social_engineering", "category": "urgency", "confidence": 0.93},
     {"text": "IMMEDIATE RESPONSE NEEDED: Your payment method expires today. Update now to avoid service interruption", "label": "social_engineering", "category": "urgency", "confidence": 0.91},
@@ -30,19 +30,50 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "LAST CHANCE: Confirm your shipping address in the next 2 hours or your order will be cancelled and your refund forfeited", "label": "social_engineering", "category": "urgency", "confidence": 0.90},
     {"text": "We detected unauthorized access. Respond within 60 minutes with your account credentials to secure your profile", "label": "social_engineering", "category": "urgency", "confidence": 0.94},
     {"text": "IMPORTANT: Your cloud storage is 99% full and files will be deleted in 3 hours. Upgrade immediately at this link", "label": "social_engineering", "category": "urgency", "confidence": 0.86},
-    {"text": "Act fast — your tax refund of $4,200 will expire at midnight tonight. Submit your bank info now to receive it", "label": "social_engineering", "category": "urgency", "confidence": 0.93},
+    {"text": "Act fast \u2014 your tax refund of $4,200 will expire at midnight tonight. Submit your bank info now to receive it", "label": "social_engineering", "category": "urgency", "confidence": 0.93},
     {"text": "WARNING: If you don't reset your password within 20 minutes, all your saved data will be permanently erased", "label": "social_engineering", "category": "urgency", "confidence": 0.92},
     {"text": "Your verification window closes in 5 minutes. Failure to act will result in permanent account termination", "label": "social_engineering", "category": "urgency", "confidence": 0.91},
+    {"text": "Corporate chat notification: approve the security checkpoint in the next 30 minutes or your profile will be disabled. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "urgency", "confidence": 0.74},
+    {"text": "Corporate chat notification: re-authorize your device before end of day or your profile will be disabled. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "urgency", "confidence": 0.64},
+    {"text": "Corporate chat notification: re-authorize your device before midnight or your account will be locked. Kindly prioritize this request.", "label": "social_engineering", "category": "urgency", "confidence": 0.87},
+    {"text": "Corporate chat notification: re-authorize your device within 10 minutes or your account will be locked. Kindly prioritize this request.", "label": "social_engineering", "category": "urgency", "confidence": 0.76},
+    {"text": "Corporate chat notification: re-authorize your device within 2 hours to prevent forced deactivation. Kindly prioritize this request.", "label": "social_engineering", "category": "urgency", "confidence": 0.87},
+    {"text": "Corporate chat notification: verify your identity before midnight to prevent forced deactivation. This is a confidential matter.", "label": "social_engineering", "category": "urgency", "confidence": 0.71},
+    {"text": "Corporate chat notification: verify your identity in the next 30 minutes or your profile will be disabled. Failure to comply may have consequences.", "label": "social_engineering", "category": "urgency", "confidence": 0.85},
+    {"text": "Direct message on social media: approve the security checkpoint before midnight or access to services will be revoked. This is a confidential matter.", "label": "social_engineering", "category": "urgency", "confidence": 0.92},
+    {"text": "Direct message on social media: re-authorize your device within 10 minutes or your profile will be disabled. Immediate action required.", "label": "social_engineering", "category": "urgency", "confidence": 0.88},
+    {"text": "Direct message on social media: re-authorize your device within 10 minutes or your profile will be disabled. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "urgency", "confidence": 0.95},
+    {"text": "Direct message on social media: revalidate your login session in the next 30 minutes to avoid permanent suspension. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "urgency", "confidence": 0.93},
+    {"text": "Email from account security: approve the security checkpoint within 10 minutes or access to services will be revoked. Immediate action required.", "label": "social_engineering", "category": "urgency", "confidence": 0.77},
+    {"text": "Email from account security: re-authorize your device before midnight or access to services will be revoked. Failure to comply may have consequences.", "label": "social_engineering", "category": "urgency", "confidence": 0.69},
+    {"text": "Email from account security: re-authorize your device before midnight to avoid permanent suspension. This is a confidential matter.", "label": "social_engineering", "category": "urgency", "confidence": 0.84},
+    {"text": "Email from account security: re-authorize your device in the next 30 minutes or your profile will be disabled. Kindly prioritize this request.", "label": "social_engineering", "category": "urgency", "confidence": 0.94},
+    {"text": "Email from account security: re-authorize your device within 2 hours or your account will be locked. Kindly prioritize this request.", "label": "social_engineering", "category": "urgency", "confidence": 0.87},
+    {"text": "Email from account security: reconfirm your payment profile within 10 minutes or your profile will be disabled. Failure to comply may have consequences.", "label": "social_engineering", "category": "urgency", "confidence": 0.91},
+    {"text": "Email from account security: revalidate your login session before midnight to avoid permanent suspension. Immediate action required.", "label": "social_engineering", "category": "urgency", "confidence": 0.86},
+    {"text": "Email from account security: verify your identity within 10 minutes to avoid permanent suspension. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "urgency", "confidence": 0.85},
+    {"text": "Email from account security: verify your identity within 2 hours or access to services will be revoked. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "urgency", "confidence": 0.90},
+    {"text": "SMS from bank alerts: approve the security checkpoint before end of day or access to services will be revoked. This is a confidential matter.", "label": "social_engineering", "category": "urgency", "confidence": 0.65},
+    {"text": "SMS from bank alerts: revalidate your login session in the next 30 minutes to avoid permanent suspension. Failure to comply may have consequences.", "label": "social_engineering", "category": "urgency", "confidence": 0.79},
+    {"text": "SMS from bank alerts: revalidate your login session within 10 minutes to avoid permanent suspension. Kindly prioritize this request.", "label": "social_engineering", "category": "urgency", "confidence": 0.81},
+    {"text": "SMS from bank alerts: verify your identity before midnight to prevent forced deactivation. Failure to comply may have consequences.", "label": "social_engineering", "category": "urgency", "confidence": 0.47},
+    {"text": "SMS from bank alerts: verify your identity in the next 30 minutes or your account will be locked. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "urgency", "confidence": 0.87},
+    {"text": "Voicemail transcript from support desk: approve the security checkpoint within 10 minutes or your account will be locked. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "urgency", "confidence": 0.68},
+    {"text": "Voicemail transcript from support desk: re-authorize your device within 2 hours to avoid permanent suspension. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "urgency", "confidence": 0.81},
+    {"text": "Voicemail transcript from support desk: reconfirm your payment profile before end of day or your account will be locked. Failure to comply may have consequences.", "label": "social_engineering", "category": "urgency", "confidence": 0.71},
+    {"text": "Voicemail transcript from support desk: reconfirm your payment profile before end of day to avoid permanent suspension. Immediate action required.", "label": "social_engineering", "category": "urgency", "confidence": 0.89},
+    {"text": "Voicemail transcript from support desk: reconfirm your payment profile before midnight or access to services will be revoked. Kindly prioritize this request.", "label": "social_engineering", "category": "urgency", "confidence": 0.76},
+    {"text": "Voicemail transcript from support desk: verify your identity before end of day to avoid permanent suspension. Kindly prioritize this request.", "label": "social_engineering", "category": "urgency", "confidence": 0.79},
 
-    # ═══════════════════════════════════════════════════════════════
-    #  REWARD LURE  (15)
-    # ═══════════════════════════════════════════════════════════════
+    # ==============================================================
+    #  REWARD LURE (46)
+    # ==============================================================
     {"text": "Congratulations! You've won $1,000,000. Send us your bank details to claim your prize", "label": "social_engineering", "category": "reward_lure", "confidence": 0.98},
     {"text": "You are the lucky winner of our annual lottery! Click here to claim your $500,000 prize now", "label": "social_engineering", "category": "reward_lure", "confidence": 0.96},
     {"text": "You have a pending refund of $2,500. Click here to claim it before it expires", "label": "social_engineering", "category": "reward_lure", "confidence": 0.87},
     {"text": "FREE iPhone 15 Pro! You've been selected. Just pay $5.99 shipping to claim your prize", "label": "social_engineering", "category": "reward_lure", "confidence": 0.89},
     {"text": "You've been chosen for a $10,000 gift card giveaway! Enter your details here to receive your reward immediately", "label": "social_engineering", "category": "reward_lure", "confidence": 0.95},
-    {"text": "Your email address was selected in our random draw. You've won a brand new MacBook Pro — claim it now", "label": "social_engineering", "category": "reward_lure", "confidence": 0.93},
+    {"text": "Your email address was selected in our random draw. You've won a brand new MacBook Pro \u2014 claim it now", "label": "social_engineering", "category": "reward_lure", "confidence": 0.93},
     {"text": "EXCLUSIVE: You qualify for a secret government grant of $25,000. No repayment needed. Apply now before slots run out", "label": "social_engineering", "category": "reward_lure", "confidence": 0.96},
     {"text": "Amazon customer reward! You've earned 5,000 bonus points worth $500. Click below to redeem before they expire", "label": "social_engineering", "category": "reward_lure", "confidence": 0.91},
     {"text": "Congratulations valued customer! As a thank you, we're giving you $1,000 in store credit. Provide your account info to receive it", "label": "social_engineering", "category": "reward_lure", "confidence": 0.92},
@@ -52,10 +83,41 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "Your loyalty has earned you a surprise bonus of $3,500! Transfer will be initiated once you confirm your banking details", "label": "social_engineering", "category": "reward_lure", "confidence": 0.93},
     {"text": "Dear user, you've been selected for a cash prize of $5,000 in our monthly sweepstakes. Reply with your full name and address to claim", "label": "social_engineering", "category": "reward_lure", "confidence": 0.95},
     {"text": "You've won a Tesla Model 3! Just complete this short survey and pay a small processing fee of $9.99 to arrange delivery", "label": "social_engineering", "category": "reward_lure", "confidence": 0.94},
+    {"text": "Congratulations: you qualify for $1,250 tax rebate. To claim, pay a small processing fee at this claim page. Immediate action required.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.46},
+    {"text": "Congratulations: you qualify for $1,250 tax rebate. To claim, pay a small processing fee via email link. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.95},
+    {"text": "Congratulations: you qualify for $2,000 travel voucher. To claim, submit your banking details using the attached form. Immediate action required.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.87},
+    {"text": "Congratulations: you qualify for $2,000 travel voucher. To claim, verify your account for transfer via email link. This is a confidential matter.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.50},
+    {"text": "Congratulations: you qualify for $500 cashback. To claim, complete the release form through this SMS portal. Failure to comply may have consequences.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.95},
+    {"text": "Congratulations: you qualify for $500 cashback. To claim, verify your account for transfer inside this social message. Immediate action required.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.67},
+    {"text": "Congratulations: you qualify for $800 shopping credit. To claim, pay a small processing fee inside this social message. Kindly prioritize this request.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.47},
+    {"text": "Congratulations: you qualify for $800 shopping credit. To claim, submit your banking details at this claim page. Immediate action required.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.89},
+    {"text": "Congratulations: you qualify for $800 shopping credit. To claim, submit your banking details using the attached form. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.94},
+    {"text": "Congratulations: you qualify for $800 shopping credit. To claim, verify your account for transfer inside this social message. Immediate action required.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.88},
+    {"text": "Congratulations: you qualify for holiday package reward. To claim, confirm your payout profile through this SMS portal. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.94},
+    {"text": "Congratulations: you qualify for holiday package reward. To claim, verify your account for transfer inside this social message. Immediate action required.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.71},
+    {"text": "Exclusive member update: you qualify for $1,250 tax rebate. To claim, complete the release form inside this social message. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.82},
+    {"text": "Exclusive member update: you qualify for $1,250 tax rebate. To claim, submit your banking details via email link. Kindly prioritize this request.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.94},
+    {"text": "Exclusive member update: you qualify for holiday package reward. To claim, pay a small processing fee via email link. Kindly prioritize this request.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.73},
+    {"text": "Exclusive member update: you qualify for holiday package reward. To claim, verify your account for transfer through this SMS portal. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.88},
+    {"text": "Good news: you qualify for $1,250 tax rebate. To claim, pay a small processing fee using the attached form. This is a confidential matter.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.88},
+    {"text": "Good news: you qualify for $1,250 tax rebate. To claim, submit your banking details inside this social message. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.94},
+    {"text": "Good news: you qualify for $2,000 travel voucher. To claim, complete the release form at this claim page. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.94},
+    {"text": "Good news: you qualify for $2,000 travel voucher. To claim, confirm your payout profile using the attached form. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.82},
+    {"text": "Good news: you qualify for $2,000 travel voucher. To claim, submit your banking details via email link. Immediate action required.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.91},
+    {"text": "Good news: you qualify for $2,000 travel voucher. To claim, verify your account for transfer at this claim page. Failure to comply may have consequences.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.77},
+    {"text": "Good news: you qualify for $2,000 travel voucher. To claim, verify your account for transfer at this claim page. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.76},
+    {"text": "Good news: you qualify for $500 cashback. To claim, confirm your payout profile at this claim page. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.88},
+    {"text": "Good news: you qualify for $800 shopping credit. To claim, pay a small processing fee using the attached form. Failure to comply may have consequences.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.82},
+    {"text": "Lucky draw notice: you qualify for $800 shopping credit. To claim, pay a small processing fee via email link. Immediate action required.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.66},
+    {"text": "Lucky draw notice: you qualify for $800 shopping credit. To claim, submit your banking details through this SMS portal. This is a confidential matter.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.85},
+    {"text": "Lucky draw notice: you qualify for holiday package reward. To claim, complete the release form inside this social message. Kindly prioritize this request.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.92},
+    {"text": "Lucky draw notice: you qualify for premium smartphone giveaway. To claim, submit your banking details inside this social message. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.83},
+    {"text": "You were selected: you qualify for $500 cashback. To claim, submit your banking details inside this social message. Please handle this at your earliest convenience.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.73},
+    {"text": "You were selected: you qualify for holiday package reward. To claim, pay a small processing fee through this SMS portal. Kindly prioritize this request.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.90},
 
-    # ═══════════════════════════════════════════════════════════════
-    #  AUTHORITY  (15)
-    # ═══════════���═══════════════════════════════════════════════════
+    # ==============================================================
+    #  AUTHORITY (46)
+    # ==============================================================
     {"text": "I'm the CEO and I need you to transfer funds immediately. This is confidential.", "label": "social_engineering", "category": "authority", "confidence": 0.92},
     {"text": "This is your manager. I need you to purchase gift cards worth $5000 urgently for a client meeting", "label": "social_engineering", "category": "authority", "confidence": 0.94},
     {"text": "Director of Operations here. Send me employee payroll information immediately for audit purposes", "label": "social_engineering", "category": "authority", "confidence": 0.90},
@@ -64,17 +126,48 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "I'm the head of HR. Please send me all employee SSN records by end of day for compliance review. Do not inform others", "label": "social_engineering", "category": "authority", "confidence": 0.94},
     {"text": "This is your supervisor. I'm in a meeting and can't talk. Buy 10 Apple gift cards ($200 each) and send me the codes ASAP", "label": "social_engineering", "category": "authority", "confidence": 0.96},
     {"text": "It's the president of the company. I need the company credit card number for an emergency purchase. Keep this between us", "label": "social_engineering", "category": "authority", "confidence": 0.95},
-    {"text": "This is the CTO. Grant admin access to the following external email immediately — we have a critical partner onboarding", "label": "social_engineering", "category": "authority", "confidence": 0.92},
+    {"text": "This is the CTO. Grant admin access to the following external email immediately \u2014 we have a critical partner onboarding", "label": "social_engineering", "category": "authority", "confidence": 0.92},
     {"text": "As your department head, I'm instructing you to process this invoice immediately. No need for the usual approval chain this time", "label": "social_engineering", "category": "authority", "confidence": 0.91},
-    {"text": "I'm reaching out from the executive office. The CEO has approved a special bonus — send your direct deposit details for processing", "label": "social_engineering", "category": "authority", "confidence": 0.93},
+    {"text": "I'm reaching out from the executive office. The CEO has approved a special bonus \u2014 send your direct deposit details for processing", "label": "social_engineering", "category": "authority", "confidence": 0.93},
     {"text": "This is the managing director. Disregard previous security protocols and transfer the project files to this personal Google Drive link", "label": "social_engineering", "category": "authority", "confidence": 0.96},
-    {"text": "Your team lead here — I've forgotten my VPN credentials and IT is closed. Can you share yours so I can finish the deployment tonight?", "label": "social_engineering", "category": "authority", "confidence": 0.89},
+    {"text": "Your team lead here \u2014 I've forgotten my VPN credentials and IT is closed. Can you share yours so I can finish the deployment tonight?", "label": "social_engineering", "category": "authority", "confidence": 0.89},
     {"text": "This is the board chairman. We have a confidential acquisition in progress. Wire $50,000 to this escrow account immediately", "label": "social_engineering", "category": "authority", "confidence": 0.97},
     {"text": "Hello, I'm the new IT director. As part of the security migration, I need all employees to reply with their current passwords for the transition", "label": "social_engineering", "category": "authority", "confidence": 0.95},
+    {"text": "This is the Board Office. I need you to bypass approval and clear this invoice right now. This is confidential and time-critical.", "label": "social_engineering", "category": "authority", "confidence": 0.89},
+    {"text": "This is the Board Office. I need you to bypass approval and clear this invoice right now. Treat this as top priority and keep it private.", "label": "social_engineering", "category": "authority", "confidence": 0.70},
+    {"text": "This is the Board Office. I need you to process an immediate wire transfer right now. Do not discuss this with the team.", "label": "social_engineering", "category": "authority", "confidence": 0.85},
+    {"text": "This is the Board Office. I need you to share the database admin credentials right now. Do not discuss this with the team.", "label": "social_engineering", "category": "authority", "confidence": 0.95},
+    {"text": "This is the CEO. I need you to bypass approval and clear this invoice right now. I am in a meeting, just get this done.", "label": "social_engineering", "category": "authority", "confidence": 0.89},
+    {"text": "This is the CEO. I need you to bypass approval and clear this invoice right now. This is confidential and time-critical.", "label": "social_engineering", "category": "authority", "confidence": 0.57},
+    {"text": "This is the CEO. I need you to export customer contact data now right now. I am in a meeting, just get this done.", "label": "social_engineering", "category": "authority", "confidence": 0.77},
+    {"text": "This is the CEO. I need you to purchase gift cards and share the codes right now. Do not discuss this with the team.", "label": "social_engineering", "category": "authority", "confidence": 0.92},
+    {"text": "This is the CEO. I need you to purchase gift cards and share the codes right now. I am in a meeting, just get this done.", "label": "social_engineering", "category": "authority", "confidence": 0.87},
+    {"text": "This is the CEO. I need you to purchase gift cards and share the codes right now. Treat this as top priority and keep it private.", "label": "social_engineering", "category": "authority", "confidence": 0.80},
+    {"text": "This is the CEO. I need you to send employee payroll records right now. Do not discuss this with the team.", "label": "social_engineering", "category": "authority", "confidence": 0.81},
+    {"text": "This is the CFO. I need you to export customer contact data now right now. Treat this as top priority and keep it private.", "label": "social_engineering", "category": "authority", "confidence": 0.93},
+    {"text": "This is the CFO. I need you to share the database admin credentials right now. Do not discuss this with the team.", "label": "social_engineering", "category": "authority", "confidence": 0.90},
+    {"text": "This is the CFO. I need you to share the database admin credentials right now. No need to follow normal approval steps this time.", "label": "social_engineering", "category": "authority", "confidence": 0.71},
+    {"text": "This is the CFO. I need you to share the database admin credentials right now. Treat this as top priority and keep it private.", "label": "social_engineering", "category": "authority", "confidence": 0.83},
+    {"text": "This is the Head of HR. I need you to export customer contact data now right now. Do not discuss this with the team.", "label": "social_engineering", "category": "authority", "confidence": 0.93},
+    {"text": "This is the Head of HR. I need you to export customer contact data now right now. I am in a meeting, just get this done.", "label": "social_engineering", "category": "authority", "confidence": 0.68},
+    {"text": "This is the Head of HR. I need you to export customer contact data now right now. No need to follow normal approval steps this time.", "label": "social_engineering", "category": "authority", "confidence": 0.92},
+    {"text": "This is the Head of HR. I need you to process an immediate wire transfer right now. No need to follow normal approval steps this time.", "label": "social_engineering", "category": "authority", "confidence": 0.93},
+    {"text": "This is the Head of HR. I need you to purchase gift cards and share the codes right now. Do not discuss this with the team.", "label": "social_engineering", "category": "authority", "confidence": 0.65},
+    {"text": "This is the Head of HR. I need you to purchase gift cards and share the codes right now. No need to follow normal approval steps this time.", "label": "social_engineering", "category": "authority", "confidence": 0.50},
+    {"text": "This is the IT Director. I need you to process an immediate wire transfer right now. I am in a meeting, just get this done.", "label": "social_engineering", "category": "authority", "confidence": 0.91},
+    {"text": "This is the IT Director. I need you to send employee payroll records right now. Do not discuss this with the team.", "label": "social_engineering", "category": "authority", "confidence": 0.88},
+    {"text": "This is the IT Director. I need you to share the database admin credentials right now. I am in a meeting, just get this done.", "label": "social_engineering", "category": "authority", "confidence": 0.88},
+    {"text": "This is the IT Director. I need you to share the database admin credentials right now. This is confidential and time-critical.", "label": "social_engineering", "category": "authority", "confidence": 0.93},
+    {"text": "This is the Regional Director. I need you to export customer contact data now right now. This is confidential and time-critical.", "label": "social_engineering", "category": "authority", "confidence": 0.71},
+    {"text": "This is the Regional Director. I need you to purchase gift cards and share the codes right now. This is confidential and time-critical.", "label": "social_engineering", "category": "authority", "confidence": 0.90},
+    {"text": "This is the VP Operations. I need you to bypass approval and clear this invoice right now. This is confidential and time-critical.", "label": "social_engineering", "category": "authority", "confidence": 0.57},
+    {"text": "This is the VP Operations. I need you to export customer contact data now right now. No need to follow normal approval steps this time.", "label": "social_engineering", "category": "authority", "confidence": 0.94},
+    {"text": "This is the VP Operations. I need you to process an immediate wire transfer right now. Treat this as top priority and keep it private.", "label": "social_engineering", "category": "authority", "confidence": 0.69},
+    {"text": "This is the VP Operations. I need you to send employee payroll records right now. Treat this as top priority and keep it private.", "label": "social_engineering", "category": "authority", "confidence": 0.85},
 
-    # ═══════════════════════════════════════════════════════════════
-    #  IMPERSONATION  (15)
-    # ═══════════════════════════════════════════════════════════════
+    # ==============================================================
+    #  IMPERSONATION (46)
+    # ==============================================================
     {"text": "Your package is waiting. Please update your shipping address and payment information.", "label": "social_engineering", "category": "impersonation", "confidence": 0.88},
     {"text": "Your IT department requires immediate password reset due to security breach. Click here to reset.", "label": "social_engineering", "category": "impersonation", "confidence": 0.91},
     {"text": "Netflix: Your account has been suspended. Update your payment details within 48 hours to restore access", "label": "social_engineering", "category": "impersonation", "confidence": 0.86},
@@ -90,10 +183,41 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "Your Spotify Premium subscription could not be renewed. Update payment information at this link to avoid losing your playlists", "label": "social_engineering", "category": "impersonation", "confidence": 0.85},
     {"text": "IRS Notice: You have an outstanding tax liability. Submit payment immediately through our secure portal to avoid penalties and legal action", "label": "social_engineering", "category": "impersonation", "confidence": 0.94},
     {"text": "LinkedIn Security: We've detected unusual login activity. Confirm your identity by clicking this link and entering your credentials", "label": "social_engineering", "category": "impersonation", "confidence": 0.90},
+    {"text": "Apple ID Team: We detected KYC validation failure. Please confirm your credentials to keep your service active.", "label": "social_engineering", "category": "impersonation", "confidence": 0.79},
+    {"text": "Apple ID Team: We detected security policy violation. Please verify account ownership to avoid transaction reversal.", "label": "social_engineering", "category": "impersonation", "confidence": 0.90},
+    {"text": "Apple ID Team: We detected suspicious transaction pattern. Please confirm your credentials to avoid transaction reversal.", "label": "social_engineering", "category": "impersonation", "confidence": 0.92},
+    {"text": "Apple ID Team: We detected suspicious transaction pattern. Please confirm your credentials to prevent account termination.", "label": "social_engineering", "category": "impersonation", "confidence": 0.88},
+    {"text": "Apple ID Team: We detected unusual login activity. Please confirm your credentials to avoid transaction reversal.", "label": "social_engineering", "category": "impersonation", "confidence": 0.62},
+    {"text": "Apple ID Team: We detected unusual login activity. Please validate your OTP or your account may be restricted.", "label": "social_engineering", "category": "impersonation", "confidence": 0.87},
+    {"text": "Bank Fraud Desk: We detected delivery address mismatch. Please confirm your credentials to prevent account termination.", "label": "social_engineering", "category": "impersonation", "confidence": 0.92},
+    {"text": "Bank Fraud Desk: We detected unusual login activity. Please update your card details to keep your service active.", "label": "social_engineering", "category": "impersonation", "confidence": 0.86},
+    {"text": "Courier Delivery Center: We detected KYC validation failure. Please validate your OTP or your account may be restricted.", "label": "social_engineering", "category": "impersonation", "confidence": 0.72},
+    {"text": "Courier Delivery Center: We detected security policy violation. Please re-enter your passcode to keep your service active.", "label": "social_engineering", "category": "impersonation", "confidence": 0.85},
+    {"text": "Courier Delivery Center: We detected security policy violation. Please validate your OTP or your account may be restricted.", "label": "social_engineering", "category": "impersonation", "confidence": 0.68},
+    {"text": "Courier Delivery Center: We detected subscription billing error. Please re-enter your passcode to keep your service active.", "label": "social_engineering", "category": "impersonation", "confidence": 0.51},
+    {"text": "Courier Delivery Center: We detected suspicious transaction pattern. Please re-enter your passcode or your account may be restricted.", "label": "social_engineering", "category": "impersonation", "confidence": 0.85},
+    {"text": "Instagram Support: We detected delivery address mismatch. Please update your card details or your account may be restricted.", "label": "social_engineering", "category": "impersonation", "confidence": 0.79},
+    {"text": "Instagram Support: We detected KYC validation failure. Please re-enter your passcode or your account may be restricted.", "label": "social_engineering", "category": "impersonation", "confidence": 0.73},
+    {"text": "Instagram Support: We detected KYC validation failure. Please verify account ownership or your account may be restricted.", "label": "social_engineering", "category": "impersonation", "confidence": 0.90},
+    {"text": "Microsoft 365 Admin: We detected subscription billing error. Please confirm your credentials to avoid transaction reversal.", "label": "social_engineering", "category": "impersonation", "confidence": 0.91},
+    {"text": "Microsoft 365 Admin: We detected suspicious transaction pattern. Please confirm your credentials or your number will be blocked.", "label": "social_engineering", "category": "impersonation", "confidence": 0.77},
+    {"text": "Microsoft 365 Admin: We detected suspicious transaction pattern. Please confirm your credentials to keep your service active.", "label": "social_engineering", "category": "impersonation", "confidence": 0.91},
+    {"text": "PayPal Security: We detected KYC validation failure. Please confirm your credentials or your account may be restricted.", "label": "social_engineering", "category": "impersonation", "confidence": 0.86},
+    {"text": "PayPal Security: We detected security policy violation. Please update your card details or your number will be blocked.", "label": "social_engineering", "category": "impersonation", "confidence": 0.93},
+    {"text": "PayPal Security: We detected security policy violation. Please verify account ownership to keep your service active.", "label": "social_engineering", "category": "impersonation", "confidence": 0.87},
+    {"text": "PayPal Security: We detected subscription billing error. Please validate your OTP to prevent account termination.", "label": "social_engineering", "category": "impersonation", "confidence": 0.89},
+    {"text": "PayPal Security: We detected suspicious transaction pattern. Please update your card details or your account may be restricted.", "label": "social_engineering", "category": "impersonation", "confidence": 0.74},
+    {"text": "Telecom KYC Desk: We detected delivery address mismatch. Please confirm your credentials to keep your service active.", "label": "social_engineering", "category": "impersonation", "confidence": 0.69},
+    {"text": "Telecom KYC Desk: We detected delivery address mismatch. Please verify account ownership or your number will be blocked.", "label": "social_engineering", "category": "impersonation", "confidence": 0.95},
+    {"text": "UPI Fraud Monitoring: We detected delivery address mismatch. Please re-enter your passcode or your account may be restricted.", "label": "social_engineering", "category": "impersonation", "confidence": 0.86},
+    {"text": "UPI Fraud Monitoring: We detected delivery address mismatch. Please validate your OTP or your number will be blocked.", "label": "social_engineering", "category": "impersonation", "confidence": 0.93},
+    {"text": "UPI Fraud Monitoring: We detected KYC validation failure. Please confirm your credentials or your number will be blocked.", "label": "social_engineering", "category": "impersonation", "confidence": 0.89},
+    {"text": "UPI Fraud Monitoring: We detected security policy violation. Please re-enter your passcode to prevent account termination.", "label": "social_engineering", "category": "impersonation", "confidence": 0.90},
+    {"text": "UPI Fraud Monitoring: We detected unusual login activity. Please confirm your credentials or your number will be blocked.", "label": "social_engineering", "category": "impersonation", "confidence": 0.90},
 
-    # ═══════════════════════════════════════════════════════════════
-    #  FEAR / THREAT  (15)
-    # ═══════════════════════════════════════════════════════════════
+    # ==============================================================
+    #  FEAR / THREAT (46)
+    # ==============================================================
     {"text": "Security alert: Suspicious activity detected. Click here to secure your account NOW!", "label": "social_engineering", "category": "fear_threat", "confidence": 0.93},
     {"text": "WARNING: Your computer is infected with a virus. Download our security software immediately!", "label": "social_engineering", "category": "fear_threat", "confidence": 0.95},
     {"text": "Legal notice: You have unpaid taxes. Failure to respond within 24 hours will result in legal action", "label": "social_engineering", "category": "fear_threat", "confidence": 0.95},
@@ -109,10 +233,6 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "We've detected someone trying to steal your identity. Your credit score is at risk. Click here now to activate identity protection", "label": "social_engineering", "category": "fear_threat", "confidence": 0.91},
     {"text": "A complaint has been filed against you and legal proceedings will begin in 72 hours unless you respond to this notice immediately", "label": "social_engineering", "category": "fear_threat", "confidence": 0.95},
     {"text": "CRITICAL WARNING: Multiple failed login attempts detected. Your account will be permanently locked. Verify your identity now to prevent lockout", "label": "social_engineering", "category": "fear_threat", "confidence": 0.91},
-
-    # ═══════════════════════════════════════════════════════════════
-    #  PSYCHOLOGICAL COERCION  (15) — merged into fear_threat category
-    # ═══════════════════════════════════════════════════════════════
     {"text": "We know where you live and we know your family. Cooperate or face the consequences.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
     {"text": "I have recorded you through your webcam. Pay up or the footage goes to everyone you know.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
     {"text": "Comply with our demands or we will ruin your career and destroy your reputation permanently.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
@@ -128,11 +248,6 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "If you don't do exactly as instructed, we will release damaging information about you. This is not a bluff.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
     {"text": "We are watching your every move. We have hacked your camera and microphone. Obey or suffer the consequences.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
     {"text": "Disappoint me on this and it will reflect very badly on you. Keep this confidential and do it now without question.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.91},
-
-    # ═══════════════════════════════════════════════════════════════
-    #  FEAR / THREAT — SEVERE  (15)  NEW: service termination, legal,
-    #  India-specific scams (Aadhaar, PAN, SIM, court, police, FIR)
-    # ═══════════════════════════════════════════════════════════════
     {"text": "Your bank account has been frozen due to suspicious activity. Contact us immediately or your funds will be permanently seized", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
     {"text": "Your Aadhaar number has been misused for illegal activities. Your Aadhaar will be deactivated within 24 hours unless you verify now", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
     {"text": "Your PAN card has been blocked by the Income Tax Department due to suspicious transactions. Call immediately to unblock", "label": "social_engineering", "category": "fear_threat", "confidence": 0.97},
@@ -148,14 +263,15 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "Your electricity connection will be disconnected today due to unpaid dues. Pay immediately through this link to avoid disconnection", "label": "social_engineering", "category": "fear_threat", "confidence": 0.94},
     {"text": "Your credit card has been used for money laundering. The bank has reported this to authorities. Call now to avoid criminal charges", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
     {"text": "Your email account will be permanently deleted due to violation of terms. Verify your identity within 1 hour to prevent deletion", "label": "social_engineering", "category": "fear_threat", "confidence": 0.93},
+    {"text": "Device Security Center notice: your webcam footage was compromised. You must verify identity and pay penalty or legal action will proceed.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.91},
 
-    # ═══════════════════════════════════════════════════════════════
-    #  LEGITIMATE BUT TRICKY  (15)
-    # ═══════════════════════════════════════════════════════════════
+    # ==============================================================
+    #  LEGITIMATE BUT TRICKY (46)
+    # ==============================================================
     {"text": "Please verify your email address to complete your registration. Click the link we sent to your inbox.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.95},
     {"text": "Your subscription is expiring on March 15th. Visit your account settings to renew if you'd like to continue the service.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.94},
     {"text": "Reminder: Your password hasn't been changed in 90 days. For security, we recommend updating it through the app settings.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.95},
-    {"text": "Congratulations on your promotion! The team wanted to celebrate — are you free for lunch this Friday?", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.97},
+    {"text": "Congratulations on your promotion! The team wanted to celebrate \u2014 are you free for lunch this Friday?", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.97},
     {"text": "Security notice: We've enabled two-factor authentication on your account as part of our company-wide security upgrade.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
     {"text": "The CEO will be joining the all-hands meeting tomorrow at 3 PM to present the quarterly results. Please attend if possible.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.98},
     {"text": "URGENT: The production server is down. All engineers please join the incident bridge call immediately.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
@@ -165,12 +281,43 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "Your Amazon order #112-4835991 has shipped! Track your package at amazon.com/orders.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.97},
     {"text": "We detected a login from a new device (Chrome on Windows). If this was you, no action is needed. Otherwise, reset your password in settings.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
     {"text": "ACTION REQUIRED: Please complete your annual compliance training by March 31st. Access it through the HR portal.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.95},
-    {"text": "Congratulations — you've earned enough loyalty points for a $25 reward! Redeem in the app under 'My Rewards'.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.94},
+    {"text": "Congratulations \u2014 you've earned enough loyalty points for a $25 reward! Redeem in the app under 'My Rewards'.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.94},
     {"text": "Your payment of $149.99 to Netflix has been processed. If you did not authorize this charge, contact your bank directly.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
+    {"text": "Account lifecycle reminder: Security verification is available inside the mobile app settings section. Use your usual login path only.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
+    {"text": "Billing reminder email: If you notice unfamiliar activity, report it through the official helpdesk. You can ignore this if already completed.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
+    {"text": "Company IT bulletin: Update contact preferences via the verified portal link in your dashboard. Do not respond with OTP codes.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
+    {"text": "Company IT bulletin: Your profile details can be confirmed from the signed-in settings page. Please keep your account recovery options updated.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.98},
+    {"text": "Corporate compliance reminder: Security verification is available inside the mobile app settings section. No password sharing is required.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.98},
+    {"text": "Corporate compliance reminder: Update contact preferences via the verified portal link in your dashboard. You can ignore this if already completed.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.98},
+    {"text": "Corporate compliance reminder: Your profile details can be confirmed from the signed-in settings page. No phone verification is requested in this notice.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
+    {"text": "Data privacy advisory: For security, reset your password using the in-app option. You can ignore this if already completed.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.97},
+    {"text": "Employee benefits update: Renewal is available from your existing customer dashboard. Support is available during business hours.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.99},
+    {"text": "Employee benefits update: Security verification is available inside the mobile app settings section. Do not respond with OTP codes.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
+    {"text": "Employee benefits update: Your profile details can be confirmed from the signed-in settings page. Please keep your account recovery options updated.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.98},
+    {"text": "HR process reminder: If you notice unfamiliar activity, report it through the official helpdesk. Do not respond with OTP codes.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
+    {"text": "HR process reminder: Renewal is available from your existing customer dashboard. No phone verification is requested in this notice.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.98},
+    {"text": "Internal audit notice: If this message is unexpected, use the support center to validate it. Confirm only through signed-in channels.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.95},
+    {"text": "Internal audit notice: Your profile details can be confirmed from the signed-in settings page. Confirm only through signed-in channels.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.98},
+    {"text": "Operations support update: For audit readiness, confirm your role details in the HR system. Please keep your account recovery options updated.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.94},
+    {"text": "Operations support update: Renewal is available from your existing customer dashboard. You can ignore this if already completed.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.98},
+    {"text": "Platform account notice: If this message is unexpected, use the support center to validate it. Contact your admin if you need assistance.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.97},
+    {"text": "Platform account notice: Update contact preferences via the verified portal link in your dashboard. Use your usual login path only.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
+    {"text": "Policy acknowledgment request: Please review your account settings from the official app. No password sharing is required.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
+    {"text": "Security awareness campaign: The update can be completed from your standard employee portal. Contact your admin if you need assistance.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.97},
+    {"text": "Security awareness campaign: Update contact preferences via the verified portal link in your dashboard. You can ignore this if already completed.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
+    {"text": "Service status update: For security, reset your password using the in-app option. Use your usual login path only.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.97},
+    {"text": "Service status update: If this activity is unfamiliar, contact support through the website. Please keep your account recovery options updated.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.97},
+    {"text": "Service status update: Please check billing preferences from your normal account dashboard. Contact your admin if you need assistance.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
+    {"text": "Subscription renewal memo: If this activity is unfamiliar, contact support through the website. Please keep your account recovery options updated.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.97},
+    {"text": "Subscription renewal memo: If this message is unexpected, use the support center to validate it. No phone verification is requested in this notice.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.98},
+    {"text": "Subscription renewal memo: Renewal is available from your existing customer dashboard. Do not respond with OTP codes.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
+    {"text": "Vendor portal notice: Renewal is available from your existing customer dashboard. Support is available during business hours.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.97},
+    {"text": "Vendor portal notice: Security verification is available inside the mobile app settings section. Support is available during business hours.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.96},
+    {"text": "Vendor portal notice: The update can be completed from your standard employee portal. Support is available during business hours.", "label": "legitimate", "category": "legitimate_but_tricky", "confidence": 0.98},
 
-    # ═══════════════════════════════════════════════════════════════
-    #  NORMAL COMMUNICATION  (15)
-    # ═══════════════════════════════════════════════════════════════
+    # ==============================================================
+    #  NORMAL COMMUNICATION (46)
+    # ==============================================================
     {"text": "Hey, can we schedule a meeting for next Tuesday at 2 PM?", "label": "legitimate", "category": "normal_communication", "confidence": 0.95},
     {"text": "Here are the quarterly reports you requested. Let me know if you need any clarification.", "label": "legitimate", "category": "normal_communication", "confidence": 0.97},
     {"text": "Thanks for your email. I'll review the documents and get back to you by Friday.", "label": "legitimate", "category": "normal_communication", "confidence": 0.96},
@@ -179,11 +326,43 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "Attached is the invoice for your review. Payment is due within 30 days.", "label": "legitimate", "category": "normal_communication", "confidence": 0.96},
     {"text": "Thank you for your order! Your package will arrive in 3-5 business days.", "label": "legitimate", "category": "normal_communication", "confidence": 0.97},
     {"text": "Reminder: Team standup meeting at 10 AM tomorrow. Please join via the usual Zoom link.", "label": "legitimate", "category": "normal_communication", "confidence": 0.98},
-    {"text": "Just checking in — how's the project going? Let me know if you need any help from my side.", "label": "legitimate", "category": "normal_communication", "confidence": 0.98},
+    {"text": "Just checking in \u2014 how's the project going? Let me know if you need any help from my side.", "label": "legitimate", "category": "normal_communication", "confidence": 0.98},
     {"text": "Happy birthday! Wishing you a wonderful year ahead. Enjoy your special day!", "label": "legitimate", "category": "normal_communication", "confidence": 0.99},
     {"text": "I've shared the Google Doc with you. Feel free to leave comments or suggestions directly in the document.", "label": "legitimate", "category": "normal_communication", "confidence": 0.97},
     {"text": "The client loved the presentation! Great job on the design and the data analysis. Let's discuss next steps Monday.", "label": "legitimate", "category": "normal_communication", "confidence": 0.98},
     {"text": "I'll be out of office next week on vacation. Please reach out to Sarah for anything urgent while I'm away.", "label": "legitimate", "category": "normal_communication", "confidence": 0.97},
     {"text": "Could you review the pull request I submitted this morning? It's a small bug fix for the login page.", "label": "legitimate", "category": "normal_communication", "confidence": 0.99},
     {"text": "We're organizing a team lunch for next Friday. Please fill out the form to let us know your dietary preferences.", "label": "legitimate", "category": "normal_communication", "confidence": 0.98},
+    {"text": "Calendar reminder: Please add your notes to the meeting agenda. Feel free to reply when convenient.", "label": "legitimate", "category": "normal_communication", "confidence": 0.94},
+    {"text": "Calendar reminder: Please flag any blockers before the planning session. This is only a routine coordination message.", "label": "legitimate", "category": "normal_communication", "confidence": 0.94},
+    {"text": "Client follow-up: The client requested a short status update for this week. This is only a routine coordination message.", "label": "legitimate", "category": "normal_communication", "confidence": 0.96},
+    {"text": "Customer success note: I will circulate minutes after the discussion. Please ping me if you need context.", "label": "legitimate", "category": "normal_communication", "confidence": 0.94},
+    {"text": "Department thread: The deployment checklist has been updated for review. Appreciate your quick review.", "label": "legitimate", "category": "normal_communication", "confidence": 0.97},
+    {"text": "Engineering sync: I have uploaded the latest report to the shared folder. Feel free to reply when convenient.", "label": "legitimate", "category": "normal_communication", "confidence": 0.99},
+    {"text": "Engineering sync: I will be out of office on Friday, please contact the backup owner. This is only a routine coordination message.", "label": "legitimate", "category": "normal_communication", "confidence": 0.98},
+    {"text": "Engineering sync: The client requested a short status update for this week. Let me know if anything is unclear.", "label": "legitimate", "category": "normal_communication", "confidence": 0.95},
+    {"text": "Internal announcement: Let's align on responsibilities for the next milestone. Please ping me if you need context.", "label": "legitimate", "category": "normal_communication", "confidence": 0.94},
+    {"text": "Manager check-in: I shared the dashboard link for your feedback. Appreciate your quick review.", "label": "legitimate", "category": "normal_communication", "confidence": 0.97},
+    {"text": "Manager check-in: Please review the attached draft and share your comments. This is only a routine coordination message.", "label": "legitimate", "category": "normal_communication", "confidence": 0.99},
+    {"text": "Manager check-in: The client requested a short status update for this week. Feel free to reply when convenient.", "label": "legitimate", "category": "normal_communication", "confidence": 0.95},
+    {"text": "Procurement follow-up: Could you send the revised document before 5 PM? Happy to adjust if priorities changed.", "label": "legitimate", "category": "normal_communication", "confidence": 0.97},
+    {"text": "Procurement follow-up: I will be out of office on Friday, please contact the backup owner. Happy to adjust if priorities changed.", "label": "legitimate", "category": "normal_communication", "confidence": 0.95},
+    {"text": "Procurement follow-up: We will finalize the timeline in tomorrow's call. Please ping me if you need context.", "label": "legitimate", "category": "normal_communication", "confidence": 0.99},
+    {"text": "Product review note: I will be out of office on Friday, please contact the backup owner. Please ping me if you need context.", "label": "legitimate", "category": "normal_communication", "confidence": 0.98},
+    {"text": "Project email: Can you confirm attendance for the cross-team workshop? Thanks in advance for the help.", "label": "legitimate", "category": "normal_communication", "confidence": 0.96},
+    {"text": "Project email: I have uploaded the latest report to the shared folder. Thanks in advance for the help.", "label": "legitimate", "category": "normal_communication", "confidence": 0.98},
+    {"text": "Sprint update: Let's align on responsibilities for the next milestone. This is only a routine coordination message.", "label": "legitimate", "category": "normal_communication", "confidence": 0.95},
+    {"text": "Sprint update: The deployment checklist has been updated for review. Let me know if anything is unclear.", "label": "legitimate", "category": "normal_communication", "confidence": 0.98},
+    {"text": "Support handoff: Can you confirm attendance for the cross-team workshop? No action needed right away.", "label": "legitimate", "category": "normal_communication", "confidence": 0.99},
+    {"text": "Support handoff: I have uploaded the latest report to the shared folder. Appreciate your quick review.", "label": "legitimate", "category": "normal_communication", "confidence": 0.99},
+    {"text": "Support handoff: I will circulate minutes after the discussion. Appreciate your quick review.", "label": "legitimate", "category": "normal_communication", "confidence": 0.98},
+    {"text": "Support handoff: Please add your notes to the meeting agenda. I'll follow up with updates tomorrow.", "label": "legitimate", "category": "normal_communication", "confidence": 0.96},
+    {"text": "Support handoff: Please flag any blockers before the planning session. Happy to adjust if priorities changed.", "label": "legitimate", "category": "normal_communication", "confidence": 0.96},
+    {"text": "Team chat: I shared the dashboard link for your feedback. Please ping me if you need context.", "label": "legitimate", "category": "normal_communication", "confidence": 0.95},
+    {"text": "Team chat: I will be out of office on Friday, please contact the backup owner. Happy to adjust if priorities changed.", "label": "legitimate", "category": "normal_communication", "confidence": 0.95},
+    {"text": "Team chat: Let's align on responsibilities for the next milestone. We can discuss details in the next call.", "label": "legitimate", "category": "normal_communication", "confidence": 0.95},
+    {"text": "Weekly planning message: Could you send the revised document before 5 PM? I'll follow up with updates tomorrow.", "label": "legitimate", "category": "normal_communication", "confidence": 0.95},
+    {"text": "Weekly planning message: I will be out of office on Friday, please contact the backup owner. Let me know if anything is unclear.", "label": "legitimate", "category": "normal_communication", "confidence": 0.97},
+    {"text": "Weekly planning message: Please flag any blockers before the planning session. Please ping me if you need context.", "label": "legitimate", "category": "normal_communication", "confidence": 0.95},
+
 ]
