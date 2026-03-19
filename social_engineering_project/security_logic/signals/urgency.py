@@ -1,10 +1,6 @@
 import re
-from typing import List
+from typing import List, Tuple
 from ..base import SignalResult
-
-# -----------------------------
-# PATTERNS
-# -----------------------------
 
 DEADLINE_PATTERNS = [
     r'\b(?:expires?|expiring)\s+(?:in\s+)?\d+\s*(?:hours?|minutes?|days?|hrs?|mins?)\b',
@@ -16,8 +12,6 @@ DEADLINE_PATTERNS = [
     r'\bfinal\s+(?:notice|warning|reminder|deadline)\b',
     r'\btime\s+(?:is\s+)?running\s+out\b',
     r'\bclock\s+is\s+ticking\b',
-
-    # critical real-world additions
     r"before\s+it\s+expires?",
     r"expires?\s+today",
     r"before\s+it'?s\s+too\s+late",
@@ -33,11 +27,6 @@ IMMEDIACY_PATTERNS = [
     r'\bright\s+(?:now|away)\b',
     r'\bwithout\s+(?:delay|hesitation)\b',
     r'\btime[\s-]?sensitive\b',
-
-    #  natural phrases
-    r'\bact\s+fast\b',
-    r'\bhurry\b',
-    r'\bdon\'?t\s+miss\b',
 ]
 
 TIME_PRESSURE_PATTERNS = [
@@ -50,9 +39,6 @@ ACTION_REQUEST_PATTERNS = [
     r'\bclick\s+(?:here|below)\b',
     r'\bverify\s+(?:your|account|identity)\b',
     r'\bconfirm\s+(?:your|account|details)\b',
-
-    #  reward bridge (important)
-    r'\bclaim\s+(?:now|today)\b',
 ]
 
 URGENCY_KEYWORDS_IN_CONTEXT = [
@@ -71,22 +57,12 @@ BASIC_URGENCY_PATTERNS = [
     r"\brespond immediately\b",
 ]
 
-
-# -----------------------------
-# HELPERS
-# -----------------------------
-
 def _find_matches(text: str, patterns: List[str]) -> List[str]:
     matches = []
     for pattern in patterns:
         found = re.findall(pattern, text, re.IGNORECASE)
         matches.extend(found)
     return matches
-
-
-# -----------------------------
-# MAIN ANALYZER
-# -----------------------------
 
 def analyze(text: str) -> SignalResult:
 
@@ -100,17 +76,10 @@ def analyze(text: str) -> SignalResult:
     evidence = []
     category_scores = {}
 
-    # -----------------------------
-    # BASIC URGENCY
-    # -----------------------------
     basic_matches = _find_matches(text, BASIC_URGENCY_PATTERNS)
     if basic_matches:
         evidence.extend([f"Basic urgency: {m}" for m in basic_matches[:3]])
         category_scores['basic'] = min(len(basic_matches) * 0.15, 0.3)
-
-    # -----------------------------
-    # DETECTION
-    # -----------------------------
 
     deadline_matches = _find_matches(text, DEADLINE_PATTERNS)
     if deadline_matches:
@@ -137,9 +106,6 @@ def analyze(text: str) -> SignalResult:
         evidence.extend(keyword_matches[:2])
         category_scores['keywords'] = min(len(keyword_matches) * 0.08, 0.15)
 
-    # -----------------------------
-    # SCORING
-    # -----------------------------
     base_score = sum(category_scores.values())
 
     if len(category_scores) >= 2:
@@ -147,9 +113,6 @@ def analyze(text: str) -> SignalResult:
 
     final_score = min(base_score, 1.0)
 
-    # -----------------------------
-    # CONFIDENCE
-    # -----------------------------
     if final_score == 0:
         confidence = 0.5
     elif final_score < 0.3:

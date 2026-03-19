@@ -1,5 +1,6 @@
 """
 Social Engineering Detection Dashboard — v6.0.
+Radar now uses FINAL integrated output (ML + rules) — no mismatch.
 """
 
 import streamlit as st
@@ -16,6 +17,10 @@ from nlp_pipeline.rag_detector import get_detector
 from security_logic.rule_engine import analyze_text
 
 
+# ---------------------------
+# CONFIG
+# ---------------------------
+
 st.set_page_config(
     page_title="Social Engineering Detection System",
     layout="wide",
@@ -24,46 +29,57 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-.block-container { padding-top: 2rem; padding-bottom: 2rem; }
-.status-box {
-    padding: 1.5rem; border-radius: 0.5rem; text-align: center;
-    margin: 1.5rem 0; font-size: 1.3rem; font-weight: bold;
-}
-.status-high { background: rgba(220,53,69,.12); border: 2px solid #dc3545; color: #dc3545; }
-.status-potential { background: rgba(255,193,7,.12); border: 2px solid #ffc107; color: #ffc107; }
-.status-low { background: rgba(100,149,237,.12); border: 2px solid #6495ed; color: #6495ed; }
-.status-safe { background: rgba(40,167,69,.12); border: 2px solid #28a745; color: #28a745; }
-#MainMenu, footer { visibility: hidden; }
-.stButton>button {
-    width: 100%; border-radius: .5rem; padding: .75rem 1rem; font-weight: 600;
-}
+    .block-container { padding-top: 2rem; padding-bottom: 2rem; }
+    .status-box {
+        padding: 1.5rem; border-radius: 0.5rem; text-align: center;
+        margin: 1.5rem 0; font-size: 1.3rem; font-weight: bold;
+    }
+    .status-high {
+        background: rgba(220,53,69,.12); border: 2px solid #dc3545; color: #dc3545;
+    }
+    .status-potential {
+        background: rgba(255,193,7,.12); border: 2px solid #ffc107; color: #ffc107;
+    }
+    .status-low {
+        background: rgba(100,149,237,.12); border: 2px solid #6495ed; color: #6495ed;
+    }
+    .status-safe {
+        background: rgba(40,167,69,.12); border: 2px solid #28a745; color: #28a745;
+    }
+    #MainMenu, footer { visibility: hidden; }
+    .stButton>button {
+        width: 100%; border-radius: .5rem; padding: .75rem 1rem; font-weight: 600;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ---------------------------
-# FINAL RADAR LOGIC
+# RADAR (FINAL FIX)
 # ---------------------------
-def build_radar_data(rule_output, integrated_result):
 
-    # normalized scores from rule_engine
-    radar = dict(rule_output["radar_data"])
-
-    # ML category guidance (light boost)
-    ml_categories = [c.lower() for c in integrated_result.get("categories", [])]
-
-    category_map = {
-        "urgency": "urgency",
-        "authority": "authority",
-        "impersonation": "impersonation",
-        "reward/lure": "reward_lure",
-        "fear/threat": "fear_threat",
+def build_radar_data(result):
+    radar = {
+        "urgency": 0.0,
+        "authority": 0.0,
+        "impersonation": 0.0,
+        "reward_lure": 0.0,
+        "fear_threat": 0.0,
     }
 
-    for cat in ml_categories:
-        mapped = category_map.get(cat)
-        if mapped and mapped in radar:
-            radar[mapped] = min(radar[mapped] + 0.1, 1.0)
+    category_map = {
+        "Urgency": "urgency",
+        "Authority": "authority",
+        "Impersonation": "impersonation",
+        "Reward/Lure": "reward_lure",
+        "Fear/Threat": "fear_threat",
+    }
+
+    strength = result["overall_confidence"] / 100
+
+    for cat in result["categories"]:
+        if cat in category_map:
+            radar[category_map[cat]] = strength
 
     return radar
 
@@ -107,8 +123,9 @@ def create_radar_chart(radar_data):
 
 
 # ---------------------------
-# INIT
+# INITIALIZATION
 # ---------------------------
+
 @st.cache_resource(show_spinner=False)
 def init():
     try:
@@ -128,11 +145,17 @@ if err:
 
 
 # ---------------------------
-# UI
+# HEADER
 # ---------------------------
+
 st.title("Social Engineering Detection System")
 st.caption("RAG + NLP + Rule Engine  |  Weighted Ensemble (0.6 RAG / 0.4 Rules)")
 st.markdown("---")
+
+
+# ---------------------------
+# INPUT
+# ---------------------------
 
 st.subheader("Enter Message to Analyze")
 
@@ -143,7 +166,6 @@ msg = st.text_area(
 )
 
 if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
-
     if not msg or len(msg.strip()) < 10:
         st.warning("Please enter at least 10 characters.")
     else:
@@ -151,7 +173,7 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
             time.sleep(0.2)
 
             r = detector.analyze_message(msg)
-            rule_output = analyze_text(msg)
+            rule_output = analyze_text(msg)  # still used for explainability if needed
 
         attack = r["attack_detected"]
         cats = r["categories"]
@@ -163,17 +185,25 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
 
         cat_label = " + ".join(cats) if cats else "None"
 
+        # ---------------------------
+        # STATUS
+        # ---------------------------
         status_map = {
             "HIGH": ("HIGH RISK — THREAT DETECTED", "status-high"),
             "POTENTIAL": ("POTENTIAL THREAT DETECTED", "status-potential"),
             "LOW": ("LOW RISK — SUSPICIOUS INDICATORS", "status-low"),
             "SAFE": ("MESSAGE APPEARS SAFE", "status-safe"),
         }
-
         label, css = status_map.get(risk, ("UNKNOWN", "status-safe"))
 
-        st.markdown(f"<div class='status-box {css}'>{label}</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='status-box {css}'>{label}</div>",
+            unsafe_allow_html=True,
+        )
 
+        # ---------------------------
+        # RESULT
+        # ---------------------------
         st.markdown("---")
         st.subheader("Detection Result")
 
@@ -190,12 +220,12 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
             )
 
         # ---------------------------
-        # FINAL RADAR
+        # RADAR (FINAL FIXED)
         # ---------------------------
         st.markdown("---")
         st.subheader("Social Engineering Signal Distribution")
 
-        radar_data = build_radar_data(rule_output, r)
+        radar_data = build_radar_data(r)
         fig = create_radar_chart(radar_data)
         st.plotly_chart(fig, use_container_width=True)
 
@@ -243,12 +273,13 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
 # ---------------------------
 # SIDEBAR
 # ---------------------------
+
 with st.sidebar:
     st.markdown("## System Information")
     st.info(
         "**RAG** — Semantic detection (60%)\n\n"
         "**Rules** — Keyword signals (40%)\n\n"
-        "**Radar** — Signal distribution visualization"
+        "**Radar** — Derived from final decision"
     )
 
     st.markdown("---")
@@ -258,10 +289,12 @@ with st.sidebar:
 # ---------------------------
 # FOOTER
 # ---------------------------
+
 st.markdown("---")
 st.markdown(
     "<div style='text-align:center;color:#666;font-size:.8rem'>"
-    "Social Engineering Detection System v6.0  |  Real-time analysis"
+    "Social Engineering Detection System v6.0  |  "
+    "Real-time analysis"
     "</div>",
     unsafe_allow_html=True,
 )

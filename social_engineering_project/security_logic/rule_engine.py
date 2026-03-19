@@ -7,9 +7,6 @@ from .signals.fear_threat import analyze as analyze_fear_threat
 
 
 def analyze_text(text: str) -> dict:
-    """
-    Advanced rule-based aggregation engine.
-    """
 
     ACTIVATION_THRESHOLDS = {
         "urgency": 0.2,
@@ -35,9 +32,6 @@ def analyze_text(text: str) -> dict:
         else:
             return "low"
 
-    # -----------------------------
-    # Run analyzers
-    # -----------------------------
     signal_results = [
         analyze_urgency(text),
         analyze_authority(text),
@@ -52,9 +46,6 @@ def analyze_text(text: str) -> dict:
 
     weighted_sum = 0.0
 
-    # -----------------------------
-    # Process signals
-    # -----------------------------
     for result in signal_results:
         name = result.signal_name
         score = float(result.score)
@@ -80,16 +71,11 @@ def analyze_text(text: str) -> dict:
             "evidence": evidence,
         }
 
-    # -----------------------------
-    # Nonlinear Severity Scaling
-    # -----------------------------
     weighted_sum = min(weighted_sum, 1.5)
+
     total_score = 1 - pow((1 - min(weighted_sum, 1.0)), 1.3)
     total_score = round(min(total_score, 1.0), 3)
 
-    # -----------------------------
-    # Primary Category
-    # -----------------------------
     primary_category = None
     if active_signals:
         primary_category = max(
@@ -97,9 +83,6 @@ def analyze_text(text: str) -> dict:
             key=lambda r: r.score,
         ).signal_name
 
-    # -----------------------------
-    # Escalation Logic
-    # -----------------------------
     escalated = False
 
     if "impersonation" in strong_signals and "authority" in strong_signals:
@@ -111,9 +94,6 @@ def analyze_text(text: str) -> dict:
     if len(strong_signals) >= 3:
         escalated = True
 
-    # -----------------------------
-    # Verdict
-    # -----------------------------
     if escalated:
         verdict = "critical"
     elif total_score >= 0.75:
@@ -123,9 +103,6 @@ def analyze_text(text: str) -> dict:
     else:
         verdict = "low"
 
-    # -----------------------------
-    # Confidence
-    # -----------------------------
     if not active_signals:
         rule_confidence = 0.5
     else:
@@ -138,35 +115,12 @@ def analyze_text(text: str) -> dict:
         rule_confidence = (avg_conf * 0.7) + (signal_factor * 0.3)
         rule_confidence = round(min(rule_confidence, 0.95), 3)
 
-    # -----------------------------
-    # Evidence
-    # -----------------------------
     combined_evidence = []
     for name in active_signals:
         combined_evidence.extend(per_signal_breakdown[name]["evidence"])
 
     combined_evidence = combined_evidence[:20]
 
-    # -----------------------------
-    # RADAR NORMALIZATION (NEW)
-    # -----------------------------
-    raw_scores = {
-        name: per_signal_breakdown[name]["score"]
-        for name in per_signal_breakdown
-    }
-
-    max_score = max(raw_scores.values()) if raw_scores else 0.0
-
-    radar_data = {}
-    for name, score in raw_scores.items():
-        if max_score == 0:
-            radar_data[name] = 0.0
-        else:
-            radar_data[name] = round(score / max_score, 3)
-
-    # -----------------------------
-    # Final Output
-    # -----------------------------
     return {
         "verdict": verdict,
         "total_score": total_score,
@@ -175,6 +129,5 @@ def analyze_text(text: str) -> dict:
         "active_signals": active_signals,
         "strong_signals": strong_signals,
         "per_signal_breakdown": per_signal_breakdown,
-        "radar_data": radar_data, 
         "combined_evidence": combined_evidence,
     }
