@@ -197,17 +197,29 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
 
         attack = r["attack_detected"]
         cats = r["categories"]
-        risk = r["risk_level"]
+        cat_label = " + ".join(cats) if cats else "None"
+        risk = str(r.get("risk_level", "SAFE")).strip().upper()
         rag_score = float(r["rag_confidence"])
         rule_score = float(r["rule_confidence"])
         final_score = float(r["overall_confidence"])
         score_calc = r["confidence_calculation"]
         why_flagged = r.get("why_flagged", [])
-        similar_patterns = filter_similar_patterns(r.get("similar_attack_patterns", []), max_items=3)
+        top_k_results = r.get("similar_attack_patterns", [])
+        similar_patterns = filter_similar_patterns(top_k_results, max_items=3)
         dos = r.get("dos", [])
         donts = r.get("donts", [])
+        explanation = why_flagged
 
-        cat_label = " + ".join(cats) if cats else "None"
+        st.session_state["risk"] = risk
+        st.session_state["category"] = cat_label
+        st.session_state["explanation"] = explanation
+        st.session_state["top_k_results"] = top_k_results
+        st.session_state["dos"] = dos
+        st.session_state["donts"] = donts
+
+        print("Risk:", risk)
+        print("Explainability triggered:", risk != "SAFE")
+        print("Top-K results:", top_k_results)
 
         # -- Central Verdict Box --
         verdict_map = {
@@ -330,7 +342,29 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
                 for tip in donts:
                     st.markdown(f"- {tip}")
 
-        
+
+if "risk" in st.session_state:
+
+    risk = st.session_state["risk"]
+
+    st.write("DEBUG RISK:", st.session_state.get("risk"))
+
+    if risk is not None and risk.upper() != "SAFE":
+
+        st.subheader("Why this message was flagged")
+        st.write(st.session_state["explanation"])
+
+        st.subheader("Similar Attack Patterns")
+        for pattern in st.session_state["top_k_results"][:3]:
+            st.write(pattern)
+
+        st.subheader("What You Should Do")
+        for d in st.session_state["dos"]:
+            st.write("- ", d)
+
+        st.subheader("What You Should Avoid")
+        for d in st.session_state["donts"]:
+            st.write("- ", d)
 
 
 # -- Sidebar --
@@ -353,14 +387,4 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("**Knowledge Base Patterns - 322**")
 
-
-# -- Footer --
-
-st.markdown("---")
-st.markdown(
-    "<div style='text-align:center;color:#666;font-size:.8rem'>"
-    "Social Engineering Detection System v6.0  |  "
-    "All analysis is performed in real-time. No data is stored."
-    "</div>",
-    unsafe_allow_html=True,
-)
+        
