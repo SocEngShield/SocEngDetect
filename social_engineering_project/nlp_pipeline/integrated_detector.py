@@ -28,8 +28,8 @@ class IntegratedSocialEngineeringDetector:
         "suspended", "hacked", "compromised", "ransomware",
         "encrypted", "dark web", "webcam", "leaked", "breach",
         "income tax", "deactivated", "permanently", "frozen",
-        "action will be taken", "credentials", "share info","card blocked", "payment failed", "transaction declined"
-
+        "action will be taken", "credentials", "share info",
+        "card blocked", "payment failed", "transaction declined",
     ]
 
     DEADLINE_KW = [
@@ -38,6 +38,7 @@ class IntegratedSocialEngineeringDetector:
         "within the next", "before authorities", "final warning",
         "within 10 minutes", "in 10 minutes", "in 30 minutes",
         "30 minutes", "last warning", "last chance", "expires",
+        "expires today", "limited time", "before it expires", "act fast",
     ]
 
     GOV_KW = [
@@ -54,6 +55,8 @@ class IntegratedSocialEngineeringDetector:
             r"\bsupport team\b", r"\bhelp\s?desk\b",
             r"\btechnical support\b", r"\btech support\b",
             r"\bamazon support\b", r"\bamazon customer support\b",
+            r"\byour bank\b",
+            r"\bsecurity team\b",
         ]
     ]
 
@@ -78,16 +81,18 @@ class IntegratedSocialEngineeringDetector:
             r"\brouting number\b", r"\bshare your\b", r"\bsend your\b",
             r"\bprovide your\b", r"\bsubmit your\b",
             r"\bconfirm your card\b", r"\bconfirm card\b",
-            r"\blogin credential", r"\bverify your identity\b",r"\bconfirm your card details\b"
-            r"\bconfirm your banking\b",r"\bconfirm your payment\b",r"\bverify card\b"
-
+            r"\blogin credential", r"\bverify your identity\b",
+            r"\bconfirm your card details\b",
+            r"\bconfirm your banking\b",
+            r"\bconfirm your payment\b",
+            r"\bverify card\b",
         ]
     ]
 
     REWARD_KW = [
         "won", "winner", "prize", "reward", "free", "gift",
         "discount", "cashback", "lottery", "selected", "chosen",
-        "bonus", "90%",
+        "bonus", "offer", "exclusive", "limited offer", "90%",
     ]
 
     def __init__(self):
@@ -104,10 +109,12 @@ class IntegratedSocialEngineeringDetector:
                 r"verify\s+(your\s+)?email\s+(address\s+)?to\s+complete",
             ]
         ]
+
         self._auth_benign = re.compile(
             r"\b(announced|said|reported|mentioned|shared|presented|discussed)\b",
             re.IGNORECASE,
         )
+
         self._verify_benign = re.compile(
             r"\b(appointment|meeting|booking|reservation|schedule|"
             r"calendar|registration|sign.?up)\b",
@@ -175,16 +182,15 @@ class IntegratedSocialEngineeringDetector:
         if not sig["fear"] and not sig["sensitive"] and not sig["reward"] and not sig["deadline"]:
             rag_conf = min(rag_conf, 20.0)
             rule_conf = min(rule_conf, 20.0)
-    
+
         return self._combine(msg, rag_conf, rag_cat, rule_conf, rule_cats, sig)
 
     def _rule_engine(self, sig: Dict) -> Tuple[float, List[str]]:
         score = 0.0
 
-        n_fear = len(sig["fear"])
-        if n_fear >= 1:
+        if len(sig["fear"]) >= 1:
             score += 35.0
-        if n_fear >= 2:
+        if len(sig["fear"]) >= 2:
             score += 15.0
 
         if sig["deadline"]:
@@ -231,7 +237,7 @@ class IntegratedSocialEngineeringDetector:
         if sig["verify_suspicious"] and not cats:
             cats.append("Impersonation")
 
-        seen: List[str] = []
+        seen = []
         for c in cats:
             if c not in seen:
                 seen.append(c)
@@ -257,18 +263,14 @@ class IntegratedSocialEngineeringDetector:
             "urgency": "Urgency",
             "reward_lure": "Reward/Lure",
         }
+
         rag_cat_display = CAT_MAP.get(rag_cat, None)
 
         cats = list(rule_cats)
         if rag_cat_display and rag_cat_display not in cats:
             cats.append(rag_cat_display)
 
-        n_fear = len(sig["fear"])
-        if n_fear >= 1 and "Fear/Threat" not in cats:
-            cats.insert(0, "Fear/Threat")
-        elif n_fear >= 1 and cats and cats[0] != "Fear/Threat":
-            if "Fear/Threat" in cats:
-                cats.remove("Fear/Threat")
+        if sig["fear"] and "Fear/Threat" not in cats:
             cats.insert(0, "Fear/Threat")
 
         cats = list(dict.fromkeys(cats))[:2]
@@ -276,25 +278,6 @@ class IntegratedSocialEngineeringDetector:
         rag_part = round(0.6 * rag_conf, 2)
         rule_part = round(0.4 * rule_conf, 2)
         overall = round(rag_part + rule_part, 2)
-
-        has_gov = bool(sig["gov"])
-        has_sens = sig["sensitive"]
-        has_dl = bool(sig["deadline"])
-
-        if has_gov:
-            overall = max(overall, 70.0)
-        if has_sens and has_dl:
-            overall = max(overall, 65.0)
-        if has_sens and (sig["identity"] or sig["brand"]):
-            overall = max(overall, 65.0)
-        if n_fear >= 2:
-            overall = max(overall, 60.0)
-        if n_fear >= 1 and has_dl:
-            overall = max(overall, 60.0)
-        if n_fear >= 1:
-            overall = max(overall, 40.0)
-        if rule_conf > 70.0 and "Fear/Threat" in cats:
-            overall = max(overall, 65.0)
 
         overall = round(max(0.0, min(100.0, overall)), 2)
 
@@ -307,18 +290,13 @@ class IntegratedSocialEngineeringDetector:
         else:
             risk = "SAFE"
 
-        if "Fear/Threat" in cats and overall >= 60 and risk == "LOW":
-            risk = "POTENTIAL"
-
         attack = overall > 30.0
 
         calc = (
             f"Overall Confidence = (0.6 x {rag_conf:.2f}) + (0.4 x {rule_conf:.2f})\n"
             f"= {rag_part:.2f} + {rule_part:.2f}\n"
-            f"= {round(rag_part + rule_part, 2):.2f}%"
+            f"= {overall:.2f}%"
         )
-        if overall != round(rag_part + rule_part, 2):
-            calc += f"\nAfter severity floors: {overall:.2f}%"
 
         return {
             "attack_detected": attack,

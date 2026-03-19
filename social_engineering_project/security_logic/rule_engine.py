@@ -9,34 +9,16 @@ from .signals.fear_threat import analyze as analyze_fear_threat
 def analyze_text(text: str) -> dict:
     """
     Advanced rule-based aggregation engine.
-
-    Returns:
-        {
-            verdict: str,
-            total_score: float,
-            rule_confidence: float,
-            primary_category: str | None,
-            active_signals: list[str],
-            strong_signals: list[str],
-            per_signal_breakdown: dict,
-            combined_evidence: list[str]
-        }
     """
 
-    # -----------------------------
-    # Signal activation thresholds
-    # -----------------------------
     ACTIVATION_THRESHOLDS = {
         "urgency": 0.2,
         "authority": 0.25,
-        "impersonation": 0.4,     # intentionally stricter
+        "impersonation": 0.4,
         "reward_lure": 0.15,
         "fear_threat": 0.2,
     }
 
-    # -----------------------------
-    # Signal weight importance
-    # -----------------------------
     WEIGHTS = {
         "urgency": 1.0,
         "authority": 1.1,
@@ -68,11 +50,11 @@ def analyze_text(text: str) -> dict:
     active_signals = []
     strong_signals = []
 
+    weighted_sum = 0.0
+
     # -----------------------------
     # Process signals
     # -----------------------------
-    weighted_sum = 0.0
-
     for result in signal_results:
         name = result.signal_name
         score = float(result.score)
@@ -101,14 +83,12 @@ def analyze_text(text: str) -> dict:
     # -----------------------------
     # Nonlinear Severity Scaling
     # -----------------------------
-    weighted_sum = min(weighted_sum, 1.5)  # soft cap before scaling
-
-    # Nonlinear amplification curve
+    weighted_sum = min(weighted_sum, 1.5)
     total_score = 1 - pow((1 - min(weighted_sum, 1.0)), 1.3)
     total_score = round(min(total_score, 1.0), 3)
 
     # -----------------------------
-    # Primary Category Selection
+    # Primary Category
     # -----------------------------
     primary_category = None
     if active_signals:
@@ -122,20 +102,17 @@ def analyze_text(text: str) -> dict:
     # -----------------------------
     escalated = False
 
-    # Identity pressure escalation
     if "impersonation" in strong_signals and "authority" in strong_signals:
         escalated = True
 
-    # Time-pressure + threat escalation
     if "fear_threat" in strong_signals and "urgency" in strong_signals:
         escalated = True
 
-    # Multiple strong signals
     if len(strong_signals) >= 3:
         escalated = True
 
     # -----------------------------
-    # Verdict Determination
+    # Verdict
     # -----------------------------
     if escalated:
         verdict = "critical"
@@ -147,7 +124,7 @@ def analyze_text(text: str) -> dict:
         verdict = "low"
 
     # -----------------------------
-    # Continuous Confidence Model
+    # Confidence
     # -----------------------------
     if not active_signals:
         rule_confidence = 0.5
@@ -162,13 +139,30 @@ def analyze_text(text: str) -> dict:
         rule_confidence = round(min(rule_confidence, 0.95), 3)
 
     # -----------------------------
-    # Evidence Aggregation
+    # Evidence
     # -----------------------------
     combined_evidence = []
     for name in active_signals:
         combined_evidence.extend(per_signal_breakdown[name]["evidence"])
 
     combined_evidence = combined_evidence[:20]
+
+    # -----------------------------
+    # RADAR NORMALIZATION (NEW)
+    # -----------------------------
+    raw_scores = {
+        name: per_signal_breakdown[name]["score"]
+        for name in per_signal_breakdown
+    }
+
+    max_score = max(raw_scores.values()) if raw_scores else 0.0
+
+    radar_data = {}
+    for name, score in raw_scores.items():
+        if max_score == 0:
+            radar_data[name] = 0.0
+        else:
+            radar_data[name] = round(score / max_score, 3)
 
     # -----------------------------
     # Final Output
@@ -181,5 +175,6 @@ def analyze_text(text: str) -> dict:
         "active_signals": active_signals,
         "strong_signals": strong_signals,
         "per_signal_breakdown": per_signal_breakdown,
+        "radar_data": radar_data, 
         "combined_evidence": combined_evidence,
     }
