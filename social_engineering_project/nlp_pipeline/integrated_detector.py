@@ -650,19 +650,16 @@ class IntegratedSocialEngineeringDetector:
 
         overall = round(max(0.0, min(100.0, overall)), 2)
 
-        if overall >= 76:
+        if overall >= 75:
             risk = "HIGH"
-        elif overall >= 56:
+        elif overall >= 50:
             risk = "POTENTIAL"
-        elif overall >= 31:
+        elif overall >= 25:
             risk = "LOW"
         else:
             risk = "SAFE"
 
-        if "Fear/Threat" in cats and overall >= 60 and risk == "LOW":
-            risk = "POTENTIAL"
-
-        attack = overall > 30.0
+        attack = risk != "SAFE"
 
         calc = (
             f"Overall Confidence = (0.6 x {rag_conf:.2f}) + (0.4 x {rule_conf:.2f})\n"
@@ -674,7 +671,7 @@ class IntegratedSocialEngineeringDetector:
 
         return {
             "attack_detected": attack,
-            "categories": cats if attack else [],
+            "categories": cats if risk != "SAFE" else [],
             "risk_level": risk,
             "rag_confidence": round(rag_conf, 2),
             "rule_confidence": round(rule_conf, 2),
