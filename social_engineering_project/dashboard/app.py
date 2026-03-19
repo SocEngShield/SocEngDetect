@@ -343,28 +343,6 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
                     st.markdown(f"- {tip}")
 
 
-if "risk" in st.session_state:
-
-    risk = st.session_state["risk"]
-
-    st.write("DEBUG RISK:", st.session_state.get("risk"))
-
-    if risk is not None and risk.upper() != "SAFE":
-
-        st.subheader("Why this message was flagged")
-        st.write(st.session_state["explanation"])
-
-        st.subheader("Similar Attack Patterns")
-        for pattern in st.session_state["top_k_results"][:3]:
-            st.write(pattern)
-
-        st.subheader("What You Should Do")
-        for d in st.session_state["dos"]:
-            st.write("- ", d)
-
-        st.subheader("What You Should Avoid")
-        for d in st.session_state["donts"]:
-            st.write("- ", d)
 
 
 # -- Sidebar --
