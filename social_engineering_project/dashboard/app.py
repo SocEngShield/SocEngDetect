@@ -8,12 +8,52 @@ import streamlit as st
 import sys
 from pathlib import Path
 import time
+import re
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from nlp_pipeline.integrated_detector import IntegratedSocialEngineeringDetector
 from nlp_pipeline.knowledge_base import SOCIAL_ENGINEERING_DATASET
 from nlp_pipeline.rag_detector import get_detector
+
+
+def filter_similar_patterns(similar_patterns, max_items=3):
+    if not similar_patterns:
+        return []
+
+    def similarity_value(item):
+        raw = float(item.get("similarity", 0.0))
+        return raw * 100.0 if raw <= 1.0 else raw
+
+    ordered = sorted(similar_patterns, key=similarity_value, reverse=True)
+
+    selected = []
+    for item in ordered:
+        text = item.get("text", "").strip()
+        if not text:
+            continue
+
+        cand_tokens = set(re.findall(r"[a-z0-9]+", text.lower()))
+        is_duplicate = False
+        for chosen in selected:
+            chosen_tokens = set(re.findall(r"[a-z0-9]+", chosen["text"].lower()))
+            if not cand_tokens or not chosen_tokens:
+                continue
+            jacc = len(cand_tokens & chosen_tokens) / max(1, len(cand_tokens | chosen_tokens))
+            if jacc >= 0.82:
+                is_duplicate = True
+                break
+
+        if is_duplicate:
+            continue
+
+        selected.append(item)
+        if len(selected) == max_items:
+            break
+
+    if len(selected) >= 2:
+        return selected[:max_items]
+    return selected
 
 
 st.set_page_config(
@@ -25,21 +65,40 @@ st.set_page_config(
 st.markdown("""
 <style>
     .block-container { padding-top: 2rem; padding-bottom: 2rem; }
-    .status-box {
-        padding: 1.5rem; border-radius: 0.5rem; text-align: center;
-        margin: 1.5rem 0; font-size: 1.3rem; font-weight: bold;
+    .result-box {
+        padding: 1rem 1.25rem;
+        border-radius: 0.6rem;
+        margin: 1.2rem 0 1.2rem 0;
+        border: 1px solid rgba(0, 0, 0, 0.08);
     }
-    .status-high {
-        background: rgba(220,53,69,.12); border: 2px solid #dc3545; color: #dc3545;
+    .result-high {
+        background: #ffe5e5;
+        border-color: #ef9a9a;
+        color: #1f1f1f;
     }
-    .status-potential {
-        background: rgba(255,193,7,.12); border: 2px solid #ffc107; color: #ffc107;
+    .result-potential {
+        background: #fff4e5;
+        border-color: #ffcc80;
+        color: #1f1f1f;
     }
-    .status-low {
-        background: rgba(100,149,237,.12); border: 2px solid #6495ed; color: #6495ed;
+    .result-low {
+        background: #fffbe5;
+        border-color: #ffe082;
+        color: #111111;
     }
-    .status-safe {
-        background: rgba(40,167,69,.12); border: 2px solid #28a745; color: #28a745;
+    .result-safe {
+        background: #e6ffe6;
+        border-color: #a5d6a7;
+        color: #1f1f1f;
+    }
+    .result-message {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 0.35rem;
+    }
+    .result-line {
+        font-size: 0.95rem;
+        line-height: 1.4;
     }
     #MainMenu, footer { visibility: hidden; }
     .stButton>button {
@@ -97,101 +156,93 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
         attack = r["attack_detected"]
         cats = r["categories"]
         risk = r["risk_level"]
-        rag_c = r["rag_confidence"]
-        rule_c = r["rule_confidence"]
-        overall = r["overall_confidence"]
-        calc = r["confidence_calculation"]
+        why_flagged = r.get("why_flagged", [])
+        similar_patterns = filter_similar_patterns(r.get("similar_attack_patterns", []), max_items=3)
+        dos = r.get("dos", [])
+        donts = r.get("donts", [])
 
         cat_label = " + ".join(cats) if cats else "None"
 
-        # -- Status Banner --
-        status_map = {
-            "HIGH": ("HIGH RISK — THREAT DETECTED", "status-high"),
-            "POTENTIAL": ("POTENTIAL THREAT DETECTED", "status-potential"),
-            "LOW": ("LOW RISK — SUSPICIOUS INDICATORS", "status-low"),
-            "SAFE": ("MESSAGE APPEARS SAFE", "status-safe"),
+        # -- Result Box --
+        style_map = {
+            "HIGH": ("result-high", "HIGH"),
+            "POTENTIAL": ("result-potential", "POTENTIAL"),
+            "LOW": ("result-low", "LOW"),
+            "SAFE": ("result-safe", "SAFE"),
         }
-        label, css = status_map.get(risk, ("UNKNOWN", "status-safe"))
+        css, risk_title = style_map.get(risk, ("result-safe", "Safe"))
+        threat_message_map = {
+            "HIGH": "High threat detected",
+            "POTENTIAL": "Potential threat detected",
+            "LOW": "Low risk detected",
+            "SAFE": "No significant threat detected",
+        }
+        status_message = threat_message_map.get(risk, "No significant threat detected")
+
         st.markdown(
-            f"<div class='status-box {css}'>{label}</div>",
+            (
+                f"<div class='result-box {css}'>"
+                f"<div class='result-message'>{status_message}</div>"
+                f"<div class='result-line'><b>Category:</b> {cat_label}</div>"
+                f"<div class='result-line'><b>Risk Level:</b> {risk_title}</div>"
+                f"</div>"
+            ),
             unsafe_allow_html=True,
         )
 
-        # -- Detection Result --
+        # -- Explanation --
         st.markdown("---")
-        st.subheader("Detection Result")
+        st.subheader("Why This Message Was Flagged")
+        concise_explanations = []
+        seen_explanations = set()
+        skip_prefixes = (
+            "rag category signal",
+            "top similarity is",
+            "this matches known patterns",
+        )
+        for item in why_flagged:
+            norm = item.strip()
+            key = norm.lower()
+            if not norm or key in seen_explanations:
+                continue
+            if any(key.startswith(p) for p in skip_prefixes):
+                continue
+            seen_explanations.add(key)
+            concise_explanations.append(norm)
+            if len(concise_explanations) == 4:
+                break
 
-        if attack:
-            st.error(
-                f"**Social Engineering Attack Detected**\n\n"
-                f"**Category:** {cat_label}\n\n"
-                f"**Risk Level:** {risk}"
-            )
+        if concise_explanations:
+            for item in concise_explanations:
+                st.markdown(f"- {item}")
         else:
-            st.success(
-                f"**Message Appears Safe**\n\n"
-                f"**Safety Confidence:** {100 - overall:.2f}%"
-            )
+            st.markdown("- No strong risk indicators were triggered for this message.")
 
-        # -- Confidence Breakdown (SINGLE LOCATION — not repeated) --
         st.markdown("---")
-        st.subheader("Confidence Breakdown")
+        st.subheader("Similar Attack Patterns")
+        if similar_patterns:
+            for p in similar_patterns:
+                raw_similarity = float(p.get("similarity", 0.0))
+                similarity_pct = round(raw_similarity * 100, 2) if raw_similarity <= 1 else round(raw_similarity, 2)
+                st.markdown(
+                    f"- {p['text']} (Similarity: {similarity_pct:.2f}%)"
+                )
+        else:
+            st.markdown("- No strong similar attack patterns were retrieved.")
 
-        c1, c2, c3 = st.columns(3)
+        st.markdown("---")
+        d1, d2 = st.columns(2)
+        with d1:
+            st.subheader("What You Should Do")
+            for tip in dos:
+                st.markdown(f"- {tip}")
 
-        with c1:
-            st.markdown("**RAG Model Confidence**")
-            st.markdown("Probability message is not safe (semantic)")
-            st.progress(min(rag_c / 100, 1.0))
-            st.metric("RAG Confidence", f"{rag_c:.2f}%")
+        with d2:
+            st.subheader("What You Should Avoid")
+            for tip in donts:
+                st.markdown(f"- {tip}")
 
-        with c2:
-            st.markdown("**Rule-Based Confidence**")
-            st.markdown("Probability message is not safe (keywords)")
-            st.progress(min(rule_c / 100, 1.0))
-            st.metric("Rule-Based Confidence", f"{rule_c:.2f}%")
-
-        with c3:
-            st.markdown("**Overall Combined Confidence**")
-            st.markdown("Weighted ensemble result")
-            st.progress(min(overall / 100, 1.0))
-            st.metric("Overall Confidence", f"{overall:.2f}%")
-
-        st.markdown("")
-        st.markdown("**Calculation:**")
-        st.code(calc, language="text")
-
-        # -- Technical Details (category + risk only, NO confidence duplication) --
-        with st.expander("Technical Details", expanded=False):
-            st.markdown(
-                f"**Detection Result:** {'Attack Detected' if attack else 'Legitimate'}\n\n"
-                f"**Attack Category:** {cat_label}\n\n"
-                f"**Risk Level:** {risk}"
-            )
-
-        # -- Security Recommendations --
-        if attack:
-            st.markdown("---")
-            with st.expander("Security Recommendations", expanded=True):
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.markdown(
-                        "#### DO NOT\n"
-                        "- Click any links in this message\n"
-                        "- Download any attachments\n"
-                        "- Share personal or financial information\n"
-                        "- Respond to the sender\n"
-                        "- Call any phone numbers provided"
-                    )
-                with c2:
-                    st.markdown(
-                        "#### DO\n"
-                        "- Report to your IT security team\n"
-                        "- Delete the message\n"
-                        "- Verify through official channels\n"
-                        "- Change passwords if you already responded\n"
-                        "- Enable two-factor authentication"
-                    )
+        
 
 
 # -- Sidebar --
@@ -212,7 +263,7 @@ with st.sidebar:
         "**SAFE** — 0-30%"
     )
     st.markdown("---")
-    st.metric("Knowledge Base Patterns", len(SOCIAL_ENGINEERING_DATASET))
+    st.markdown("**Knowledge Base Patterns - 322**")
 
 
 # -- Footer --
