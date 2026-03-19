@@ -283,8 +283,8 @@ def get_advice(category: str) -> Dict:
     key = category if category in ADVICE_MAP else "fear_threat"
     pool = ADVICE_MAP[key]
 
-    do_count = min(4, len(pool["dos"]))
-    dont_count = min(4, len(pool["donts"]))
+    do_count = min(len(pool["dos"]), random.randint(3, 4))
+    dont_count = min(len(pool["donts"]), random.randint(3, 4))
 
     return {
         "dos": random.sample(pool["dos"], do_count),
