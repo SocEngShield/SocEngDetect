@@ -56,6 +56,12 @@ def filter_similar_patterns(similar_patterns, max_items=3):
     return selected
 
 
+def format_score(score):
+    rounded = round(float(score), 2)
+    text = f"{rounded:.2f}".rstrip("0").rstrip(".")
+    return f"{text}%"
+
+
 st.set_page_config(
     page_title="Social Engineering Detection System",
     layout="wide",
@@ -65,41 +71,70 @@ st.set_page_config(
 st.markdown("""
 <style>
     .block-container { padding-top: 2rem; padding-bottom: 2rem; }
-    .result-box {
-        padding: 1rem 1.25rem;
-        border-radius: 0.6rem;
-        margin: 1.2rem 0 1.2rem 0;
-        border: 1px solid rgba(0, 0, 0, 0.08);
+    .verdict-box {
+        width: min(900px, 90%);
+        margin: 1rem auto 1.2rem auto;
+        padding: 1.25rem 1rem;
+        border-radius: 0.7rem;
+        border: 2px solid transparent;
+        text-align: center;
     }
-    .result-high {
-        background: #ffe5e5;
-        border-color: #ef9a9a;
-        color: #1f1f1f;
+    .verdict-text {
+        font-size: 1.7rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin: 0 0 0.55rem 0;
     }
-    .result-potential {
-        background: #fff4e5;
-        border-color: #ffcc80;
-        color: #1f1f1f;
-    }
-    .result-low {
-        background: #fffbe5;
-        border-color: #ffe082;
-        color: #111111;
-    }
-    .result-safe {
-        background: #e6ffe6;
-        border-color: #a5d6a7;
-        color: #1f1f1f;
-    }
-    .result-message {
+    .verdict-meta {
         font-size: 1rem;
-        font-weight: 700;
-        margin-bottom: 0.35rem;
+        line-height: 1.5;
+        margin: 0.1rem 0;
+        text-align: center;
     }
-    .result-line {
+    .verdict-high {
+        background: #ffe5e5;
+        border-color: #d32f2f;
+        color: #1f1f1f;
+    }
+    .verdict-potential {
+        background: #fff4e5;
+        border-color: #ef6c00;
+        color: #1f1f1f;
+    }
+    .verdict-low {
+        background: #e6f0ff;
+        border-color: #1e88e5;
+        color: #1f1f1f;
+    }
+    .verdict-safe {
+        background: #e6ffe6;
+        border-color: #2e7d32;
+        color: #1f1f1f;
+    }
+    .score-title {
         font-size: 0.95rem;
-        line-height: 1.4;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
     }
+    .score-value {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 0.45rem;
+    }
+    .bar-track {
+        width: 100%;
+        height: 0.5rem;
+        background: #eceff3;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+    .bar-fill {
+        height: 100%;
+        border-radius: 999px;
+    }
+    .bar-rag { background: #bcd8ff; }
+    .bar-rule { background: #ffd8b0; }
+    .bar-final { background: #c9eccd; }
     #MainMenu, footer { visibility: hidden; }
     .stButton>button {
         width: 100%; border-radius: .5rem; padding: .75rem 1rem; font-weight: 600;
@@ -156,6 +191,10 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
         attack = r["attack_detected"]
         cats = r["categories"]
         risk = r["risk_level"]
+        rag_score = float(r["rag_confidence"])
+        rule_score = float(r["rule_confidence"])
+        final_score = float(r["overall_confidence"])
+        score_calc = r["confidence_calculation"]
         why_flagged = r.get("why_flagged", [])
         similar_patterns = filter_similar_patterns(r.get("similar_attack_patterns", []), max_items=3)
         dos = r.get("dos", [])
@@ -163,84 +202,125 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
 
         cat_label = " + ".join(cats) if cats else "None"
 
-        # -- Result Box --
-        style_map = {
-            "HIGH": ("result-high", "HIGH"),
-            "POTENTIAL": ("result-potential", "POTENTIAL"),
-            "LOW": ("result-low", "LOW"),
-            "SAFE": ("result-safe", "SAFE"),
+        # -- Central Verdict Box --
+        verdict_map = {
+            "HIGH": ("HIGH THREAT DETECTED", "verdict-high", "HIGH"),
+            "POTENTIAL": ("POTENTIAL THREAT DETECTED", "verdict-potential", "POTENTIAL"),
+            "LOW": ("LOW RISK MESSAGE", "verdict-low", "LOW"),
+            "SAFE": ("MESSAGE IS SAFE", "verdict-safe", "SAFE"),
         }
-        css, risk_title = style_map.get(risk, ("result-safe", "Safe"))
-        threat_message_map = {
-            "HIGH": "High threat detected",
-            "POTENTIAL": "Potential threat detected",
-            "LOW": "Low risk detected",
-            "SAFE": "No significant threat detected",
-        }
-        status_message = threat_message_map.get(risk, "No significant threat detected")
+        verdict_text, verdict_css, risk_title = verdict_map.get(
+            risk,
+            ("MESSAGE IS SAFE", "verdict-safe", "SAFE"),
+        )
 
         st.markdown(
             (
-                f"<div class='result-box {css}'>"
-                f"<div class='result-message'>{status_message}</div>"
-                f"<div class='result-line'><b>Category:</b> {cat_label}</div>"
-                f"<div class='result-line'><b>Risk Level:</b> {risk_title}</div>"
+                f"<div class='verdict-box {verdict_css}'>"
+                f"<div class='verdict-text'>{verdict_text}</div>"
+                f"<div class='verdict-meta'><b>Risk Level:</b> {risk_title}</div>"
+                f"<div class='verdict-meta'><b>Category:</b> {cat_label}</div>"
                 f"</div>"
             ),
             unsafe_allow_html=True,
         )
 
-        # -- Explanation --
         st.markdown("---")
-        st.subheader("Why This Message Was Flagged")
-        concise_explanations = []
-        seen_explanations = set()
-        skip_prefixes = (
-            "rag category signal",
-            "top similarity is",
-            "this matches known patterns",
-        )
-        for item in why_flagged:
-            norm = item.strip()
-            key = norm.lower()
-            if not norm or key in seen_explanations:
-                continue
-            if any(key.startswith(p) for p in skip_prefixes):
-                continue
-            seen_explanations.add(key)
-            concise_explanations.append(norm)
-            if len(concise_explanations) == 4:
-                break
+        st.subheader("Confidence Analysis")
 
-        if concise_explanations:
-            for item in concise_explanations:
-                st.markdown(f"- {item}")
-        else:
-            st.markdown("- No strong risk indicators were triggered for this message.")
+        s1, s2, s3 = st.columns(3)
 
-        st.markdown("---")
-        st.subheader("Similar Attack Patterns")
-        if similar_patterns:
-            for p in similar_patterns:
-                raw_similarity = float(p.get("similarity", 0.0))
-                similarity_pct = round(raw_similarity * 100, 2) if raw_similarity <= 1 else round(raw_similarity, 2)
-                st.markdown(
-                    f"- {p['text']} (Similarity: {similarity_pct:.2f}%)"
-                )
-        else:
-            st.markdown("- No strong similar attack patterns were retrieved.")
+        with s1:
+            st.markdown("<div class='score-title'>RAG Score</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='score-value'>{format_score(rag_score)}</div>", unsafe_allow_html=True)
+            st.markdown(
+                (
+                    "<div class='bar-track'>"
+                    f"<div class='bar-fill bar-rag' style='width: {min(max(rag_score, 0.0), 100.0):.2f}%;'></div>"
+                    "</div>"
+                ),
+                unsafe_allow_html=True,
+            )
 
-        st.markdown("---")
-        d1, d2 = st.columns(2)
-        with d1:
-            st.subheader("What You Should Do")
-            for tip in dos:
-                st.markdown(f"- {tip}")
+        with s2:
+            st.markdown("<div class='score-title'>Rule-based Score</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='score-value'>{format_score(rule_score)}</div>", unsafe_allow_html=True)
+            st.markdown(
+                (
+                    "<div class='bar-track'>"
+                    f"<div class='bar-fill bar-rule' style='width: {min(max(rule_score, 0.0), 100.0):.2f}%;'></div>"
+                    "</div>"
+                ),
+                unsafe_allow_html=True,
+            )
 
-        with d2:
-            st.subheader("What You Should Avoid")
-            for tip in donts:
-                st.markdown(f"- {tip}")
+        with s3:
+            st.markdown("<div class='score-title'>Final Score</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='score-value'>{format_score(final_score)}</div>", unsafe_allow_html=True)
+            st.markdown(
+                (
+                    "<div class='bar-track'>"
+                    f"<div class='bar-fill bar-final' style='width: {min(max(final_score, 0.0), 100.0):.2f}%;'></div>"
+                    "</div>"
+                ),
+                unsafe_allow_html=True,
+            )
+
+        st.markdown("")
+        st.code(score_calc, language="text")
+
+        if risk != "SAFE":
+            # -- Explanation --
+            st.markdown("---")
+            st.subheader("Why This Message Was Flagged")
+            concise_explanations = []
+            seen_explanations = set()
+            skip_prefixes = (
+                "rag category signal",
+                "top similarity is",
+                "this matches known patterns",
+            )
+            for item in why_flagged:
+                norm = item.strip()
+                key = norm.lower()
+                if not norm or key in seen_explanations:
+                    continue
+                if any(key.startswith(p) for p in skip_prefixes):
+                    continue
+                seen_explanations.add(key)
+                concise_explanations.append(norm)
+                if len(concise_explanations) == 4:
+                    break
+
+            if concise_explanations:
+                for item in concise_explanations:
+                    st.markdown(f"- {item}")
+            else:
+                st.markdown("- No strong risk indicators were triggered for this message.")
+
+            st.markdown("---")
+            st.subheader("Similar Attack Patterns")
+            if similar_patterns:
+                for p in similar_patterns:
+                    raw_similarity = float(p.get("similarity", 0.0))
+                    similarity_pct = round(raw_similarity * 100, 2) if raw_similarity <= 1 else round(raw_similarity, 2)
+                    st.markdown(
+                        f"- {p['text']} (Similarity: {similarity_pct:.2f}%)"
+                    )
+            else:
+                st.markdown("- No strong similar attack patterns were retrieved.")
+
+            st.markdown("---")
+            d1, d2 = st.columns(2)
+            with d1:
+                st.subheader("What You Should Do")
+                for tip in dos:
+                    st.markdown(f"- {tip}")
+
+            with d2:
+                st.subheader("What You Should Avoid")
+                for tip in donts:
+                    st.markdown(f"- {tip}")
 
         
 
@@ -257,10 +337,10 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("## Risk Level Thresholds")
     st.markdown(
-        "**HIGH** — 76-100%\n\n"
-        "**POTENTIAL** — 56-75%\n\n"
-        "**LOW** — 31-55%\n\n"
-        "**SAFE** — 0-30%"
+        "**HIGH** — 75-100%\n\n"
+        "**POTENTIAL** — 50-74.99%\n\n"
+        "**LOW** — 25-49.99%\n\n"
+        "**SAFE** — 0-24.99%"
     )
     st.markdown("---")
     st.markdown("**Knowledge Base Patterns - 322**")
