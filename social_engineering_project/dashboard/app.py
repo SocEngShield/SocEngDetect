@@ -62,6 +62,13 @@ def format_score(score):
     return f"{text}%"
 
 
+def shorten_text(text, max_len=140):
+    clean = " ".join(str(text).split())
+    if len(clean) <= max_len:
+        return clean
+    return clean[: max_len - 3].rstrip() + "..."
+
+
 st.set_page_config(
     page_title="Social Engineering Detection System",
     layout="wide",
@@ -304,8 +311,9 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
                 for p in similar_patterns:
                     raw_similarity = float(p.get("similarity", 0.0))
                     similarity_pct = round(raw_similarity * 100, 2) if raw_similarity <= 1 else round(raw_similarity, 2)
+                    preview = shorten_text(p.get("text", ""), max_len=140)
                     st.markdown(
-                        f"- {p['text']} (Similarity: {similarity_pct:.2f}%)"
+                        f"- {preview} (Similarity: {similarity_pct:.2f}%)"
                     )
             else:
                 st.markdown("- No strong similar attack patterns were retrieved.")
