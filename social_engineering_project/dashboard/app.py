@@ -1,7 +1,7 @@
 """
 Social Engineering Detection Dashboard — v6.0.
 Displays ONLY: RAG Confidence, Rule Confidence, Overall Confidence + calculation.
-No evaluation. No emojis. No duplicate metrics.
+Bar chart added with ML + Rule fusion.
 """
 
 import streamlit as st
@@ -16,6 +16,15 @@ from nlp_pipeline.integrated_detector import IntegratedSocialEngineeringDetector
 from nlp_pipeline.knowledge_base import SOCIAL_ENGINEERING_DATASET
 from nlp_pipeline.rag_detector import get_detector
 
+# REQUIRED IMPORTS
+from security_logic.rule_engine import analyze_text
+from security_logic.signal_fusion import fuse_signals
+from bar_chart import create_bar_chart, get_top_signals
+
+
+# ---------------------------
+# UTILS
+# ---------------------------
 
 def filter_similar_patterns(similar_patterns, max_items=3):
     if not similar_patterns:
@@ -68,6 +77,10 @@ def shorten_text(text, max_len=140):
         return clean
     return clean[: max_len - 3].rstrip() + "..."
 
+
+# ---------------------------
+# PAGE CONFIG
+# ---------------------------
 
 st.set_page_config(
     page_title="Social Engineering Detection System",
@@ -150,7 +163,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# -- Initialization --
+# ---------------------------
+# INIT
+# ---------------------------
 
 @st.cache_resource(show_spinner=False)
 def init():
@@ -170,14 +185,18 @@ if err:
     st.stop()
 
 
-# -- Header --
+# ---------------------------
+# HEADER
+# ---------------------------
 
 st.title("Social Engineering Detection System")
 st.caption("RAG + NLP + Rule Engine  |  Weighted Ensemble (0.6 RAG / 0.4 Rules)")
 st.markdown("---")
 
 
-# -- Message Input --
+# ---------------------------
+# INPUT
+# ---------------------------
 
 st.subheader("Enter Message to Analyze")
 
@@ -194,6 +213,14 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
         with st.spinner("Analyzing..."):
             time.sleep(0.2)
             r = detector.analyze_message(msg)
+            rule_output = analyze_text(msg)
+
+            # Fuse rule signals with ML detection
+            fused_output = fuse_signals(
+                rule_output,
+                r["rag_confidence"],
+                r.get("categories", [])
+            )
 
         attack = r["attack_detected"]
         cats = r["categories"]
@@ -208,20 +235,11 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
         similar_patterns = filter_similar_patterns(top_k_results, max_items=3)
         dos = r.get("dos", [])
         donts = r.get("donts", [])
-        explanation = why_flagged
 
-        st.session_state["risk"] = risk
-        st.session_state["category"] = cat_label
-        st.session_state["explanation"] = explanation
-        st.session_state["top_k_results"] = top_k_results
-        st.session_state["dos"] = dos
-        st.session_state["donts"] = donts
+        # ---------------------------
+        # STATUS BOX
+        # ---------------------------
 
-        print("Risk:", risk)
-        print("Explainability triggered:", risk != "SAFE")
-        print("Top-K results:", top_k_results)
-
-        # -- Central Verdict Box --
         verdict_map = {
             "HIGH": ("HIGH THREAT DETECTED", "verdict-high", "HIGH"),
             "POTENTIAL": ("POTENTIAL THREAT DETECTED", "verdict-potential", "POTENTIAL"),
@@ -243,6 +261,10 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
             ),
             unsafe_allow_html=True,
         )
+
+        # ---------------------------
+        # CONFIDENCE
+        # ---------------------------
 
         st.markdown("---")
         st.subheader("Confidence Analysis")
@@ -288,8 +310,28 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
         st.markdown("")
         st.code(score_calc, language="text")
 
+        # ============================
+        # BAR CHART
+        # ============================
+
+        st.markdown("---")
+        st.subheader("Signal Strength Analysis")
+
+        fig = create_bar_chart(fused_output)
+        st.plotly_chart(fig, use_container_width=True)
+
+        top_signals = get_top_signals(fused_output, top_n=2)
+        if top_signals:
+            signal_summary = ", ".join([f"{name.replace('_', ' ').title()}" for name, _ in top_signals])
+            st.caption(f"Primary signals: {signal_summary}")
+
+        # ============================
+
         if risk != "SAFE":
-            # -- Explanation --
+            # ---------------------------
+            # WHY FLAGGED
+            # ---------------------------
+
             st.markdown("---")
             st.subheader("Why This Message Was Flagged")
             concise_explanations = []
@@ -317,6 +359,10 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
             else:
                 st.markdown("- No strong risk indicators were triggered for this message.")
 
+            # ---------------------------
+            # SIMILAR ATTACK PATTERNS
+            # ---------------------------
+
             st.markdown("---")
             st.subheader("Similar Attack Patterns")
             if similar_patterns:
@@ -329,6 +375,10 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
                     )
             else:
                 st.markdown("- No strong similar attack patterns were retrieved.")
+
+            # ---------------------------
+            # DO'S AND DON'TS
+            # ---------------------------
 
             st.markdown("---")
             d1, d2 = st.columns(2)
@@ -343,9 +393,9 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
                     st.markdown(f"- {tip}")
 
 
-
-
-# -- Sidebar --
+# ---------------------------
+# SIDEBAR
+# ---------------------------
 
 with st.sidebar:
     st.markdown("## System Information")
@@ -363,6 +413,4 @@ with st.sidebar:
         "**SAFE** — 0-24.99%"
     )
     st.markdown("---")
-    st.markdown("**Knowledge Base Patterns - 322**")
-
-        
+    st.markdown(f"**Knowledge Base Patterns:** {len(SOCIAL_ENGINEERING_DATASET)}")
