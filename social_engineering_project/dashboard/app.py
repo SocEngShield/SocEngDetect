@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 import time
 import re
+import json
+from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -236,6 +238,18 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
         dos = r.get("dos", [])
         donts = r.get("donts", [])
 
+        # Store for export
+        st.session_state["last_analysis"] = {
+            "message": msg,
+            "risk_level": risk,
+            "categories": cats,
+            "rag_confidence": rag_score,
+            "rule_confidence": rule_score,
+            "overall_confidence": final_score,
+            "signal_breakdown": fused_output.get("per_signal_breakdown", {}),
+            "fusion_meta": fused_output.get("fusion_meta", {}),
+        }
+
         # ---------------------------
         # STATUS BOX
         # ---------------------------
@@ -325,6 +339,28 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
             signal_summary = ", ".join([f"{name.replace('_', ' ').title()}" for name, _ in top_signals])
             st.caption(f"Primary signals: {signal_summary}")
 
+        # Show signal breakdown details
+        fusion_meta = fused_output.get("fusion_meta", {})
+        if fusion_meta.get("agreements") or fusion_meta.get("ml_only") or fusion_meta.get("rule_only"):
+            with st.expander("Signal Detection Breakdown", expanded=False):
+                if fusion_meta.get("agreements"):
+                    st.markdown("**ML + Rules Agreement** (boosted confidence):")
+                    for sig in fusion_meta["agreements"]:
+                        data = fused_output["per_signal_breakdown"].get(sig, {})
+                        st.markdown(f"- {sig.replace('_', ' ').title()}: {data.get('score', 0):.2f}")
+
+                if fusion_meta.get("ml_only"):
+                    st.markdown("**ML Detection Only**:")
+                    for sig in fusion_meta["ml_only"]:
+                        data = fused_output["per_signal_breakdown"].get(sig, {})
+                        st.markdown(f"- {sig.replace('_', ' ').title()}: {data.get('score', 0):.2f}")
+
+                if fusion_meta.get("rule_only"):
+                    st.markdown("**Rule Detection Only**:")
+                    for sig in fusion_meta["rule_only"]:
+                        data = fused_output["per_signal_breakdown"].get(sig, {})
+                        st.markdown(f"- {sig.replace('_', ' ').title()}: {data.get('score', 0):.2f}")
+
         # ============================
 
         if risk != "SAFE":
@@ -392,6 +428,40 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
                 for tip in donts:
                     st.markdown(f"- {tip}")
 
+        # Safe message indicators
+        if risk == "SAFE":
+            st.markdown("---")
+            st.subheader("Why This Message Appears Safe")
+
+            safe_indicators = []
+
+            # Check which signals are inactive
+            breakdown = fused_output.get("per_signal_breakdown", {})
+            inactive_signals = [name for name, data in breakdown.items() if data.get("score", 0) < 0.15]
+
+            if "urgency" in inactive_signals:
+                safe_indicators.append("No urgent or time-pressure language detected")
+            if "fear_threat" in inactive_signals:
+                safe_indicators.append("No threatening or fear-inducing content")
+            if "impersonation" in inactive_signals:
+                safe_indicators.append("No suspicious identity claims")
+            if "authority" in inactive_signals:
+                safe_indicators.append("No coercive authority language")
+            if "reward_lure" in inactive_signals:
+                safe_indicators.append("No suspicious reward or prize claims")
+
+            # Additional safe indicators based on low overall confidence
+            if rag_score < 25:
+                safe_indicators.append("Low semantic similarity to known attack patterns")
+            if rule_score < 25:
+                safe_indicators.append("No significant behavioral red flags")
+
+            if safe_indicators:
+                for indicator in safe_indicators[:5]:
+                    st.markdown(f"- {indicator}")
+            else:
+                st.markdown("- Message passed all safety checks")
+
 
 # ---------------------------
 # SIDEBAR
@@ -414,3 +484,39 @@ with st.sidebar:
     )
     st.markdown("---")
     st.markdown(f"**Knowledge Base Patterns:** {len(SOCIAL_ENGINEERING_DATASET)}")
+
+    # Export functionality
+    if "last_analysis" in st.session_state:
+        st.markdown("---")
+        st.markdown("## Export Report")
+
+        analysis = st.session_state["last_analysis"]
+        report = {
+            "timestamp": datetime.now().isoformat(),
+            "message": analysis.get("message", "")[:200],  # Truncate for privacy
+            "risk_level": analysis.get("risk_level"),
+            "categories": analysis.get("categories"),
+            "confidence": {
+                "rag": analysis.get("rag_confidence"),
+                "rule": analysis.get("rule_confidence"),
+                "overall": analysis.get("overall_confidence"),
+            },
+            "signals": {
+                name: {
+                    "score": data.get("score"),
+                    "strength": data.get("strength"),
+                    "ml_boosted": data.get("ml_boosted", False),
+                }
+                for name, data in analysis.get("signal_breakdown", {}).items()
+            },
+            "fusion_metadata": analysis.get("fusion_meta", {}),
+        }
+
+        json_str = json.dumps(report, indent=2)
+
+        st.download_button(
+            label="Download Report (JSON)",
+            data=json_str,
+            file_name=f"se_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+        )
