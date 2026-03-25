@@ -527,6 +527,7 @@ class IntegratedSocialEngineeringDetector:
         result["similar_attack_patterns"] = similar_patterns
         result["dos"] = advice["dos"]
         result["donts"] = advice["donts"]
+        result["voted_category"] = rag_cat
 
         return result
 
