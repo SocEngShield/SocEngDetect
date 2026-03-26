@@ -22,6 +22,7 @@ from nlp_pipeline.rag_detector import get_detector
 from security_logic.rule_engine import analyze_text
 from security_logic.signal_fusion import fuse_signals
 from bar_chart import create_bar_chart, get_top_signals
+from simulator import generate_attack_message
 
 
 # ---------------------------
@@ -197,6 +198,36 @@ st.markdown("---")
 
 
 # ---------------------------
+# SESSION STATE INIT
+# ---------------------------
+
+if "simulated_message" not in st.session_state:
+    st.session_state.simulated_message = ""
+
+
+# ---------------------------
+# ATTACK SIMULATION MODE
+# ---------------------------
+
+with st.expander("Attack Simulation Mode", expanded=False):
+    selected_tactics = st.multiselect(
+        "Select manipulation tactics:",
+        ["fear", "urgency", "reward", "authority", "impersonation"],
+        default=[],
+        key="sim_tactics",
+    )
+
+    if st.button("Generate Simulated Attack", key="sim_generate"):
+        if selected_tactics:
+            generated = generate_attack_message(selected_tactics)
+            st.session_state.simulated_message = generated
+            st.code(generated, language=None)
+            st.success("Message generated. Click ANALYZE to test detection.")
+        else:
+            st.warning("Select at least one tactic.")
+
+
+# ---------------------------
 # INPUT
 # ---------------------------
 
@@ -204,6 +235,7 @@ st.subheader("Enter Message to Analyze")
 
 msg = st.text_area(
     "Message Content",
+    value=st.session_state.simulated_message,
     height=150,
     placeholder="Your bank account has been suspended. Verify immediately.",
 )
