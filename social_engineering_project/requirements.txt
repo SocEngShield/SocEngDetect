@@ -1,5 +1,0 @@
-streamlit
-plotly
-numpy
-sentence-transformers
-scikit-learn
