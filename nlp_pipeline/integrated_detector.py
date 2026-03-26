@@ -624,8 +624,6 @@ class IntegratedSocialEngineeringDetector:
                 cats.remove("Fear/Threat")
             cats.insert(0, "Fear/Threat")
 
-        cats = list(dict.fromkeys(cats))[:2]
-
         rag_part = round(0.6 * rag_conf, 2)
         rule_part = round(0.4 * rule_conf, 2)
         overall = round(rag_part + rule_part, 2)
@@ -650,6 +648,15 @@ class IntegratedSocialEngineeringDetector:
             overall = max(overall, 65.0)
 
         overall = round(max(0.0, min(100.0, overall)), 2)
+
+        # Dynamic category limiting based on severity
+        unique_cats = list(dict.fromkeys(cats))
+        if overall >= 70:
+            cats = unique_cats[:4]
+        elif overall >= 40:
+            cats = unique_cats[:3]
+        else:
+            cats = unique_cats[:2]
 
         if overall >= 75:
             risk = "HIGH"
