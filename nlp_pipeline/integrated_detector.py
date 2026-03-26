@@ -17,6 +17,71 @@ except ImportError:
     from nlp_pipeline.rag_detector import get_detector
 
 
+# ---------------------------
+# URL ANALYSIS (F1: Multi-Modal)
+# ---------------------------
+
+TRUSTED_DOMAINS = [
+    "google.com", "paypal.com", "amazon.com", "microsoft.com",
+    "apple.com", "facebook.com", "twitter.com", "linkedin.com",
+    "github.com", "dropbox.com", "netflix.com", "spotify.com",
+    "zoom.us", "slack.com", "outlook.com", "live.com",
+]
+
+
+def extract_urls(text: str) -> List[str]:
+    """Extract URLs from text."""
+    return re.findall(r"(https?://[^\s]+|www\.[^\s]+)", text)
+
+
+def analyze_url(url: str) -> Tuple[float, List[str]]:
+    """Analyze a URL for suspicious indicators."""
+    score = 0.0
+    reasons = []
+    url_lower = url.lower()
+    
+    # Suspicious TLDs
+    if any(tld in url_lower for tld in [".xyz", ".ru", ".tk", ".top", ".buzz", ".gq", ".ml"]):
+        score += 0.4
+        reasons.append("Suspicious TLD")
+    
+    # URL shorteners
+    if any(short in url_lower for short in ["bit.ly", "tinyurl", "t.co", "goo.gl", "ow.ly", "is.gd"]):
+        score += 0.2
+        reasons.append("Shortened URL")
+    
+    # Excessive subdomains
+    if url.count('.') > 3:
+        score += 0.2
+        reasons.append("Excessive subdomains")
+    
+    # Sensitive keywords in URL
+    if any(k in url_lower for k in ["login", "verify", "secure", "account", "confirm", "update", "signin"]):
+        score += 0.2
+        reasons.append("Sensitive keyword in URL")
+    
+    # IP address instead of domain
+    if re.search(r"https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", url_lower):
+        score += 0.3
+        reasons.append("IP address URL")
+    
+    # Lookalike domains (homograph attacks)
+    if any(look in url_lower for look in ["paypa1", "amaz0n", "g00gle", "micr0soft", "app1e"]):
+        score += 0.5
+        reasons.append("Lookalike domain")
+    
+    return min(score, 1.0), reasons
+
+
+def is_trusted_url(url: str) -> bool:
+    """Check if URL belongs to a trusted domain."""
+    url_lower = url.lower()
+    return any(d in url_lower for d in TRUSTED_DOMAINS)
+
+
+# ---------------------------
+
+
 DISPLAY_TO_INTERNAL_CATEGORY = {
     "Fear/Threat": "fear_threat",
     "Impersonation": "impersonation",
@@ -755,6 +820,45 @@ class IntegratedSocialEngineeringDetector:
 
         overall = round(max(0.0, min(100.0, overall)), 2)
 
+        # ---------------------------
+        # F1: URL Multi-Modal Scoring
+        # ---------------------------
+        urls = extract_urls(msg)
+        url_score_total = 0.0
+        url_reasons = []
+        trusted_flag = False
+        
+        for url in urls:
+            s, r = analyze_url(url)
+            url_score_total += s
+            url_reasons.extend(r)
+            if is_trusted_url(url):
+                trusted_flag = True
+        
+        url_score = min(url_score_total * 100, 100)
+        
+        # Context-aware fusion
+        if urls:
+            if trusted_flag and url_score < 30:
+                # Safe link reduces suspicion slightly
+                overall = overall * 0.85
+            elif url_score > 60 and overall > 60:
+                # Strong malicious text + malicious link
+                overall = min(100, overall + 15)
+            elif url_score > 60:
+                # Safe text but malicious link
+                overall = max(overall, 55)
+            elif overall > 60 and url_score < 30:
+                # Malicious text but safe/neutral link
+                overall = overall * 0.9
+        
+        # Category adjustment for suspicious URLs
+        if urls and not trusted_flag and url_score > 40:
+            if "Impersonation" not in cats:
+                cats.append("Impersonation")
+        
+        overall = round(max(0.0, min(100.0, overall)), 2)
+
         # Dynamic category limiting based on severity
         unique_cats = list(dict.fromkeys(cats))
         if overall >= 70:
@@ -780,8 +884,10 @@ class IntegratedSocialEngineeringDetector:
             f"= {rag_part:.2f} + {rule_part:.2f}\n"
             f"= {round(rag_part + rule_part, 2):.2f}%"
         )
+        if urls:
+            calc += f"\nURL analysis: {len(urls)} link(s), risk={url_score:.0f}%"
         if overall != round(rag_part + rule_part, 2):
-            calc += f"\nAfter severity floors: {overall:.2f}%"
+            calc += f"\nAfter adjustments: {overall:.2f}%"
 
         return {
             "attack_detected": attack,
