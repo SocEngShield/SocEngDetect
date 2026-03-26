@@ -428,6 +428,23 @@ class IntegratedSocialEngineeringDetector:
                 r"no\s+action\s+(required|needed|is needed)",
                 r"confirm\s+(your\s+)?(appointment|meeting|booking|reservation)",
                 r"verify\s+(your\s+)?email\s+(address\s+)?to\s+complete",
+                # Expanded benign patterns
+                r"transaction\s+(completed|successful|processed)",
+                r"payment\s+(received|confirmed|processed)",
+                r"order\s+(confirmed|shipped|delivered|dispatched)",
+                r"delivery\s+(scheduled|completed|on the way)",
+                r"appointment\s+(confirmed|scheduled|booked)",
+                r"your\s+request\s+has\s+been\s+processed",
+                r"thank\s+you\s+for\s+your\s+payment",
+                r"invoice\s+(generated|available|attached)",
+                r"subscription\s+(renewed|activated)",
+                r"your\s+package\s+(has\s+been\s+)?(shipped|delivered)",
+                r"receipt\s+for\s+your\s+(recent\s+)?purchase",
+                r"your\s+(monthly|weekly)\s+statement",
+                r"here\s+are\s+the\s+meeting\s+notes",
+                r"password\s+(was\s+)?successfully\s+changed",
+                r"direct\s+deposit\s+has\s+been\s+processed",
+                r"your\s+(test\s+)?results\s+are\s+available",
             ]
         ]
         self._auth_benign = re.compile(
@@ -503,8 +520,44 @@ class IntegratedSocialEngineeringDetector:
                 "donts": advice["donts"],
             }
 
+        # Benign detection flag for suppression logic
+        benign_detected = any(rx.search(msg) for rx in self._whitelist_rx)
+
+        # Hard safe override for benign messages with no malicious indicators
+        if benign_detected and not any([
+            sig["fear"],
+            sig["sensitive"],
+            sig["reward"],
+            sig["deadline"],
+        ]):
+            similar_patterns = get_similar_patterns(top_k_results)
+            advice = get_advice("normal_communication")
+            return {
+                "attack_detected": False,
+                "categories": [],
+                "risk_level": "SAFE",
+                "rag_confidence": 0.0,
+                "rule_confidence": 0.0,
+                "overall_confidence": 0.0,
+                "confidence_calculation": (
+                    "Overall Confidence = (0.6 x 0.00) + (0.4 x 0.00)\n"
+                    "= 0.00 + 0.00\n"
+                    "= 0.00%"
+                ),
+                "why_flagged": [],
+                "similar_attack_patterns": similar_patterns,
+                "dos": advice["dos"],
+                "donts": advice["donts"],
+            }
+
         rag_conf, rag_cat = self.rag.detect(message)
         rule_conf, rule_cats = self._rule_engine(sig)
+
+        # Suppression for benign messages with weak signals
+        if benign_detected:
+            if not sig["fear"] and not sig["sensitive"] and not sig["reward"]:
+                rag_conf = min(rag_conf, 20.0)
+                rule_conf = min(rule_conf, 20.0)
 
         if not sig["fear"] and not sig["sensitive"] and not sig["reward"] and not sig["deadline"]:
             rag_conf = min(rag_conf, 20.0)
