@@ -21,6 +21,19 @@ def analyze(text: str) -> SignalResult:
         r'\bfree\b',
         r'\bdiscounted\b',
         r'\bbenefits?\b',
+        # Financial compensation patterns
+        r'\bcompensation\b',
+        r'\bpayout\b',
+        r'\bsettlement\b',
+        r'\brefund\b',
+        r'\breimbursement\b',
+        r'\bcredited\s+to\s+your\s+account\b',
+        r'\breceive\s+(?:your\s+)?payment\b',
+        r'\bfunds\s+will\s+be\s+credited\b',
+        r'\beligible\s+for\s+payment\b',
+        r'\bmonetary\s+reward\b',
+        r'\bcash\s+bonus\b',
+        r'\$\d+',
     ]
 
     evidence = []
