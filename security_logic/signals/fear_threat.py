@@ -1,6 +1,15 @@
 import re
 from ..base import SignalResult
 
+# Benign patterns that indicate legitimate notifications
+BENIGN_FEAR_PATTERNS = [
+    r'\bpassword\s+(?:changed|updated|reset)\s+successfully\b',
+    r'\bif\s+you\s+didn\'?t\s+(?:make|request)\s+this\s+change\b',
+    r'\b(?:appointment|reservation|booking)\s+(?:is\s+)?confirmed\b',
+    r'\bconfirmed\s+for\s+(?:\d{1,2}(?::\d{2})?\s*(?:am|pm)?|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b',
+    r'\bthank\s+you\s+for\s+(?:your\s+)?(?:order|purchase|booking|payment)\b',
+]
+
 def analyze(text: str) -> SignalResult:
     # Handle empty or non-string input
     if not isinstance(text, str) or not text.strip():
@@ -14,6 +23,9 @@ def analyze(text: str) -> SignalResult:
     text_lower = text.lower()
     evidence = []
     score = 0.0
+
+    # Check for benign context first
+    is_benign_context = any(re.search(p, text_lower) for p in BENIGN_FEAR_PATTERNS)
 
     account_threats = [
         r"account\s+(?:has\s+been\s+)?(?:compromised|hacked|breached|suspended|frozen|locked)",
@@ -83,6 +95,11 @@ def analyze(text: str) -> SignalResult:
     if len(evidence) >= 3:
         score *= 1.2
         evidence.append(f"Multiple threat tactics ({len(evidence)} types)")
+
+    # Suppress score if benign context detected
+    if is_benign_context:
+        score = min(score, 0.1)
+        evidence.append("Benign notification context detected - score suppressed")
 
     score = min(score, 0.85)
 

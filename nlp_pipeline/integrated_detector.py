@@ -445,6 +445,20 @@ class IntegratedSocialEngineeringDetector:
                 r"password\s+(was\s+)?successfully\s+changed",
                 r"direct\s+deposit\s+has\s+been\s+processed",
                 r"your\s+(test\s+)?results\s+are\s+available",
+                # Additional benign patterns for false positive control
+                r"happy\s+birthday",
+                r"reservation\s+(is\s+)?confirmed\s+for",
+                r"reply\s+yes\s+to\s+confirm",
+                r"ticket\s+number\s+is",
+                r"we\'?ll\s+respond\s+within",
+                r"thank\s+you\s+for\s+contacting\s+support",
+                r"office\s+hours\s+(are|is)",
+                r"feel\s+free\s+to\s+(drop\s+by|ask|contact)",
+                r"(store|we)\s+(is|are)\s+having\s+a\s+sale",
+                r"thank\s+you\s+for\s+being\s+a\s+(loyal\s+)?customer",
+                r"here\'?s\s+a\s+\d+%\s+discount\s+code",
+                r"please\s+remember\s+to\s+submit",
+                r"late\s+submissions\s+will\s+be\s+accepted",
             ]
         ]
         self._auth_benign = re.compile(

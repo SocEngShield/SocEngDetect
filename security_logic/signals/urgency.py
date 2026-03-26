@@ -2,6 +2,21 @@ import re
 from typing import List, Tuple
 from ..base import SignalResult
 
+# Benign context patterns - suppress false positives on confirmations
+BENIGN_URGENCY_PATTERNS = [
+    r'\b(?:appointment|reservation|booking)\s+(?:is\s+)?confirmed\b',
+    r'\bconfirmed\s+for\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b',
+    r'\bconfirmed\s+for\s+\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM)?\b',
+    r'\breply\s+yes\s+to\s+confirm\b',
+    r'\bplease\s+remember\s+to\s+submit\b',
+    r'\blate\s+submissions?\s+(?:will\s+be\s+)?accepted\b',
+    r'\boffice\s+hours\b',
+    r'\bticket\s+number\b',
+    r'\bwe\'?ll\s+respond\s+within\b',
+    r'\bthank\s+you\s+for\s+contacting\b',
+    r'\bsupport\s+ticket\b',
+]
+
 # Phrase-based patterns for urgency detection
 DEADLINE_PATTERNS = [
     r'\b(?:expires?|expiring)\s+(?:in\s+)?\d+\s*(?:hours?|minutes?|days?|hrs?|mins?)\b',
@@ -193,6 +208,13 @@ def analyze(text: str) -> SignalResult:
         evidence.append(f"Multiple urgency tactics detected ({active_categories} categories)")
     
     final_score = min(base_score * multiplier, 1.0)
+
+    # Suppress score if benign context detected
+    text_lower = text.lower()
+    is_benign_context = any(re.search(p, text_lower) for p in BENIGN_URGENCY_PATTERNS)
+    if is_benign_context:
+        final_score = min(final_score, 0.1)  # Cap at low score for benign confirmations
+        evidence.append("Benign context detected (confirmation/scheduling) - score suppressed")
     
     # Calculate confidence based on evidence strength
     if not evidence:

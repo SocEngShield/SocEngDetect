@@ -131,6 +131,20 @@ def analyze(text: str) -> SignalResult:
             score += 0.15
             break
 
+    # Pattern 7: Brand + action request combinations (high confidence scam indicators)
+    brand_action_patterns = [
+        r'\b(?:' + '|'.join(KNOWN_COMPANIES) + r')\b.*\b(?:verify|confirm|update)\s+(?:your\s+)?(?:account|identity|details|information)\b',
+        r'\b(?:' + '|'.join(KNOWN_COMPANIES) + r')\b.*\b(?:click|log\s*in|sign\s*in)\b.*\b(?:here|now|immediately)\b',
+        r'\bthis\s+is\s+(?:' + '|'.join(KNOWN_COMPANIES) + r')\b',
+        r'\b(?:from|at)\s*:\s*(?:' + '|'.join(KNOWN_COMPANIES) + r')\s+(?:support|security|team)\b',
+    ]
+    
+    for pattern in brand_action_patterns:
+        if re.search(pattern, text_lower):
+            evidence.append("Brand impersonation with action request detected")
+            score += 0.25
+            break
+
     # Boost score if multiple impersonation types detected
     if len(evidence) >= 3:
         score *= 1.2
