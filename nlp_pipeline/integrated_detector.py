@@ -414,6 +414,31 @@ class IntegratedSocialEngineeringDetector:
         "won", "winner", "prize", "reward", "free", "gift",
         "discount", "cashback", "lottery", "selected", "chosen",
         "bonus", "90%",
+        # Scam-specific patterns
+        "guaranteed returns", "guaranteed profit", "500%", "1000%",
+        "work from home", "no experience needed", "no experience required",
+        "earn $", "make $", "secret strategy", "secret method",
+        "bitcoin investment", "crypto investment", "stimulus payment",
+        "pre-approved", "bad credit ok", "randomly selected",
+        "prince", "transfer million", "receive 30%", "receive 20%",
+    ]
+
+    # Scam indicator patterns (regex) for stronger detection
+    _SCAM_RX = [
+        re.compile(p, re.IGNORECASE) for p in [
+            r"\b(?:earn|make)\s+\$\d+",
+            r"\bguaranteed\s+\d+%?\s+returns?\b",
+            r"\bwork(?:ing)?\s+from\s+home\b",
+            r"\bno\s+experience\s+(?:needed|required)\b",
+            r"\bsecret\s+(?:strategy|method|system)\b",
+            r"\b(?:bitcoin|crypto)\s+(?:investment|opportunity)\b",
+            r"\bgovernment\s+(?:stimulus|grant|payment)\b",
+            r"\bpre[\s-]?approved\s+for\s+\$",
+            r"\brandomly\s+selected\b",
+            r"\btransfer(?:ring)?\s+.*\bmillion\b",
+            r"\breceive\s+\d+%\b",
+            r"\bprince\b.*\b(?:help|transfer|million)\b",
+        ]
     ]
 
     def __init__(self):
@@ -496,6 +521,7 @@ class IntegratedSocialEngineeringDetector:
             ],
             "sensitive": any(rx.search(msg) for rx in self._SENSITIVE_RX),
             "reward": [kw for kw in self.REWARD_KW if kw in msg],
+            "scam": any(rx.search(msg) for rx in self._SCAM_RX),
             "verify_suspicious": (
                 ("verify" in msg or "confirm" in msg)
                 and not self._verify_benign.search(msg)
@@ -567,15 +593,28 @@ class IntegratedSocialEngineeringDetector:
         rag_conf, rag_cat = self.rag.detect(message)
         rule_conf, rule_cats = self._rule_engine(sig)
 
+        # Check for strong attack indicators that should NOT be suppressed
+        has_strong_indicator = (
+            sig["brand"] or          # Brand impersonation (Microsoft, Apple, etc.)
+            sig["identity"] or       # Identity assertion ("this is", "I am from")
+            sig["scam"] or           # Scam patterns (investment, work-from-home)
+            sig["authority"] or      # Authority claim (CEO, CFO)
+            sig["verify_suspicious"] # Suspicious verify/confirm requests
+        )
+
         # Suppression for benign messages with weak signals
-        if benign_detected:
+        # BUT only if no strong attack indicators are present
+        if benign_detected and not has_strong_indicator:
             if not sig["fear"] and not sig["sensitive"] and not sig["reward"]:
                 rag_conf = min(rag_conf, 20.0)
                 rule_conf = min(rule_conf, 20.0)
 
-        if not sig["fear"] and not sig["sensitive"] and not sig["reward"] and not sig["deadline"]:
-            rag_conf = min(rag_conf, 20.0)
-            rule_conf = min(rule_conf, 20.0)
+        # General suppression for messages lacking core threat signals
+        # BUT only if no strong attack indicators are present
+        if not has_strong_indicator:
+            if not sig["fear"] and not sig["sensitive"] and not sig["reward"] and not sig["deadline"]:
+                rag_conf = min(rag_conf, 20.0)
+                rule_conf = min(rule_conf, 20.0)
     
         result = self._combine(msg, rag_conf, rag_cat, rule_conf, rule_cats, sig)
 
