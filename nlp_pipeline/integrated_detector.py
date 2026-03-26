@@ -16,18 +16,20 @@ except ImportError:
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from nlp_pipeline.rag_detector import get_detector
 
+# Import URL Knowledge Base
+try:
+    from security_logic.url_knowledge_base import (
+        is_trusted, analyze_url_kb
+    )
+except ImportError:
+    from ..security_logic.url_knowledge_base import (
+        is_trusted, analyze_url_kb
+    )
+
 
 # ---------------------------
 # URL ANALYSIS (F1: Multi-Modal)
 # ---------------------------
-
-TRUSTED_DOMAINS = [
-    "google.com", "paypal.com", "amazon.com", "microsoft.com",
-    "apple.com", "facebook.com", "twitter.com", "linkedin.com",
-    "github.com", "dropbox.com", "netflix.com", "spotify.com",
-    "zoom.us", "slack.com", "outlook.com", "live.com",
-]
-
 
 def extract_urls(text: str) -> List[str]:
     """Extract URLs from text."""
@@ -35,48 +37,13 @@ def extract_urls(text: str) -> List[str]:
 
 
 def analyze_url(url: str) -> Tuple[float, List[str]]:
-    """Analyze a URL for suspicious indicators."""
-    score = 0.0
-    reasons = []
-    url_lower = url.lower()
-    
-    # Suspicious TLDs
-    if any(tld in url_lower for tld in [".xyz", ".ru", ".tk", ".top", ".buzz", ".gq", ".ml"]):
-        score += 0.4
-        reasons.append("Suspicious TLD")
-    
-    # URL shorteners
-    if any(short in url_lower for short in ["bit.ly", "tinyurl", "t.co", "goo.gl", "ow.ly", "is.gd"]):
-        score += 0.2
-        reasons.append("Shortened URL")
-    
-    # Excessive subdomains
-    if url.count('.') > 3:
-        score += 0.2
-        reasons.append("Excessive subdomains")
-    
-    # Sensitive keywords in URL
-    if any(k in url_lower for k in ["login", "verify", "secure", "account", "confirm", "update", "signin"]):
-        score += 0.2
-        reasons.append("Sensitive keyword in URL")
-    
-    # IP address instead of domain
-    if re.search(r"https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", url_lower):
-        score += 0.3
-        reasons.append("IP address URL")
-    
-    # Lookalike domains (homograph attacks)
-    if any(look in url_lower for look in ["paypa1", "amaz0n", "g00gle", "micr0soft", "app1e"]):
-        score += 0.5
-        reasons.append("Lookalike domain")
-    
-    return min(score, 1.0), reasons
+    """Analyze a URL using Knowledge Base patterns."""
+    return analyze_url_kb(url)
 
 
 def is_trusted_url(url: str) -> bool:
     """Check if URL belongs to a trusted domain."""
-    url_lower = url.lower()
-    return any(d in url_lower for d in TRUSTED_DOMAINS)
+    return is_trusted(url)
 
 
 # ---------------------------
