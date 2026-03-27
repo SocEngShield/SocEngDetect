@@ -1028,7 +1028,7 @@ class IntegratedSocialEngineeringDetector:
         # original_msg preserves ALL CAPS, punctuation, formatting for signal detection
         # normalized_msg maps non-English keywords to English for F2 classification
         original_msg = msg
-        normalized_msg = normalize_text(msg)
+        normalized_msg, match_count = normalize_text(msg)
         
         # ---------------------------
         # UNIFIED CONTEXT OBJECT
@@ -1037,6 +1037,7 @@ class IntegratedSocialEngineeringDetector:
             "text": {
                 "original": original_msg,
                 "normalized": normalized_msg,
+                "match_count": match_count,
             },
             "signals": sig,
             "url": {
@@ -1053,6 +1054,30 @@ class IntegratedSocialEngineeringDetector:
                 "reasons": [],
             }
         }
+        
+        # ---------------------------
+        # BIAS-FREE MULTILINGUAL SCORING
+        # ---------------------------
+        # Boost ONLY when multiple evidence signals align (not language alone)
+        evidence_score = 0
+        if match_count >= 2:
+            evidence_score += 1
+        if context["url"]["malicious"]:
+            evidence_score += 1
+        if sig.get("deadline"):  # urgency signal
+            evidence_score += 1
+        if sig.get("identity") or sig.get("brand"):  # impersonation signal
+            evidence_score += 1
+        if sig.get("fear"):
+            evidence_score += 1
+        
+        # Boost ONLY if multiple signals align (no bias)
+        if evidence_score >= 2:
+            overall = min(100, overall + 10)
+        
+        # Ensure malicious links never stay SAFE
+        if context["url"]["malicious"]:
+            overall = max(overall, 55)
         
         # F1 + F2 Alignment: malicious URLs enforce minimum score
         if context["url"]["malicious"]:

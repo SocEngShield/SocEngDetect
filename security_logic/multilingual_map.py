@@ -103,7 +103,7 @@ KEYWORD_MAP = {
 }
 
 
-def normalize_text(text: str) -> str:
+def normalize_text(text: str) -> tuple:
     """
     Normalize non-English keywords to English equivalents.
     Preserves original casing structure for signal detection.
@@ -112,13 +112,17 @@ def normalize_text(text: str) -> str:
         text: Original message text
         
     Returns:
-        Normalized text with multilingual keywords mapped to English
+        tuple: (normalized_text, match_count)
+            - normalized_text: Text with multilingual keywords mapped to English
+            - match_count: Number of non-English keywords found and replaced
     """
     text_lower = text.lower()
+    match_count = 0
     
     for english_word, variants in KEYWORD_MAP.items():
         for variant in variants:
             if variant in text_lower:
                 text_lower = text_lower.replace(variant, english_word)
+                match_count += 1
     
-    return text_lower
+    return text_lower, match_count
