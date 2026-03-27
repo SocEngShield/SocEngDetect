@@ -50,18 +50,25 @@ def is_trusted_url(url: str) -> bool:
 # F2: Attack Type + Domain Classification
 # ---------------------------
 
-def classify_attack(text: str, sig: dict, url_context: dict) -> str:
-    """Classify attack type based on text signals and URL context."""
-    text_lower = text.lower()
+def classify_attack(context: dict) -> str:
+    """Classify attack type based on unified context (text, signals, URL, email)."""
+    text = context["text"].lower()
+    url = context["url"]
+    email = context.get("email", {})
+    sig = context["signals"]
     
     # URL-driven classification (F1 → F2)
-    if url_context.get("malicious"):
-        if any(k in text_lower for k in ["verify", "login", "account", "password"]):
+    if url.get("malicious"):
+        if any(k in text for k in ["verify", "login", "account", "password"]):
             return "Credential Harvesting"
         return "Link-Based Phishing"
     
-    if url_context.get("suspicious"):
+    if url.get("suspicious"):
         return "Suspicious Link Activity"
+    
+    # Email spoofing detection
+    if email.get("score", 0) > 0.6:
+        return "Email Spoofing"
     
     # OTP/code scam detection (high priority)
     if sig.get("otp_scam"):
@@ -75,23 +82,23 @@ def classify_attack(text: str, sig: dict, url_context: dict) -> str:
     otp_patterns = ["send me the code", "forward the code", "share the code", 
                     "send the otp", "send your code", "reply with the code",
                     "verification code", "6-digit code", "6 digit code"]
-    if any(p in text_lower for p in otp_patterns):
+    if any(p in text for p in otp_patterns):
         return "OTP Theft Scam"
     
     # Text-driven classification
-    if any(k in text_lower for k in ["verify", "login", "password", "account"]):
+    if any(k in text for k in ["verify", "login", "password", "account"]):
         return "Credential Harvesting"
     
-    if any(k in text_lower for k in ["won", "reward", "bonus", "cash", "prize", "winner"]):
+    if any(k in text for k in ["won", "reward", "bonus", "cash", "prize", "winner"]):
         return "Reward Scam"
     
-    if any(k in text_lower for k in ["otp", "code", "verification code"]):
+    if any(k in text for k in ["otp", "code", "verification code"]):
         return "OTP Scam"
     
-    if any(k in text_lower for k in ["job", "hiring", "salary", "work from home", "employment"]):
+    if any(k in text for k in ["job", "hiring", "salary", "work from home", "employment"]):
         return "Job Scam"
     
-    if any(k in text_lower for k in ["investment", "crypto", "bitcoin", "returns", "profit"]):
+    if any(k in text for k in ["investment", "crypto", "bitcoin", "returns", "profit"]):
         return "Investment Scam"
     
     if sig.get("fear"):
@@ -103,31 +110,37 @@ def classify_attack(text: str, sig: dict, url_context: dict) -> str:
     return "Generic Social Engineering"
 
 
-def classify_domain(text: str, url_context: dict) -> str:
-    """Classify target domain/sector based on text and URL context."""
-    text_lower = text.lower()
+def classify_domain(context: dict) -> str:
+    """Classify target domain/sector based on unified context."""
+    text = context["text"].lower()
+    url = context["url"]
+    email = context.get("email", {})
     
     # URL-driven domain (F1 → F2)
-    if url_context.get("malicious"):
+    if url.get("malicious"):
         return "Phishing Infrastructure"
     
+    # Email spoofing domain
+    if email.get("score", 0) > 0.6:
+        return "Email Infrastructure"
+    
     # Text-driven domain classification
-    if any(k in text_lower for k in ["bank", "card", "payment", "transaction", "wire", "transfer"]):
+    if any(k in text for k in ["bank", "card", "payment", "transaction", "wire", "transfer"]):
         return "Banking / Financial"
     
-    if any(k in text_lower for k in ["account", "login", "password", "credentials"]):
+    if any(k in text for k in ["account", "login", "password", "credentials"]):
         return "Account Security"
     
-    if any(k in text_lower for k in ["job", "offer", "hr", "recruitment", "hiring"]):
+    if any(k in text for k in ["job", "offer", "hr", "recruitment", "hiring"]):
         return "Employment"
     
-    if any(k in text_lower for k in ["delivery", "package", "courier", "shipment", "tracking"]):
+    if any(k in text for k in ["delivery", "package", "courier", "shipment", "tracking"]):
         return "Logistics"
     
-    if any(k in text_lower for k in ["tax", "irs", "government", "stimulus"]):
+    if any(k in text for k in ["tax", "irs", "government", "stimulus"]):
         return "Government Services"
     
-    if any(k in text_lower for k in ["apple", "microsoft", "google", "amazon", "paypal"]):
+    if any(k in text for k in ["apple", "microsoft", "google", "amazon", "paypal"]):
         return "Tech / E-Commerce"
     
     return "General"
@@ -996,18 +1009,28 @@ class IntegratedSocialEngineeringDetector:
                 cats.append("Impersonation")
         
         # ---------------------------
-        # F2: URL Context (shared with classifiers)
+        # UNIFIED CONTEXT OBJECT
         # ---------------------------
-        url_context = {
-            "has_url": bool(urls),
-            "url_score": url_score,
-            "trusted": trusted_flag,
-            "malicious": url_score > 60,
-            "suspicious": 30 < url_score <= 60,
+        context = {
+            "text": msg,
+            "signals": sig,
+            "url": {
+                "urls": urls,
+                "score": url_score,
+                "trusted": trusted_flag,
+                "malicious": url_score > 60,
+                "suspicious": 30 < url_score <= 60,
+                "reasons": url_reasons,
+            },
+            "email": {
+                "parsed": {},
+                "score": 0.0,
+                "reasons": [],
+            }
         }
         
         # F1 + F2 Alignment: malicious URLs enforce minimum score
-        if url_context["malicious"]:
+        if context["url"]["malicious"]:
             overall = max(overall, 60)
         
         overall = round(max(0.0, min(100.0, overall)), 2)
@@ -1015,8 +1038,8 @@ class IntegratedSocialEngineeringDetector:
         # ---------------------------
         # F2: Attack Type + Domain Classification
         # ---------------------------
-        main_type = classify_attack(msg, sig, url_context)
-        domain_type = classify_domain(msg, url_context)
+        main_type = classify_attack(context)
+        domain_type = classify_domain(context)
         attack_type = f"{main_type} → {domain_type}"
 
         # Dynamic category limiting based on severity
