@@ -21,10 +21,12 @@ try:
     from security_logic.url_knowledge_base import (
         is_trusted, analyze_url_kb
     )
+    from security_logic.multilingual_map import normalize_text
 except ImportError:
     from ..security_logic.url_knowledge_base import (
         is_trusted, analyze_url_kb
     )
+    from ..security_logic.multilingual_map import normalize_text
 
 
 # ---------------------------
@@ -52,7 +54,13 @@ def is_trusted_url(url: str) -> bool:
 
 def classify_attack(context: dict) -> str:
     """Classify attack type based on unified context (text, signals, URL, email)."""
-    text = context["text"].lower()
+    # Use normalized text for multilingual keyword detection
+    text_info = context["text"]
+    if isinstance(text_info, dict):
+        text = text_info.get("normalized", text_info.get("original", "")).lower()
+    else:
+        text = text_info.lower()
+    
     url = context["url"]
     email = context.get("email", {})
     sig = context["signals"]
@@ -112,7 +120,13 @@ def classify_attack(context: dict) -> str:
 
 def classify_domain(context: dict) -> str:
     """Classify target domain/sector based on unified context."""
-    text = context["text"].lower()
+    # Use normalized text for multilingual keyword detection
+    text_info = context["text"]
+    if isinstance(text_info, dict):
+        text = text_info.get("normalized", text_info.get("original", "")).lower()
+    else:
+        text = text_info.lower()
+    
     url = context["url"]
     email = context.get("email", {})
     
@@ -1009,10 +1023,21 @@ class IntegratedSocialEngineeringDetector:
                 cats.append("Impersonation")
         
         # ---------------------------
+        # DUAL-TEXT STRATEGY (Multilingual Support)
+        # ---------------------------
+        # original_msg preserves ALL CAPS, punctuation, formatting for signal detection
+        # normalized_msg maps non-English keywords to English for F2 classification
+        original_msg = msg
+        normalized_msg = normalize_text(msg)
+        
+        # ---------------------------
         # UNIFIED CONTEXT OBJECT
         # ---------------------------
         context = {
-            "text": msg,
+            "text": {
+                "original": original_msg,
+                "normalized": normalized_msg,
+            },
             "signals": sig,
             "url": {
                 "urls": urls,
