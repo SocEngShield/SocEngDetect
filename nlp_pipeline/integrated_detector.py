@@ -707,6 +707,28 @@ class IntegratedSocialEngineeringDetector:
     def _any_rx(cls, msg: str, rxs: list) -> bool:
         return any(rx.search(msg) for rx in rxs)
 
+    @staticmethod
+    def _merge_signals(sig_original: Dict, sig_normalized: Dict) -> Dict:
+        """Merge signals from original and normalized text, taking max of each."""
+        merged = {}
+        all_keys = set(sig_original.keys()) | set(sig_normalized.keys())
+        
+        for key in all_keys:
+            val_orig = sig_original.get(key, False)
+            val_norm = sig_normalized.get(key, False)
+            
+            # Handle list values (fear, deadline, brand, etc.)
+            if isinstance(val_orig, list) or isinstance(val_norm, list):
+                list_orig = val_orig if isinstance(val_orig, list) else []
+                list_norm = val_norm if isinstance(val_norm, list) else []
+                # Combine unique items from both lists
+                merged[key] = list(set(list_orig) | set(list_norm))
+            # Handle boolean values
+            else:
+                merged[key] = val_orig or val_norm
+        
+        return merged
+
     def _signals(self, msg: str) -> Dict:
         return {
             "fear": [kw for kw in self.FEAR_KW if kw in msg],
@@ -736,7 +758,23 @@ class IntegratedSocialEngineeringDetector:
 
     def analyze_message(self, message: str) -> Dict:
         msg = message.lower()
-        sig = self._signals(msg)
+        
+        # ---------------------------
+        # HYBRID SIGNAL ANALYSIS (Multilingual Support)
+        # ---------------------------
+        # Run signals on original text (preserves caps, punctuation detection)
+        sig_original = self._signals(msg)
+        
+        # Run signals on normalized text (detects multilingual keywords)
+        normalized_msg, match_count = normalize_text(msg)
+        sig_normalized = self._signals(normalized_msg)
+        
+        # Merge signals: take max of each to capture both original + multilingual
+        sig = self._merge_signals(sig_original, sig_normalized)
+        
+        # Store match_count for later bias-free scoring
+        sig["_multilingual_match_count"] = match_count
+        
         top_k_results = self.rag.retrieve_top_k(message, k=8)
         rule_signals = extract_rule_signals(message)
 
@@ -885,18 +923,40 @@ class IntegratedSocialEngineeringDetector:
 
         score = min(score, 100.0)
 
+        # Get multilingual match count for gated activation
+        match_count = sig.get("_multilingual_match_count", 0)
+
         cats: List[str] = []
 
+        # ---------------------------
+        # GATED CATEGORY ACTIVATION
+        # ---------------------------
+        # Standard activation: signal must be present (truthy)
+        # Gated activation: weaker signals allowed when multilingual evidence exists
+        
+        # Fear/Threat
         if sig["fear"]:
             cats.append("Fear/Threat")
+        elif match_count >= 2 and sig.get("verify_suspicious"):
+            # Multilingual verify requests often imply threat
+            cats.append("Fear/Threat")
 
+        # Impersonation
         if sig["identity"] or sig["brand"]:
             cats.append("Impersonation")
+        elif match_count >= 2 and (sig.get("sensitive") or sig.get("verify_suspicious")):
+            # Multilingual credential requests imply impersonation
+            cats.append("Impersonation")
 
+        # Authority
         if sig["authority"]:
             cats.append("Authority")
 
+        # Urgency
         if sig["deadline"]:
+            cats.append("Urgency")
+        elif match_count >= 2 and sig.get("verify_suspicious"):
+            # Multilingual verify requests often imply urgency
             cats.append("Urgency")
 
         if sig["reward"]:
@@ -1028,7 +1088,8 @@ class IntegratedSocialEngineeringDetector:
         # original_msg preserves ALL CAPS, punctuation, formatting for signal detection
         # normalized_msg maps non-English keywords to English for F2 classification
         original_msg = msg
-        normalized_msg, match_count = normalize_text(msg)
+        normalized_msg, _ = normalize_text(msg)  # match_count already in sig
+        match_count = sig.get("_multilingual_match_count", 0)
         
         # ---------------------------
         # UNIFIED CONTEXT OBJECT
@@ -1109,6 +1170,20 @@ class IntegratedSocialEngineeringDetector:
             risk = "LOW"
         else:
             risk = "SAFE"
+
+        # ---------------------------
+        # SAFE RISK ESCALATION (Multilingual Support)
+        # ---------------------------
+        # Escalate to POTENTIAL only if:
+        # 1. Multiple multilingual keywords matched (match_count >= 2)
+        # 2. Categories were activated (not empty)
+        # 3. Overall confidence is at least 10% (not completely benign)
+        if match_count >= 2 and cats and overall >= 10 and risk == "SAFE":
+            risk = "LOW"  # Escalate SAFE → LOW (conservative)
+        
+        # Further escalate if strong evidence
+        if match_count >= 3 and len(cats) >= 2 and overall >= 15 and risk == "LOW":
+            risk = "POTENTIAL"  # Escalate LOW → POTENTIAL
 
         attack = risk != "SAFE"
 
