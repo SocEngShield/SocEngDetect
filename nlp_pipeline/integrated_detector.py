@@ -47,6 +47,78 @@ def is_trusted_url(url: str) -> bool:
 
 
 # ---------------------------
+# F2: Attack Type + Domain Classification
+# ---------------------------
+
+def classify_attack(text: str, sig: dict, url_context: dict) -> str:
+    """Classify attack type based on text signals and URL context."""
+    text_lower = text.lower()
+    
+    # URL-driven classification (F1 → F2)
+    if url_context.get("malicious"):
+        if any(k in text_lower for k in ["verify", "login", "account", "password"]):
+            return "Credential Harvesting"
+        return "Link-Based Phishing"
+    
+    if url_context.get("suspicious"):
+        return "Suspicious Link Activity"
+    
+    # Text-driven classification
+    if any(k in text_lower for k in ["verify", "login", "password", "account"]):
+        return "Credential Harvesting"
+    
+    if any(k in text_lower for k in ["won", "reward", "bonus", "cash", "prize", "winner"]):
+        return "Reward Scam"
+    
+    if any(k in text_lower for k in ["otp", "code", "verification code"]):
+        return "OTP Scam"
+    
+    if any(k in text_lower for k in ["job", "hiring", "salary", "work from home", "employment"]):
+        return "Job Scam"
+    
+    if any(k in text_lower for k in ["investment", "crypto", "bitcoin", "returns", "profit"]):
+        return "Investment Scam"
+    
+    if sig.get("fear"):
+        return "Threat-Based Scam"
+    
+    if sig.get("authority") or sig.get("identity"):
+        return "Impersonation Attack"
+    
+    return "Generic Social Engineering"
+
+
+def classify_domain(text: str, url_context: dict) -> str:
+    """Classify target domain/sector based on text and URL context."""
+    text_lower = text.lower()
+    
+    # URL-driven domain (F1 → F2)
+    if url_context.get("malicious"):
+        return "Phishing Infrastructure"
+    
+    # Text-driven domain classification
+    if any(k in text_lower for k in ["bank", "card", "payment", "transaction", "wire", "transfer"]):
+        return "Banking / Financial"
+    
+    if any(k in text_lower for k in ["account", "login", "password", "credentials"]):
+        return "Account Security"
+    
+    if any(k in text_lower for k in ["job", "offer", "hr", "recruitment", "hiring"]):
+        return "Employment"
+    
+    if any(k in text_lower for k in ["delivery", "package", "courier", "shipment", "tracking"]):
+        return "Logistics"
+    
+    if any(k in text_lower for k in ["tax", "irs", "government", "stimulus"]):
+        return "Government Services"
+    
+    if any(k in text_lower for k in ["apple", "microsoft", "google", "amazon", "paypal"]):
+        return "Tech / E-Commerce"
+    
+    return "General"
+
+
+# ---------------------------
 
 
 DISPLAY_TO_INTERNAL_CATEGORY = {
@@ -824,7 +896,29 @@ class IntegratedSocialEngineeringDetector:
             if "Impersonation" not in cats:
                 cats.append("Impersonation")
         
+        # ---------------------------
+        # F2: URL Context (shared with classifiers)
+        # ---------------------------
+        url_context = {
+            "has_url": bool(urls),
+            "url_score": url_score,
+            "trusted": trusted_flag,
+            "malicious": url_score > 60,
+            "suspicious": 30 < url_score <= 60,
+        }
+        
+        # F1 + F2 Alignment: malicious URLs enforce minimum score
+        if url_context["malicious"]:
+            overall = max(overall, 60)
+        
         overall = round(max(0.0, min(100.0, overall)), 2)
+
+        # ---------------------------
+        # F2: Attack Type + Domain Classification
+        # ---------------------------
+        main_type = classify_attack(msg, sig, url_context)
+        domain_type = classify_domain(msg, url_context)
+        attack_type = f"{main_type} → {domain_type}"
 
         # Dynamic category limiting based on severity
         unique_cats = list(dict.fromkeys(cats))
@@ -864,4 +958,5 @@ class IntegratedSocialEngineeringDetector:
             "rule_confidence": round(rule_conf, 2),
             "overall_confidence": overall,
             "confidence_calculation": calc,
+            "attack_type": attack_type if risk != "SAFE" else None,
         }

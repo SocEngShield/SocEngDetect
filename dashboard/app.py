@@ -308,6 +308,11 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
             unsafe_allow_html=True,
         )
 
+        # F2: Attack Type Classification
+        attack_type = r.get("attack_type")
+        if attack_type:
+            st.markdown(f"**Attack Type:** {attack_type}")
+
         # ---------------------------
         # CONFIDENCE
         # ---------------------------
