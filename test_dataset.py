@@ -1,14 +1,15 @@
 """
 Labeled test dataset for social engineering detection evaluation.
-~100 samples with ground truth labels.
+Expanded dataset: 150+ samples with ground truth labels.
+Includes URL-based attacks, F1/F2 test cases, and edge cases.
 """
 
 TEST_SAMPLES = [
     # =========================================================================
-    # ATTACK SAMPLES (50 samples)
+    # ATTACK SAMPLES (75+ samples)
     # =========================================================================
     
-    # Fear/Threat samples (10)
+    # Fear/Threat samples (12)
     {
         "text": "Your account has been compromised! Click here immediately to secure it or lose all your data.",
         "labels": ["Fear/Threat", "Urgency"],
@@ -59,8 +60,18 @@ TEST_SAMPLES = [
         "labels": ["Fear/Threat", "Urgency"],
         "attack": True
     },
+    {
+        "text": "Your credit score has dropped significantly due to unpaid debt. Resolve now or face collection.",
+        "labels": ["Fear/Threat"],
+        "attack": True
+    },
+    {
+        "text": "ALERT: Unauthorized transaction of $4,999 detected. Confirm or dispute within 2 hours.",
+        "labels": ["Fear/Threat", "Urgency"],
+        "attack": True
+    },
     
-    # Authority/Impersonation samples (10)
+    # Authority/Impersonation samples (12)
     {
         "text": "This is Microsoft Support. We've detected critical errors on your computer. Please allow remote access.",
         "labels": ["Authority", "Impersonation"],
@@ -109,6 +120,16 @@ TEST_SAMPLES = [
     {
         "text": "This is your bank's fraud department. We need to verify your PIN to protect your account.",
         "labels": ["Authority", "Impersonation"],
+        "attack": True
+    },
+    {
+        "text": "WhatsApp Security: Your account will be deleted. Verify at whatsapp-verify.xyz",
+        "labels": ["Authority", "Impersonation"],
+        "attack": True
+    },
+    {
+        "text": "Netflix Billing: Payment failed. Update card at netflix-secure-billing.tk or lose access.",
+        "labels": ["Authority", "Impersonation", "Urgency"],
         "attack": True
     },
     
@@ -164,7 +185,7 @@ TEST_SAMPLES = [
         "attack": True
     },
     
-    # Reward/Lure samples (10)
+    # Reward/Lure samples (12)
     {
         "text": "Congratulations! You've been selected to receive a free iPhone 15. Click to claim your prize.",
         "labels": ["Reward/Lure"],
@@ -213,6 +234,147 @@ TEST_SAMPLES = [
     {
         "text": "You qualify for a government stimulus payment of $3,400. Click here to claim.",
         "labels": ["Reward/Lure", "Authority"],
+        "attack": True
+    },
+    {
+        "text": "Double your crypto investment in 24 hours! Join our exclusive trading group now.",
+        "labels": ["Reward/Lure"],
+        "attack": True
+    },
+    {
+        "text": "CONGRATULATIONS! You've won a brand new Tesla Model 3. Claim at tesla-giveaway.xyz",
+        "labels": ["Reward/Lure"],
+        "attack": True
+    },
+    
+    # URL-based attacks (F1 test cases) (15)
+    {
+        "text": "Verify your account at http://secure-paypal-login.xyz to avoid suspension.",
+        "labels": ["Impersonation", "Urgency"],
+        "attack": True
+    },
+    {
+        "text": "Your Netflix payment failed. Update at http://netflix-billing.tk/update",
+        "labels": ["Impersonation", "Urgency"],
+        "attack": True
+    },
+    {
+        "text": "Click here to claim your prize: bit.ly/free-iphone-15-winner",
+        "labels": ["Reward/Lure"],
+        "attack": True
+    },
+    {
+        "text": "Bank security alert! Confirm your identity: http://192.168.1.100/bank-verify",
+        "labels": ["Fear/Threat", "Impersonation"],
+        "attack": True
+    },
+    {
+        "text": "Your Amazon order requires verification: http://arnazon-orders.com/verify",
+        "labels": ["Impersonation"],
+        "attack": True
+    },
+    {
+        "text": "Microsoft Account: Unusual signin. Verify at http://micr0soft-account.ru/login",
+        "labels": ["Impersonation", "Fear/Threat"],
+        "attack": True
+    },
+    {
+        "text": "Google Security: Confirm your identity at tinyurl.com/google-verify-2024",
+        "labels": ["Impersonation"],
+        "attack": True
+    },
+    {
+        "text": "Your Apple ID was locked. Unlock at http://appie-id-verify.top/unlock",
+        "labels": ["Impersonation", "Fear/Threat"],
+        "attack": True
+    },
+    {
+        "text": "Claim your $1000 Walmart gift card: http://walmart-rewards.gq/claim",
+        "labels": ["Reward/Lure"],
+        "attack": True
+    },
+    {
+        "text": "LinkedIn Security: Verify your professional profile at linkedin-verify.buzz",
+        "labels": ["Impersonation"],
+        "attack": True
+    },
+    {
+        "text": "Your package is held at customs. Pay fee at http://ups-delivery.ml/customs",
+        "labels": ["Impersonation", "Urgency"],
+        "attack": True
+    },
+    {
+        "text": "Facebook alert: Someone logged in from new device. Secure at fb-security.cc",
+        "labels": ["Impersonation", "Fear/Threat"],
+        "attack": True
+    },
+    {
+        "text": "Update your password now: http://paypa1-secure.xyz/account-recovery",
+        "labels": ["Impersonation"],
+        "attack": True
+    },
+    {
+        "text": "IRS refund of $2,847 available. Claim at http://irs-refund-claim.tk",
+        "labels": ["Authority", "Reward/Lure"],
+        "attack": True
+    },
+    {
+        "text": "Your Instagram account will be deleted. Appeal at insta-appeal.top/save",
+        "labels": ["Impersonation", "Fear/Threat"],
+        "attack": True
+    },
+    
+    # OTP/Code scams (5)
+    {
+        "text": "Your OTP is 847291. Share this code with our support agent to verify your account.",
+        "labels": ["Impersonation"],
+        "attack": True
+    },
+    {
+        "text": "We sent you a verification code. Please reply with the code to complete the transfer.",
+        "labels": ["Impersonation"],
+        "attack": True
+    },
+    {
+        "text": "Your WhatsApp verification code is needed for security audit. Send it now.",
+        "labels": ["Impersonation", "Urgency"],
+        "attack": True
+    },
+    {
+        "text": "I accidentally sent my code to your number. Can you forward me the 6-digit code?",
+        "labels": ["Impersonation"],
+        "attack": True
+    },
+    {
+        "text": "Bank security requires your SMS code for verification. Reply with the code.",
+        "labels": ["Authority", "Impersonation"],
+        "attack": True
+    },
+    
+    # Job scams (5)
+    {
+        "text": "Congratulations! You're hired for remote data entry. $45/hour. Send SSN to proceed.",
+        "labels": ["Reward/Lure"],
+        "attack": True
+    },
+    {
+        "text": "We found your resume. Immediate opening for $80k/year work from home position.",
+        "labels": ["Reward/Lure"],
+        "attack": True
+    },
+    {
+        "text": "HR: You're selected for final interview. Wire $500 for background check to proceed.",
+        "labels": ["Authority", "Reward/Lure"],
+        "attack": True
+    },
+    {
+        "text": "Make $10,000/month as a package forwarder! Easy work, no experience needed.",
+        "labels": ["Reward/Lure"],
+        "attack": True
+    },
+    {
+        "text": "Job offer: Social media manager. $5000/week. Send copy of ID to start immediately.",
+        "labels": ["Reward/Lure", "Urgency"],
         "attack": True
     },
     
@@ -268,11 +430,33 @@ TEST_SAMPLES = [
         "attack": True
     },
     
+    # Romance/Relationship scams (4)
+    {
+        "text": "I'm a US soldier stationed overseas. I've fallen in love with you. Send $500 for my flight home.",
+        "labels": ["Reward/Lure"],
+        "attack": True
+    },
+    {
+        "text": "I'm stuck abroad and lost my wallet. Can you wire me $1000? I'll pay you back double.",
+        "labels": ["Urgency", "Reward/Lure"],
+        "attack": True
+    },
+    {
+        "text": "We've been chatting for weeks. I need help with hospital bills. Can you send crypto?",
+        "labels": ["Fear/Threat"],
+        "attack": True
+    },
+    {
+        "text": "I want to send you a gift package worth $50,000 but need $200 for customs clearance.",
+        "labels": ["Reward/Lure"],
+        "attack": True
+    },
+    
     # =========================================================================
-    # BENIGN SAMPLES (50 samples)
+    # BENIGN SAMPLES (75+ samples)
     # =========================================================================
     
-    # Normal business communication (10)
+    # Normal business communication (12)
     {
         "text": "Hi team, here's the agenda for tomorrow's meeting. Please review and add any items.",
         "labels": [],
@@ -323,8 +507,18 @@ TEST_SAMPLES = [
         "labels": [],
         "attack": False
     },
+    {
+        "text": "Please review the budget proposal and let me know your thoughts by end of week.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "The project timeline has been updated. New deadline is December 15th.",
+        "labels": [],
+        "attack": False
+    },
     
-    # Personal messages (10)
+    # Personal messages (12)
     {
         "text": "Hey! How was your weekend? Let's catch up over coffee sometime.",
         "labels": [],
@@ -375,8 +569,18 @@ TEST_SAMPLES = [
         "labels": [],
         "attack": False
     },
+    {
+        "text": "Got your message about the movie night. I'll bring snacks!",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Hope you're feeling better. Let me know if you need anything from the store.",
+        "labels": [],
+        "attack": False
+    },
     
-    # Legitimate service notifications (10)
+    # Legitimate service notifications (15)
     {
         "text": "Your package has been delivered and left at your front door. Thank you for shopping with us.",
         "labels": [],
@@ -427,8 +631,33 @@ TEST_SAMPLES = [
         "labels": [],
         "attack": False
     },
+    {
+        "text": "Your order has shipped! Track it at ups.com with tracking number 1Z999AA10123456784.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Reminder: Your car service appointment is tomorrow at 9 AM at AutoCare Center.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Your prescription is ready for pickup at CVS Pharmacy on Main Street.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Thank you for your payment of $150.00. Your balance is now $0.00.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Your credit card ending in 4242 was used for a $25.99 purchase at Amazon.",
+        "labels": [],
+        "attack": False
+    },
     
-    # Educational/Informational (10)
+    # Educational/Informational (12)
     {
         "text": "Here's the study guide for next week's exam. Good luck everyone!",
         "labels": [],
@@ -479,8 +708,18 @@ TEST_SAMPLES = [
         "labels": [],
         "attack": False
     },
+    {
+        "text": "Grades have been posted to the student portal. Check your results there.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "The campus career fair is next Wednesday. Bring copies of your resume.",
+        "labels": [],
+        "attack": False
+    },
     
-    # Legitimate promotions/newsletters (10)
+    # Legitimate promotions/newsletters (12)
     {
         "text": "This week's newsletter: New features added to your favorite tools.",
         "labels": [],
@@ -531,6 +770,149 @@ TEST_SAMPLES = [
         "labels": [],
         "attack": False
     },
+    {
+        "text": "Our app just got updated with new features. Update from the App Store or Google Play.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Join our loyalty program and earn points on every purchase. Sign up at checkout.",
+        "labels": [],
+        "attack": False
+    },
+    
+    # Legitimate URLs (trusted domains) (10)
+    {
+        "text": "Reset your password at https://accounts.google.com/signin/recovery",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "View your order status at https://www.amazon.com/your-orders",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Update your payment method at https://www.paypal.com/myaccount/settings",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Check your statement at https://www.chase.com/personal/online-banking",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Download the latest version at https://github.com/microsoft/vscode/releases",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Join the meeting at https://zoom.us/j/123456789",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "View the shared document at https://docs.google.com/document/d/example",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Track your package at https://www.ups.com/track?tracknum=1Z999",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Update your profile at https://www.linkedin.com/in/yourprofile",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Subscribe to our channel at https://www.youtube.com/channel/example",
+        "labels": [],
+        "attack": False
+    },
+    
+    # Healthcare/Medical (5)
+    {
+        "text": "Reminder: Your annual checkup is scheduled for next Tuesday at 10 AM.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Your lab results are ready. Log into the patient portal to view them.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Time to refill your prescription. Contact your pharmacy to place an order.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Your insurance claim has been processed. You can view the details online.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "The doctor's office is closed Friday. For emergencies, call the after-hours line.",
+        "labels": [],
+        "attack": False
+    },
+    
+    # Banking/Financial (legitimate) (5)
+    {
+        "text": "Your monthly statement is available. Log into online banking to view it.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Direct deposit of $2,500.00 has been credited to your checking account.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Your credit card payment of $350 was received. Thank you.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Reminder: Your loan payment is due on the 15th of this month.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Your new debit card has been mailed and should arrive in 5-7 business days.",
+        "labels": [],
+        "attack": False
+    },
+    
+    # Social media notifications (5)
+    {
+        "text": "John Smith commented on your post: 'Great photo!'",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "You have 5 new connection requests on LinkedIn.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Sarah liked your photo from last weekend.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "You were mentioned in a comment by @friend123.",
+        "labels": [],
+        "attack": False
+    },
+    {
+        "text": "Your tweet received 50 likes and 10 retweets.",
+        "labels": [],
+        "attack": False
+    },
 ]
 
 
@@ -547,3 +929,22 @@ def get_benign_samples():
 def get_all_samples():
     """Return all test samples."""
     return TEST_SAMPLES
+
+
+def get_url_attack_samples():
+    """Return attack samples containing URLs (F1 test cases)."""
+    url_patterns = ["http://", "https://", "www.", ".xyz", ".tk", ".ru", "bit.ly", "tinyurl"]
+    return [s for s in TEST_SAMPLES if s["attack"] and any(p in s["text"].lower() for p in url_patterns)]
+
+
+def get_stats():
+    """Return dataset statistics."""
+    attacks = get_attack_samples()
+    benign = get_benign_samples()
+    url_attacks = get_url_attack_samples()
+    return {
+        "total": len(TEST_SAMPLES),
+        "attacks": len(attacks),
+        "benign": len(benign),
+        "url_attacks": len(url_attacks),
+    }

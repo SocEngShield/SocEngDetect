@@ -63,6 +63,21 @@ def classify_attack(text: str, sig: dict, url_context: dict) -> str:
     if url_context.get("suspicious"):
         return "Suspicious Link Activity"
     
+    # OTP/code scam detection (high priority)
+    if sig.get("otp_scam"):
+        return "OTP Theft Scam"
+    
+    # Romance/advance fee scam detection
+    if sig.get("romance_scam"):
+        return "Romance / Advance Fee Scam"
+    
+    # OTP patterns in text (fallback)
+    otp_patterns = ["send me the code", "forward the code", "share the code", 
+                    "send the otp", "send your code", "reply with the code",
+                    "verification code", "6-digit code", "6 digit code"]
+    if any(p in text_lower for p in otp_patterns):
+        return "OTP Theft Scam"
+    
     # Text-driven classification
     if any(k in text_lower for k in ["verify", "login", "password", "account"]):
         return "Credential Harvesting"
@@ -545,6 +560,35 @@ class IntegratedSocialEngineeringDetector:
         ]
     ]
 
+    # OTP/Code theft scam patterns
+    _OTP_SCAM_RX = [
+        re.compile(p, re.IGNORECASE) for p in [
+            r"\b(?:send|forward|share|give)\s+(?:me\s+)?(?:the\s+)?(?:otp|code|pin)\b",
+            r"\b(?:verification|security)\s+code\b.*\b(?:send|reply|forward)\b",
+            r"\breply\s+with\s+(?:the\s+)?code\b",
+            r"\bforward\s+(?:me\s+)?(?:the\s+)?\d[\s-]?digit\s+code\b",
+            r"\b(?:accidentally|mistakenly)\s+sent\s+(?:my\s+)?code\b",
+            r"\bcode\s+(?:to|for)\s+(?:your|this)\s+number\b",
+            r"\bneed(?:ed)?\s+(?:for\s+)?(?:security\s+)?audit\b",
+            r"\bsend\s+it\s+now\b",
+            r"\bverification\s+code\s+is\s+needed\b",
+        ]
+    ]
+
+    # Romance/advance fee scam patterns
+    _ROMANCE_SCAM_RX = [
+        re.compile(p, re.IGNORECASE) for p in [
+            r"\bhospital\s+bills?\b",
+            r"\bsend\s+(?:me\s+)?crypto\b",
+            r"\bwire\s+(?:me\s+)?money\b",
+            r"\bwestern\s+union\b",
+            r"\bhelp\s+(?:me\s+)?with\s+(?:my\s+)?bills?\b",
+            r"\bstuck\s+(?:in\s+)?(?:a\s+)?(?:foreign\s+)?country\b",
+            r"\bwe\'?ve\s+been\s+chatting\b",
+            r"\bcan\s+you\s+help\s+me\s+(?:with|pay)\b",
+        ]
+    ]
+
     def __init__(self):
         self.rag = get_detector()
 
@@ -572,6 +616,7 @@ class IntegratedSocialEngineeringDetector:
                 r"your\s+(monthly|weekly)\s+statement",
                 r"here\s+are\s+the\s+meeting\s+notes",
                 r"password\s+(was\s+)?successfully\s+changed",
+                r"password\s+changed\s+successfully",
                 r"direct\s+deposit\s+has\s+been\s+processed",
                 r"your\s+(test\s+)?results\s+are\s+available",
                 # Additional benign patterns for false positive control
@@ -588,6 +633,29 @@ class IntegratedSocialEngineeringDetector:
                 r"here\'?s\s+a\s+\d+%\s+discount\s+code",
                 r"please\s+remember\s+to\s+submit",
                 r"late\s+submissions\s+will\s+be\s+accepted",
+                # Trusted URL patterns (legitimate services)
+                r"https?://(www\.)?google\.com",
+                r"https?://(www\.)?amazon\.com",
+                r"https?://(www\.)?paypal\.com",
+                r"https?://(www\.)?chase\.com",
+                r"https?://(www\.)?linkedin\.com",
+                r"https?://(www\.)?github\.com",
+                r"https?://(www\.)?zoom\.us",
+                r"https?://docs\.google\.com",
+                r"https?://accounts\.google\.com",
+                r"https?://(www\.)?ups\.com",
+                r"https?://(www\.)?youtube\.com",
+                # Benign notification patterns
+                r"(is\s+)?confirmed\s+for\s+\d",  # "confirmed for 7 PM"
+                r"your\s+credit\s+card\s+ending\s+in",
+                r"purchase\s+at\s+amazon",
+                r"just\s+got\s+updated",
+                r"new\s+features",
+                r"join\s+the\s+meeting\s+at",
+                r"view\s+the\s+shared\s+document",
+                r"track\s+your\s+package\s+at",
+                r"subscribe\s+to\s+our\s+channel",
+                r"update\s+from\s+the\s+app\s+store",
             ]
         ]
         self._auth_benign = re.compile(
@@ -626,6 +694,8 @@ class IntegratedSocialEngineeringDetector:
             "sensitive": any(rx.search(msg) for rx in self._SENSITIVE_RX),
             "reward": [kw for kw in self.REWARD_KW if kw in msg],
             "scam": any(rx.search(msg) for rx in self._SCAM_RX),
+            "otp_scam": any(rx.search(msg) for rx in self._OTP_SCAM_RX),
+            "romance_scam": any(rx.search(msg) for rx in self._ROMANCE_SCAM_RX),
             "verify_suspicious": (
                 ("verify" in msg or "confirm" in msg)
                 and not self._verify_benign.search(msg)
@@ -633,7 +703,7 @@ class IntegratedSocialEngineeringDetector:
         }
 
     def _whitelisted(self, msg: str, sig: Dict) -> bool:
-        if sig["fear"] or sig["sensitive"]:
+        if sig["fear"] or sig["sensitive"] or sig["otp_scam"] or sig["romance_scam"]:
             return False
         return any(rx.search(msg) for rx in self._whitelist_rx)
 
@@ -702,9 +772,19 @@ class IntegratedSocialEngineeringDetector:
             sig["brand"] or          # Brand impersonation (Microsoft, Apple, etc.)
             sig["identity"] or       # Identity assertion ("this is", "I am from")
             sig["scam"] or           # Scam patterns (investment, work-from-home)
+            sig["otp_scam"] or       # OTP/code theft scams
+            sig["romance_scam"] or   # Romance/advance fee scams
             sig["authority"] or      # Authority claim (CEO, CFO)
             sig["verify_suspicious"] # Suspicious verify/confirm requests
         )
+
+        # Boost confidence for OTP scams and romance scams
+        if sig["otp_scam"]:
+            rag_conf = max(rag_conf, 55.0)
+            rule_conf = max(rule_conf, 55.0)
+        if sig["romance_scam"]:
+            rag_conf = max(rag_conf, 50.0)
+            rule_conf = max(rule_conf, 50.0)
 
         # Suppression for benign messages with weak signals
         # BUT only if no strong attack indicators are present
@@ -768,6 +848,14 @@ class IntegratedSocialEngineeringDetector:
         if sig["verify_suspicious"]:
             score += 10.0
 
+        # OTP scam boost - these are highly dangerous
+        if sig.get("otp_scam"):
+            score += 40.0
+
+        # Romance scam boost
+        if sig.get("romance_scam"):
+            score += 35.0
+
         score = min(score, 100.0)
 
         cats: List[str] = []
@@ -786,6 +874,16 @@ class IntegratedSocialEngineeringDetector:
 
         if sig["reward"]:
             cats.append("Reward/Lure")
+        
+        # OTP/code scam category
+        if sig.get("otp_scam"):
+            cats.append("Impersonation")  # OTP scams are a form of impersonation
+            if "Fear/Threat" not in cats:
+                cats.append("Fear/Threat")  # Often use urgency/fear
+
+        # Romance scam category
+        if sig.get("romance_scam"):
+            cats.append("Fear/Threat")  # Often use emotional manipulation
 
         if "Impersonation" in cats and sig["sensitive"]:
             if "Fear/Threat" not in cats:
@@ -879,8 +977,9 @@ class IntegratedSocialEngineeringDetector:
         # Context-aware fusion
         if urls:
             if trusted_flag and url_score < 30:
-                # Safe link reduces suspicion slightly
-                overall = overall * 0.85
+                # Safe link from trusted domain significantly reduces suspicion
+                # Only if no strong attack indicators (OTP scam, romance scam, etc.)
+                overall = overall * 0.70  # Stronger reduction for trusted domains
             elif url_score > 60 and overall > 60:
                 # Strong malicious text + malicious link
                 overall = min(100, overall + 15)
