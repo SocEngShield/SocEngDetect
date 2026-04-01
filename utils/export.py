@@ -2,14 +2,23 @@
 Export utilities for phishing detection results.
 Supports JSON, CSV, and PDF formats.
 Provides both file-based and in-memory export for Streamlit.
+
+PDF Generation Options:
+1. WeasyPrint + Jinja2 (preferred) - Modern HTML/CSS based PDF
+2. ReportLab (fallback) - Direct PDF generation
+3. Plain text (last resort) - Basic text output
 """
 
 import csv
 import json
 import io
 import hashlib
+import os
 from datetime import datetime
 from typing import Dict, Any, Optional
+
+# Template directory path
+TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "templates")
 
 
 def get_json_data(result: Dict[str, Any]) -> str:
@@ -42,19 +51,218 @@ def get_csv_data(result: Dict[str, Any]) -> str:
 
 
 def get_pdf_data(result: Dict[str, Any], original_msg: str = "") -> bytes:
-    """Return result as professional PDF report bytes (in-memory)."""
+    """Return result as professional PDF report bytes (in-memory).
+    
+    Tries PDF generation in order:
+    1. WeasyPrint + Jinja2 (modern HTML/CSS)
+    2. ReportLab (direct PDF)
+    3. Plain text fallback
+    """
+    # Try WeasyPrint + Jinja2 first (modern approach)
+    try:
+        from jinja2 import Environment, FileSystemLoader
+        from weasyprint import HTML
+        return _get_pdf_weasyprint(result, original_msg)
+    except ImportError:
+        pass
+    
+    # Fallback to ReportLab
     try:
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
         from reportlab.lib.pagesizes import letter
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.enums import TA_LEFT, TA_CENTER
         from reportlab.lib import colors
-        return _get_pdf_professional(result, original_msg)
+        return _get_pdf_reportlab(result, original_msg)
     except ImportError:
-        return _get_pdf_text(result, original_msg)
+        pass
+    
+    # Last resort: plain text
+    return _get_pdf_text(result, original_msg)
 
 
-def _get_pdf_professional(result: Dict[str, Any], original_msg: str) -> bytes:
+def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[str, Any]:
+    """Prepare data for template rendering (shared by WeasyPrint and ReportLab)."""
+    url_info = result.get("context", {}).get("url", {})
+    consistency = result.get("context", {}).get("consistency", {})
+    signals_raw = result.get("signals", result.get("context", {}).get("signals", {}))
+    
+    risk = str(result.get("risk_level", result.get("risk", "N/A"))).upper()
+    conf = result.get("overall_confidence", result.get("confidence", 0))
+    if isinstance(conf, dict):
+        conf = conf.get("overall", 0)
+    attack_type = result.get("attack_type", "Not Identified")
+    
+    # Generate report ID
+    timestamp = datetime.now()
+    report_id = hashlib.md5(f"{timestamp.isoformat()}{original_msg[:50]}".encode()).hexdigest()[:8].upper()
+    
+    # Process signals
+    signal_labels = {
+        "urgency": "Urgency pressure detected",
+        "impersonation": "Impersonation tactics present",
+        "authority": "Authority manipulation detected",
+        "fear_threat": "Fear/threat language used",
+        "reward_lure": "Reward/lure tactics present",
+        "inconsistency": "Content inconsistencies found"
+    }
+    
+    signals = []
+    if isinstance(signals_raw, dict):
+        for key, value in signals_raw.items():
+            if key.startswith("_"):
+                continue
+            score = value.get("score", value) if isinstance(value, dict) else value
+            if isinstance(score, (int, float)) and score > 0.3:
+                level = "high" if score > 0.6 else "moderate"
+                label = signal_labels.get(key, key.replace("_", " ").title())
+                signals.append({
+                    "name": label,
+                    "level": level,
+                    "confidence": f"{level.title()} confidence",
+                    "score": score
+                })
+    
+    # Determine risk class for CSS
+    risk_class_map = {"HIGH": "risk-high", "POTENTIAL": "risk-potential", "LOW": "risk-low", "SAFE": "risk-safe"}
+    risk_class = risk_class_map.get(risk, "")
+    
+    # Build insights
+    insights = []
+    if risk in ["HIGH", "POTENTIAL"]:
+        if attack_type and attack_type != "Not Identified":
+            insights.append(f"Message patterns match known {attack_type.lower()} attempts")
+        if signals:
+            insights.append("Multiple manipulation techniques detected in message content")
+        if url_info.get("malicious"):
+            insights.append("Contains links to potentially dangerous domains")
+        if consistency.get("score", 0) > 0:
+            insights.append("Inconsistencies found between claimed identity and message context")
+    else:
+        insights.append("Message does not exhibit strong phishing characteristics")
+        insights.append("Low similarity to known attack patterns in database")
+    
+    # Build recommendations
+    if risk in ["HIGH", "POTENTIAL"]:
+        recommendations = {
+            "do": [
+                "Verify sender identity through official channels",
+                "Access accounts directly via official website",
+                "Report suspicious message to IT/security team",
+                "Contact organization using verified contact info"
+            ],
+            "avoid": [
+                "Do not click any links in the message",
+                "Do not enter credentials or personal information",
+                "Do not download any attachments",
+                "Do not reply with sensitive information"
+            ]
+        }
+    else:
+        recommendations = {
+            "do": [
+                "Message appears safe to proceed",
+                "Always verify unexpected requests",
+                "Keep security awareness in mind"
+            ],
+            "avoid": [
+                "Avoid sharing unnecessary personal data",
+                "Don't assume all messages are legitimate"
+            ]
+        }
+    
+    return {
+        "report_id": report_id,
+        "timestamp": timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+        "original_msg": original_msg,
+        "risk_level": risk,
+        "risk_class": risk_class,
+        "confidence": int(conf) if isinstance(conf, (int, float)) else conf,
+        "attack_type": attack_type or "Not Identified",
+        "signals": signals,
+        "url_info": {
+            "domain": consistency.get("domain", ""),
+            "malicious": url_info.get("malicious", False),
+            "trusted": url_info.get("trusted", False),
+            "has_data": bool(consistency.get("domain") or url_info.get("malicious") or url_info.get("urls"))
+        },
+        "consistency": {
+            "score": consistency.get("score", 0),
+            "signals": consistency.get("signals", [])
+        },
+        "insights": insights,
+        "recommendations": recommendations
+    }
+
+
+def _get_pdf_weasyprint(result: Dict[str, Any], original_msg: str) -> bytes:
+    """Generate PDF using WeasyPrint + Jinja2 HTML template."""
+    from jinja2 import Environment, FileSystemLoader
+    from weasyprint import HTML
+    
+    # Load template
+    env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
+    template = env.get_template("report.html")
+    
+    # Prepare data
+    data = _prepare_template_data(result, original_msg)
+    
+    # Render HTML
+    html_content = template.render(**data)
+    
+    # Convert to PDF
+    pdf_buffer = io.BytesIO()
+    HTML(string=html_content).write_pdf(pdf_buffer)
+    pdf_buffer.seek(0)
+    return pdf_buffer.getvalue()
+
+
+def get_html_report(result: Dict[str, Any], original_msg: str = "") -> str:
+    """Generate HTML report string (useful for preview or email)."""
+    try:
+        from jinja2 import Environment, FileSystemLoader
+        env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
+        template = env.get_template("report.html")
+        data = _prepare_template_data(result, original_msg)
+        return template.render(**data)
+    except ImportError:
+        # Fallback to basic HTML
+        data = _prepare_template_data(result, original_msg)
+        return _generate_basic_html(data)
+
+
+def _generate_basic_html(data: Dict[str, Any]) -> str:
+    """Generate basic HTML without Jinja2 (fallback)."""
+    signals_html = ""
+    if data["signals"]:
+        for sig in data["signals"]:
+            signals_html += f'<li>{sig["name"]} ({sig["confidence"]})</li>'
+    else:
+        signals_html = "<li>No significant indicators detected</li>"
+    
+    insights_html = "".join(f"<li>{i}</li>" for i in data["insights"])
+    do_html = "".join(f"<li>{r}</li>" for r in data["recommendations"]["do"])
+    avoid_html = "".join(f"<li>{r}</li>" for r in data["recommendations"]["avoid"])
+    
+    return f"""<!DOCTYPE html>
+<html><head><title>Phishing Detection Report</title>
+<style>body{{font-family:sans-serif;padding:20px;}}
+.card{{background:#f8f9fa;padding:15px;margin:10px 0;border-radius:8px;}}
+h1{{color:#1e3a5f;}}h3{{color:#2d5a87;}}</style></head>
+<body><h1>SocEngDetect Report</h1>
+<p>Report ID: {data['report_id']} | {data['timestamp']}</p>
+<div class="card"><h3>Message</h3><pre>{data['original_msg']}</pre></div>
+<div class="card"><h3>Summary</h3>
+<p><b>Risk:</b> {data['risk_level']} | <b>Confidence:</b> {data['confidence']}% | <b>Attack:</b> {data['attack_type']}</p></div>
+<div class="card"><h3>Indicators</h3><ul>{signals_html}</ul></div>
+<div class="card"><h3>Insights</h3><ul>{insights_html}</ul></div>
+<div class="card"><h3>Recommendations</h3>
+<p><b>Do:</b></p><ul>{do_html}</ul>
+<p><b>Avoid:</b></p><ul>{avoid_html}</ul></div>
+</body></html>"""
+
+
+def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
     """Generate professional PDF report using reportlab.platypus."""
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib.pagesizes import letter
