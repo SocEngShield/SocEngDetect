@@ -23,6 +23,7 @@ from security_logic.rule_engine import analyze_text
 from security_logic.signal_fusion import fuse_signals
 from bar_chart import create_bar_chart, get_top_signals
 from simulator import generate_attack_message
+from utils.export import get_json_data, get_csv_data, get_pdf_data
 
 
 # ---------------------------
@@ -549,11 +550,35 @@ with st.sidebar:
             "fusion_metadata": analysis.get("fusion_meta", {}),
         }
 
-        json_str = json.dumps(report, indent=2)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        # Generate export data
+        json_data = get_json_data(report)
+        csv_data = get_csv_data(report)
+        pdf_data = get_pdf_data(report)
 
-        st.download_button(
-            label="Download Report (JSON)",
-            data=json_str,
-            file_name=f"se_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-            mime="application/json",
-        )
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.download_button(
+                label="JSON",
+                data=json_data,
+                file_name=f"report_{timestamp}.json",
+                mime="application/json",
+            )
+        
+        with col2:
+            st.download_button(
+                label="CSV",
+                data=csv_data,
+                file_name=f"report_{timestamp}.csv",
+                mime="text/csv",
+            )
+        
+        with col3:
+            st.download_button(
+                label="PDF",
+                data=pdf_data,
+                file_name=f"report_{timestamp}.pdf",
+                mime="application/pdf",
+            )
