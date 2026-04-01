@@ -76,7 +76,7 @@ Note: Detection works by recognizing specific keywords (e.g., "urgente" → "urg
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/SocEngShield/SocEngDetect.git
 cd social_engineering_detector
 ```
 
@@ -107,6 +107,13 @@ The project requires the following packages:
 - `reportlab` - PDF generation (fallback)
 - `jinja2` - HTML template rendering
 - `weasyprint` - HTML to PDF conversion
+- `torchvision` - Required to prevent Streamlit Cloud file watcher crashes with transformers
+
+**Streamlit Cloud Deployment**: If deploying to Streamlit Cloud, you must include a `packages.txt` file in the root directory with the following system dependencies for WeasyPrint:
+```text
+libpango-1.0-0
+libpangoft2-1.0-0
+```
 
 **WeasyPrint Note**: On Windows, WeasyPrint requires GTK libraries. Install via:
 ```bash
