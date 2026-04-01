@@ -21,12 +21,12 @@ try:
     from security_logic.url_knowledge_base import (
         is_trusted, analyze_url_kb
     )
-    from security_logic.multilingual_map import normalize_text
+    from security_logic.multilingual_map import normalize_text, normalize_obfuscation
 except ImportError:
     from ..security_logic.url_knowledge_base import (
         is_trusted, analyze_url_kb
     )
-    from ..security_logic.multilingual_map import normalize_text
+    from ..security_logic.multilingual_map import normalize_text, normalize_obfuscation
 
 
 # ---------------------------
@@ -861,17 +861,27 @@ class IntegratedSocialEngineeringDetector:
         msg = message.lower()
         
         # ---------------------------
+        # ADVERSARIAL TEXT NORMALIZATION
+        # ---------------------------
+        # Pipeline: raw → deobfuscate → multilingual → signals
+        deobfuscated_msg = normalize_obfuscation(msg)
+        
+        # ---------------------------
         # HYBRID SIGNAL ANALYSIS (Multilingual Support)
         # ---------------------------
         # Run signals on original text (preserves caps, punctuation detection)
         sig_original = self._signals(msg)
         
-        # Run signals on normalized text (detects multilingual keywords)
-        normalized_msg, match_count = normalize_text(msg)
+        # Run signals on deobfuscated text (handles leet speak, spacing tricks)
+        sig_deobfuscated = self._signals(deobfuscated_msg)
+        
+        # Run signals on multilingual normalized text
+        normalized_msg, match_count = normalize_text(deobfuscated_msg)
         sig_normalized = self._signals(normalized_msg)
         
-        # Merge signals: take max of each to capture both original + multilingual
-        sig = self._merge_signals(sig_original, sig_normalized)
+        # Merge all signals: take max of each to capture all variants
+        sig = self._merge_signals(sig_original, sig_deobfuscated)
+        sig = self._merge_signals(sig, sig_normalized)
         
         # Store match_count for later bias-free scoring
         sig["_multilingual_match_count"] = match_count

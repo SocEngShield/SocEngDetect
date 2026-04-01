@@ -103,6 +103,77 @@ KEYWORD_MAP = {
 }
 
 
+
+# ---------------------------
+# ADVERSARIAL TEXT NORMALIZATION
+# ---------------------------
+
+# Symbol substitution map (leet speak / obfuscation)
+SYMBOL_MAP = {
+    "@": "a",
+    "0": "o",
+    "1": "l",
+    "$": "s",
+    "3": "e",
+    "4": "a",
+    "5": "s",
+    "7": "t",
+    "!": "i",
+    "|": "l",
+}
+
+
+def normalize_obfuscation(text: str) -> str:
+    """
+    Normalize obfuscated text (spacing tricks, symbol substitutions, noise).
+    Run BEFORE multilingual normalization.
+    """
+    result = text.lower()
+    
+    # 1. Collapse single-character spacing ("v e r i f y" → "verify")
+    words = result.split()
+    collapsed_words = []
+    i = 0
+    while i < len(words):
+        # Check for sequence of single chars
+        if len(words[i]) == 1 and words[i].isalpha():
+            chars = [words[i]]
+            j = i + 1
+            while j < len(words) and len(words[j]) == 1 and words[j].isalpha():
+                chars.append(words[j])
+                j += 1
+            # If 3+ consecutive single chars, collapse them
+            if len(chars) >= 3:
+                collapsed_words.append("".join(chars))
+                i = j
+            else:
+                collapsed_words.append(words[i])
+                i += 1
+        else:
+            collapsed_words.append(words[i])
+            i += 1
+    result = " ".join(collapsed_words)
+    
+    # 2. Apply symbol substitutions
+    for symbol, letter in SYMBOL_MAP.items():
+        result = result.replace(symbol, letter)
+    
+    # 3. Remove inline punctuation noise (keep word boundaries)
+    cleaned_words = []
+    for word in result.split():
+        # Strip punctuation from inside words, keep alphanumeric
+        clean = ""
+        for char in word:
+            if char.isalnum() or char in ".-_":
+                clean += char
+        # Remove standalone hyphens/underscores inside words
+        clean = clean.replace("-", "").replace("_", "")
+        if clean:
+            cleaned_words.append(clean)
+    
+    return " ".join(cleaned_words)
+
+
 def normalize_text(text: str) -> tuple:
     """
     Normalize non-English keywords to English equivalents.
