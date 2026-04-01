@@ -54,7 +54,16 @@ Note: Detection works by recognizing specific keywords (e.g., "urgente" → "urg
 - Visual signal strength charts
 - Risk level classification (SAFE, LOW, POTENTIAL, HIGH)
 - Attack simulation mode
-- JSON report export
+- Multi-format report export (JSON, CSV, PDF)
+
+**Export Features**
+- JSON: Raw structured data for integration
+- CSV: Flattened format for spreadsheet analysis
+- PDF: Professional human-readable reports with:
+  - Modern card-based HTML/CSS layout (WeasyPrint + Jinja2)
+  - Risk-coded color scheme
+  - Actionable recommendations
+  - Analysis insights
 
 ## Installation
 
@@ -95,6 +104,17 @@ The project requires the following packages:
 - `numpy` - Numerical computing
 - `sentence-transformers` - Semantic similarity detection
 - `scikit-learn` - Machine learning utilities
+- `reportlab` - PDF generation (fallback)
+- `jinja2` - HTML template rendering
+- `weasyprint` - HTML to PDF conversion
+
+**WeasyPrint Note**: On Windows, WeasyPrint requires GTK libraries. Install via:
+```bash
+# Windows (using pip)
+pip install weasyprint
+
+# If GTK is missing, install via MSYS2 or use the reportlab fallback
+```
 
 Note: On first run, `sentence-transformers` will download the model files (~80MB).
 

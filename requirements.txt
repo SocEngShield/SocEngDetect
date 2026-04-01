@@ -4,3 +4,5 @@ numpy
 sentence-transformers
 scikit-learn
 reportlab
+jinja2
+weasyprint
