@@ -3,509 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phishing Detection Report</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-            line-height: 1.6;
-            padding: 40px;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        
-        /* Header Card */
-        .header {
-            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
-            color: white;
-            padding: 30px 40px;
-            border-radius: 12px 12px 0 0;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        
-        .header .meta {
-            font-size: 13px;
-            opacity: 0.85;
-        }
-        
-        .report-id {
-            display: inline-block;
-            background: rgba(255,255,255,0.15);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            margin-top: 10px;
-        }
-        
-        /* Main Content */
-        .content {
-            background: white;
-            border-radius: 0 0 12px 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-        
-        /* Card Sections */
-        .card {
-            padding: 24px 32px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        
-        .card:last-child {
-            border-bottom: none;
-        }
-        
-        .card-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 16px;
-        }
-        
-        /* Message Box */
-        .message-box {
-            background: #f1f5f9;
-            border-left: 4px solid #3b82f6;
-            padding: 16px 20px;
-            border-radius: 0 8px 8px 0;
-            font-size: 14px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-        
-        /* Summary Grid */
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-        
-        .summary-item {
-            text-align: center;
-            padding: 20px;
-            background: #f8fafc;
-            border-radius: 8px;
-        }
-        
-        .summary-item .label {
-            font-size: 12px;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-        
-        .summary-item .value {
-            font-size: 20px;
-            font-weight: 700;
-        }
-        
-        /* Risk Level Colors */
-        .risk-high {
-            color: #dc2626;
-            background: #fef2f2 !important;
-            border: 2px solid #fecaca;
-        }
-        
-        .risk-potential {
-            color: #ea580c;
-            background: #fff7ed !important;
-            border: 2px solid #fed7aa;
-        }
-        
-        .risk-low {
-            color: #2563eb;
-            background: #eff6ff !important;
-            border: 2px solid #bfdbfe;
-        }
-        
-        .risk-safe {
-            color: #16a34a;
-            background: #f0fdf4 !important;
-            border: 2px solid #bbf7d0;
-        }
-        
-        /* Signal List */
-        .signal-list {
-            list-style: none;
-        }
-        
-        .signal-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 16px;
-            background: #f8fafc;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-        
-        .signal-icon {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 12px;
-        }
-        
-        .signal-icon.high {
-            background: #dc2626;
-        }
-        
-        .signal-icon.moderate {
-            background: #f59e0b;
-        }
-        
-        .signal-name {
-            flex: 1;
-            font-weight: 500;
-        }
-        
-        .signal-confidence {
-            font-size: 12px;
-            color: #64748b;
-            padding: 4px 10px;
-            background: white;
-            border-radius: 20px;
-        }
-        
-        /* Insights */
-        .insight-list {
-            list-style: none;
-        }
-        
-        .insight-item {
-            display: flex;
-            align-items: flex-start;
-            padding: 10px 0;
-        }
-        
-        .insight-item::before {
-            content: "→";
-            color: #3b82f6;
-            font-weight: bold;
-            margin-right: 12px;
-        }
-        
-        /* URL Analysis */
-        .url-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-        }
-        
-        .url-item {
-            padding: 12px 16px;
-            background: #f8fafc;
-            border-radius: 8px;
-        }
-        
-        .url-item .label {
-            font-size: 11px;
-            color: #64748b;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-        
-        .url-item .value {
-            font-weight: 600;
-            word-break: break-all;
-        }
-        
-        .url-item .value.danger {
-            color: #dc2626;
-        }
-        
-        .url-item .value.safe {
-            color: #16a34a;
-        }
-        
-        /* Recommendations */
-        .recommendations {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-        
-        .rec-section h4 {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .rec-section.do h4 {
-            color: #16a34a;
-        }
-        
-        .rec-section.do h4::before {
-            content: "✓";
-            margin-right: 8px;
-        }
-        
-        .rec-section.avoid h4 {
-            color: #dc2626;
-        }
-        
-        .rec-section.avoid h4::before {
-            content: "✗";
-            margin-right: 8px;
-        }
-        
-        .rec-list {
-            list-style: none;
-        }
-        
-        .rec-list li {
-            padding: 8px 0;
-            padding-left: 16px;
-            position: relative;
-            font-size: 14px;
-        }
-        
-        .rec-list li::before {
-            content: "•";
-            position: absolute;
-            left: 0;
-            color: #64748b;
-        }
-        
-        /* Consistency */
-        .consistency-status {
-            display: flex;
-            align-items: center;
-            padding: 16px;
-            border-radius: 8px;
-        }
-        
-        .consistency-status.issues {
-            background: #fff7ed;
-            border: 1px solid #fed7aa;
-        }
-        
-        .consistency-status.clean {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-        }
-        
-        .consistency-icon {
-            font-size: 24px;
-            margin-right: 16px;
-        }
-        
-        .consistency-details {
-            flex: 1;
-        }
-        
-        .consistency-score {
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        
-        .consistency-message {
-            font-size: 14px;
-            color: #64748b;
-        }
-        
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 24px;
-            font-size: 12px;
-            color: #94a3b8;
-        }
-        
-        /* No signals state */
-        .no-signals {
-            text-align: center;
-            padding: 24px;
-            color: #64748b;
-            background: #f0fdf4;
-            border-radius: 8px;
-            border: 1px solid #bbf7d0;
-        }
-        
-        .no-signals::before {
-            content: "✓";
-            display: block;
-            font-size: 24px;
-            color: #16a34a;
-            margin-bottom: 8px;
-        }
-
-        @media print {
-            body {
-                padding: 0;
-                background: white;
-            }
-            .container {
-                max-width: 100%;
-            }
-        }
-    </style>
+    <title>Forensic Analysis - {{ report_id }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="report.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>🛡️ SocEngDetect Report</h1>
-            <div class="meta">Social Engineering Detection System</div>
-            <div class="report-id">Report ID: {{ report_id }} | {{ timestamp }}</div>
+<div class="report-wrapper">
+
+    <header class="report-header {{ risk_class }}">
+        <div class="header-meta">
+            <span class="brand">SocEngDetect / Forensic Intelligence</span>
+            <span class="report-id">Ref: {{ report_id }}</span>
         </div>
         
-        <div class="content">
-            <!-- Analyzed Message -->
-            {% if original_msg %}
-            <div class="card">
-                <div class="card-title">Analyzed Message</div>
-                <div class="message-box">{{ original_msg }}</div>
+        <div class="verdict-container">
+            <div class="verdict-label">Analysis Verdict</div>
+            <div class="verdict-value">{{ risk_level }}</div>
+            <div class="verdict-timestamp">Generated: {{ timestamp }}</div>
+        </div>
+    </header>
+
+    <main class="report-body">
+        
+        <section class="summary-grid">
+            <div class="summary-item highlight">
+                <span class="label">Attack Classification</span>
+                <span class="value">{{ attack_type }}</span>
             </div>
-            {% endif %}
-            
-            <!-- Detection Summary -->
-            <div class="card">
-                <div class="card-title">Detection Summary</div>
-                <div class="summary-grid">
-                    <div class="summary-item {{ risk_class }}">
-                        <div class="label">Risk Level</div>
-                        <div class="value">{{ risk_level }}</div>
-                    </div>
-                    <div class="summary-item">
-                        <div class="label">Confidence</div>
-                        <div class="value">{{ confidence }}%</div>
-                    </div>
-                    <div class="summary-item">
-                        <div class="label">Attack Type</div>
-                        <div class="value" style="font-size: 14px;">{{ attack_type }}</div>
-                    </div>
+            <div class="summary-item">
+                <span class="label">Detection Confidence</span>
+                <div class="confidence-flex">
+                    <span class="value">{{ confidence }}%</span>
+                    <div class="meter"><div class="fill" style="width: {{ confidence }}%"></div></div>
                 </div>
             </div>
-            
-            <!-- Key Indicators -->
-            <div class="card">
-                <div class="card-title">Key Indicators</div>
-                {% if signals %}
-                <ul class="signal-list">
+        </section>
+
+        <section class="section">
+            <h3 class="section-heading">Analyzed Evidence Content</h3>
+            <div class="evidence-box">
+                <div class="evidence-toolbar">
+                    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                    <span class="mode">RAW_DATA_EXTRACTION</span>
+                </div>
+                <div class="evidence-text">
+                    <code>{{ original_msg }}</code>
+                </div>
+            </div>
+        </section>
+
+        <div class="dual-column">
+            <section class="column">
+                <h3 class="section-heading">Threat Indicators</h3>
+                <ul class="indicator-list">
                     {% for signal in signals %}
-                    <li class="signal-item">
-                        <span class="signal-icon {{ signal.level }}"></span>
-                        <span class="signal-name">{{ signal.name }}</span>
-                        <span class="signal-confidence">{{ signal.confidence }}</span>
+                    <li class="indicator-card">
+                        <span class="severity-pip {{ signal.level }}"></span>
+                        <div class="indicator-content">
+                            <span class="indicator-name">{{ signal.name }}</span>
+                            <span class="indicator-conf">Confidence: {{ signal.confidence }}</span>
+                        </div>
+                    </li>
+                    {% else %}
+                    <li class="indicator-card" style="justify-content: center; align-items: center; padding: 20px;">
+                        <span class="indicator-name" style="color: var(--text-dim);">No significant threat indicators detected.</span>
                     </li>
                     {% endfor %}
                 </ul>
-                {% else %}
-                <div class="no-signals">No significant threat indicators detected</div>
-                {% endif %}
-            </div>
-            
-            <!-- URL Analysis -->
-            {% if url_info.domain or url_info.has_data %}
-            <div class="card">
-                <div class="card-title">URL Analysis</div>
-                <div class="url-grid">
-                    <div class="url-item">
-                        <div class="label">Domain</div>
-                        <div class="value">{{ url_info.domain or 'N/A' }}</div>
-                    </div>
-                    <div class="url-item">
-                        <div class="label">Malicious</div>
-                        <div class="value {{ 'danger' if url_info.malicious else 'safe' }}">
-                            {{ 'Yes' if url_info.malicious else 'No' }}
-                        </div>
-                    </div>
-                    <div class="url-item">
-                        <div class="label">Trusted</div>
-                        <div class="value {{ 'safe' if url_info.trusted else '' }}">
-                            {{ 'Yes' if url_info.trusted else 'No' }}
-                        </div>
+            </section>
+
+            <section class="column">
+                <h3 class="section-heading">Contextual Consistency</h3>
+                <div class="consistency-card {{ 'valid' if consistency.score == 0 else 'issue' }}">
+                    <div class="icon">{{ '✓' if consistency.score == 0 else '⚠️' }}</div>
+                    <div class="details">
+                        <span class="title">Logic Flow: {{ 'Verified' if consistency.score == 0 else 'Anomalous' }}</span>
+                        <p>{% if consistency.score > 0 and consistency.signals %}{{ consistency.signals | join(', ') | capitalize }}{% else %}No logical contradictions found in the message flow.{% endif %}</p>
                     </div>
                 </div>
-            </div>
-            {% endif %}
-            
-            <!-- Consistency Check -->
-            <div class="card">
-                <div class="card-title">Consistency Check</div>
-                {% if consistency.score > 0 or consistency.signals %}
-                <div class="consistency-status issues">
-                    <span class="consistency-icon">⚠️</span>
-                    <div class="consistency-details">
-                        <div class="consistency-score">Score: {{ consistency.score }}</div>
-                        <div class="consistency-message">
-                            {% if consistency.signals %}
-                                {{ consistency.signals | join(', ') }}
-                            {% else %}
-                                Brand or context mismatch detected
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% else %}
-                <div class="consistency-status clean">
-                    <span class="consistency-icon">✓</span>
-                    <div class="consistency-details">
-                        <div class="consistency-score">No Issues</div>
-                        <div class="consistency-message">No inconsistencies detected between content and context</div>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-            
-            <!-- Analysis Insights -->
-            <div class="card">
-                <div class="card-title">Analysis Insights</div>
-                <ul class="insight-list">
-                    {% for insight in insights %}
-                    <li class="insight-item">{{ insight }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-            
-            <!-- Recommendations -->
-            <div class="card">
-                <div class="card-title">Recommended Actions</div>
-                <div class="recommendations">
-                    <div class="rec-section do">
-                        <h4>What You Should Do</h4>
-                        <ul class="rec-list">
-                            {% for rec in recommendations.do %}
-                            <li>{{ rec }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    <div class="rec-section avoid">
-                        <h4>What to Avoid</h4>
-                        <ul class="rec-list">
-                            {% for rec in recommendations.avoid %}
-                            <li>{{ rec }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Footer -->
-            <div class="footer">
-                Generated by Social Engineering Detection System | This is an automated analysis
-            </div>
+            </section>
         </div>
-    </div>
+
+        <section class="protocol-section">
+            <h3 class="section-heading">Incident Response Protocol</h3>
+            <div class="protocol-grid">
+                <div class="protocol-box action-do">
+                    <h4>Required Actions</h4>
+                    <ul>
+                        {% for rec in recommendations.do %}
+                        <li>{{ rec }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="protocol-box action-avoid">
+                    <h4>Prohibited Actions</h4>
+                    <ul>
+                        {% for rec in recommendations.avoid %}
+                        <li>{{ rec }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="report-footer">
+        Automated Forensic Report — SocEngDetect AI Security System — Internal Use Only
+    </footer>
+</div>
 </body>
 </html>

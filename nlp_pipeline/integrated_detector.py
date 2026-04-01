@@ -908,6 +908,7 @@ class IntegratedSocialEngineeringDetector:
                 "similar_attack_patterns": similar_patterns,
                 "dos": advice["dos"],
                 "donts": advice["donts"],
+                "context": {}
             }
 
         # Benign detection flag for suppression logic
@@ -938,6 +939,7 @@ class IntegratedSocialEngineeringDetector:
                 "similar_attack_patterns": similar_patterns,
                 "dos": advice["dos"],
                 "donts": advice["donts"],
+                "context": {}
             }
 
         rag_conf, rag_cat = self.rag.detect(message)
@@ -1333,4 +1335,5 @@ class IntegratedSocialEngineeringDetector:
             "overall_confidence": overall,
             "confidence_calculation": calc,
             "attack_type": attack_type if risk != "SAFE" else None,
+            "context": context
         }
