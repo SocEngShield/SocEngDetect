@@ -6,3 +6,4 @@ scikit-learn
 reportlab
 jinja2
 weasyprint
+torchvision
