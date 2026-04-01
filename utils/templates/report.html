@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="report.css">
 </head>
 <body>
-<div class="report-wrapper">
+<div class="report-wrapper {{ risk_class }}">
 
     <header class="report-header {{ risk_class }}">
         <div class="header-meta">
@@ -85,6 +85,28 @@
                 </div>
             </section>
         </div>
+
+        {% if why_flagged %}
+        <section class="section reasons-section">
+            <h3 class="section-heading">Why This Message Was Flagged</h3>
+            <ul class="reasons-list">
+                {% for reason in why_flagged %}
+                <li>{{ reason }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {% if similar_attack_patterns %}
+        <section class="section patterns-section">
+            <h3 class="section-heading">Similar Attack Patterns</h3>
+            <ul class="patterns-list">
+                {% for pattern in similar_attack_patterns %}
+                <li>{{ pattern.text }} (Similarity: {{ '{:.2f}'.format(pattern.similarity * 100 if pattern.similarity <= 1.0 else pattern.similarity) }}%)</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
 
         <section class="protocol-section">
             <h3 class="section-heading">Incident Response Protocol</h3>

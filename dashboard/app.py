@@ -283,6 +283,8 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
             "signal_breakdown": fused_output.get("per_signal_breakdown", {}),
             "fusion_meta": fused_output.get("fusion_meta", {}),
             "context": r.get("context", {}),
+            "why_flagged": r.get("why_flagged", []),
+            "similar_attack_patterns": filter_similar_patterns(top_k_results, max_items=3),
         }
 
         # ---------------------------
@@ -555,6 +557,8 @@ with st.sidebar:
             },
             "context": analysis.get("context", {}),
             "fusion_metadata": analysis.get("fusion_meta", {}),
+            "why_flagged": analysis.get("why_flagged", []),
+            "similar_attack_patterns": analysis.get("similar_attack_patterns", []),
         }
 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')

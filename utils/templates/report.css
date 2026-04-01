@@ -3,19 +3,26 @@
     --card: #161b22;
     --text: #e6edf3;
     --text-dim: #8b949e;
-    --accent: #ff3333; /* Crimson red highlights */
-    --danger: #ff0000;
+    --danger: #f85149;
     --warning: #d29922;
     --success: #3fb950;
+    --info: #58a6ff;
     --border: #30363d;
     --font-main: 'Plus Jakarta Sans', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+    --accent: #58a6ff; /* Default */
 }
+
+/* Dynamic Accent Colors based on classification */
+.report-wrapper.risk-high { --accent: var(--danger); }
+.report-wrapper.risk-potential { --accent: var(--warning); }
+.report-wrapper.risk-low { --accent: var(--info); }
+.report-wrapper.risk-safe { --accent: var(--success); }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-    background-color: #010409; /* Darker outer background for contrast */
+    background-color: var(--bg);
     color: var(--text);
     font-family: var(--font-main);
     padding: 50px 20px;
@@ -41,8 +48,8 @@ body {
 
 .report-header.risk-high { border-bottom-color: var(--danger); }
 .report-header.risk-potential { border-bottom-color: var(--warning); }
+.report-header.risk-low { border-bottom-color: var(--info); }
 .report-header.risk-safe { border-bottom-color: var(--success); }
-.report-header.risk-low { border-bottom-color: var(--success); }
 
 .header-meta {
     display: flex;
@@ -68,7 +75,8 @@ body {
 /* Specific highlight for High Risk */
 .risk-high .verdict-value { color: var(--danger); text-shadow: 0 0 20px rgba(248, 81, 73, 0.2); }
 .risk-potential .verdict-value { color: var(--warning); text-shadow: 0 0 20px rgba(210, 153, 34, 0.2); }
-.risk-safe .verdict-value, .risk-low .verdict-value { color: var(--success); text-shadow: 0 0 20px rgba(63, 185, 80, 0.2); }
+.risk-low .verdict-value { color: var(--info); text-shadow: 0 0 20px rgba(88, 166, 255, 0.2); }
+.risk-safe .verdict-value { color: var(--success); text-shadow: 0 0 20px rgba(63, 185, 80, 0.2); }
 
 .verdict-timestamp { font-size: 12px; color: var(--text-dim); }
 
@@ -197,6 +205,27 @@ body {
 .protocol-box.action-do { border-left: 4px solid var(--success); background: rgba(63, 185, 80, 0.05); }
 .protocol-box.action-avoid { border-left: 4px solid var(--danger); background: rgba(248, 81, 73, 0.05); }
 
+/* Reasons & Patterns Lists */
+.reasons-list, .patterns-list {
+    list-style: none;
+    font-size: 13px;
+    padding-left: 5px;
+}
+.reasons-list li, .patterns-list li {
+    margin-bottom: 12px;
+    position: relative;
+    padding-left: 18px;
+    line-height: 1.6;
+    color: var(--text);
+}
+.reasons-list li::before, .patterns-list li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: bold;
+}
+
 .protocol-box h4 { font-size: 13px; margin-bottom: 12px; }
 .protocol-box ul { list-style: none; font-size: 12px; }
 .protocol-box li { margin-bottom: 8px; padding-left: 15px; position: relative; }
@@ -216,12 +245,16 @@ body {
 /* PDF PRINT FIXES */
 @media print {
     @page {
-        margin: 0;
+        margin: 15mm;
+        margin-bottom: 25mm; /* Space for fixed footer */
         size: A4;
-        background-color: #010409;
+        background-color: #0d1117;
+        @bottom-center {
+            content: element(footer);
+        }
     }
     body { 
-        background-color: #010409 !important; 
+        background-color: #0d1117 !important; 
         color: var(--text) !important;
         -webkit-print-color-adjust: exact; 
         print-color-adjust: exact; 
@@ -234,6 +267,15 @@ body {
         border-radius: 0; 
     }
     
+    .report-footer {
+        position: running(footer);
+        width: 100%;
+        padding: 10px 0;
+        background-color: #0d1117;
+        border-top: 1px solid var(--border);
+        border-radius: 0;
+    }
+    
     /* Prevent elements from being cut in half during pagination */
     .section, 
     .protocol-box, 
@@ -241,6 +283,8 @@ body {
     .indicator-card, 
     .consistency-card, 
     .evidence-box,
+    .reasons-list li,
+    .patterns-list li,
     h3, h4 {
         page-break-inside: avoid;
         break-inside: avoid;

@@ -271,16 +271,21 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
     from reportlab.lib import colors
     from reportlab.lib.units import inch
     
+    # Determine risk and theme color
+    risk = str(result.get("risk_level", result.get("risk", "N/A"))).upper()
+    theme_colors = {"HIGH": "#f85149", "POTENTIAL": "#d29922", "LOW": "#58a6ff", "SAFE": "#3fb950"}
+    theme_color = theme_colors.get(risk, "#58a6ff")
+
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
     styles = getSampleStyleSheet()
     story = []
-    
-    # Custom styles (Dark Theme with Red highlights)
+
+    # Custom styles (Dynamic Theme Color)
     title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=18, 
-                                  textColor=colors.HexColor('#ff3333'), alignment=TA_CENTER)
+                                  textColor=colors.HexColor(theme_color), alignment=TA_CENTER)
     section_style = ParagraphStyle('Section', parent=styles['Heading2'], fontSize=13,
-                                    textColor=colors.HexColor('#cc0000'), spaceBefore=12, spaceAfter=6)
+                                    textColor=colors.HexColor(theme_color), spaceBefore=12, spaceAfter=6)
     body_style = ParagraphStyle('Body', parent=styles['Normal'], fontSize=10, textColor=colors.HexColor('#e6edf3'), spaceAfter=4)
     bullet_style = ParagraphStyle('Bullet', parent=styles['Normal'], fontSize=10, textColor=colors.HexColor('#e6edf3'),
                                    leftIndent=20, spaceAfter=3)
@@ -288,11 +293,10 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
                                     backColor=colors.HexColor('#161b22'), textColor=colors.HexColor('#e6edf3'), leftIndent=10,
                                     rightIndent=10, spaceBefore=6, spaceAfter=6)
     
-    # Extract data
+    # Extract remaining data
     url_info = result.get("context", {}).get("url", {})
     consistency = result.get("context", {}).get("consistency", {})
     signals = result.get("signals", result.get("context", {}).get("signals", {}))
-    risk = str(result.get("risk_level", result.get("risk", "N/A"))).upper()
     conf = result.get("overall_confidence", result.get("confidence", 0))
     if isinstance(conf, dict):
         conf = conf.get("overall", 0)
@@ -407,10 +411,32 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
         story.append(Paragraph(f"• {insight}", bullet_style))
     story.append(Spacer(1, 10))
     
-    # 8. RECOMMENDATIONS
-    story.append(Paragraph("Recommended Actions", section_style))
-    
-    if risk in ["HIGH", "POTENTIAL"]:
+    # 7.5 ADD WHY FLAGGED
+    why_flagged = result.get("why_flagged", [])
+    if why_flagged:
+        story.append(Paragraph("Why This Message Was Flagged", section_style))
+        seen_explanations = set()
+        skip_prefixes = ("rag category signal", "top similarity is", "this matches known patterns")
+        for item in why_flagged:
+            norm = item.strip()
+            key = norm.lower()
+            if not norm or key in seen_explanations or any(key.startswith(p) for p in skip_prefixes):
+                continue
+            seen_explanations.add(key)
+            story.append(Paragraph(f"• {norm}", bullet_style))
+        story.append(Spacer(1, 10))
+
+    # 7.6 ADD SIMILAR ATTACK PATTERNS
+    similar_patterns = result.get("similar_attack_patterns", [])
+    if similar_patterns:
+        story.append(Paragraph("Similar Attack Patterns", section_style))
+        for pattern in similar_patterns:
+            similarity = pattern.get('similarity', 0)
+            percentage = similarity * 100 if similarity <= 1.0 else similarity
+            text = pattern.get('text', '').strip()
+            story.append(Paragraph(f"• {text} (Similarity: {percentage:.2f}%)", bullet_style))
+        story.append(Spacer(1, 10))
+
         story.append(Paragraph("<b>What You Should Do:</b>", body_style))
         dos = [
             "Verify sender identity through official channels",
