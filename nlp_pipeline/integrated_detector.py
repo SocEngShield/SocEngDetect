@@ -49,6 +49,96 @@ def is_trusted_url(url: str) -> bool:
 
 
 # ---------------------------
+# F3: Cross-Field Consistency Engine
+# ---------------------------
+
+# Static brand list (no external deps)
+KNOWN_BRANDS = [
+    "paypal", "google", "microsoft", "amazon", "apple", "netflix",
+    "facebook", "instagram", "whatsapp", "linkedin", "twitter",
+    "chase", "wells fargo", "bank of america", "citibank", "hsbc",
+    "ups", "fedex", "dhl", "usps", "dropbox", "spotify", "zoom"
+]
+
+
+def extract_brands(text: str) -> set:
+    """Extract known brand mentions from text (case-insensitive)."""
+    text_lower = text.lower()
+    return {brand for brand in KNOWN_BRANDS if brand in text_lower}
+
+
+def extract_domain_from_url(url: str) -> str:
+    """Extract base domain from URL (strips subdomains)."""
+    url_lower = url.lower()
+    # Remove protocol
+    if "://" in url_lower:
+        url_lower = url_lower.split("://", 1)[1]
+    # Remove path
+    url_lower = url_lower.split("/")[0]
+    # Remove port
+    url_lower = url_lower.split(":")[0]
+    # Get base domain (last 2 parts for most TLDs)
+    parts = url_lower.split(".")
+    if len(parts) >= 2:
+        return ".".join(parts[-2:])
+    return url_lower
+
+
+def analyze_consistency(original_msg: str, normalized_msg: str, context: dict, sender: str = None) -> dict:
+    """
+    F3: Cross-Field Consistency Engine.
+    Detects inconsistencies between text brands, URL domains, and sender.
+    """
+    inconsistency_score = 0
+    evidence = []
+    
+    # Extract brands from both original and normalized text
+    brands_original = extract_brands(original_msg)
+    brands_normalized = extract_brands(normalized_msg)
+    detected_brands = brands_original | brands_normalized
+    
+    # Get URL info from F1 context
+    url_info = context.get("url", {})
+    urls = url_info.get("urls", [])
+    is_malicious = url_info.get("malicious", False)
+    is_trusted = url_info.get("trusted", False)
+    
+    # Extract domain from first URL if present
+    domain = ""
+    if urls:
+        domain = extract_domain_from_url(urls[0])
+    
+    # Case A: Brand-domain mismatch
+    if detected_brands and urls and domain:
+        brand_in_domain = any(brand in domain for brand in detected_brands)
+        if not brand_in_domain and not is_trusted:
+            inconsistency_score += 1
+            evidence.append(f"brand-domain mismatch: {list(detected_brands)} vs {domain}")
+    
+    # Case B: Trusted brand + malicious URL (high severity)
+    if detected_brands and is_malicious:
+        inconsistency_score += 2
+        evidence.append(f"trusted brand {list(detected_brands)} with malicious URL")
+    
+    # Case C: Sender mismatch (if sender available)
+    if sender and detected_brands:
+        sender_lower = sender.lower()
+        sender_domain = sender_lower.split("@")[-1] if "@" in sender_lower else sender_lower
+        brand_in_sender = any(brand in sender_domain for brand in detected_brands)
+        if not brand_in_sender:
+            inconsistency_score += 1
+            evidence.append(f"sender-brand mismatch: {sender_domain} vs {list(detected_brands)}")
+    
+    return {
+        "score": inconsistency_score,
+        "signals": evidence,
+        "brands_detected": list(detected_brands),
+        "domain": domain,
+        "normalized_signal": min(inconsistency_score / 2, 1.0),  # 0-1 scale
+    }
+
+
+# ---------------------------
 # F2: Attack Type + Domain Classification
 # ---------------------------
 
@@ -64,6 +154,12 @@ def classify_attack(context: dict) -> str:
     url = context["url"]
     email = context.get("email", {})
     sig = context["signals"]
+    consistency = context.get("consistency", {})
+    
+    # F3: High inconsistency biases toward credential harvesting
+    if consistency.get("score", 0) >= 2:
+        if consistency.get("brands_detected"):
+            return "Credential Harvesting"
     
     # URL-driven classification (F1 → F2)
     if url.get("malicious"):
@@ -129,6 +225,11 @@ def classify_domain(context: dict) -> str:
     
     url = context["url"]
     email = context.get("email", {})
+    consistency = context.get("consistency", {})
+    
+    # F3: High inconsistency with brands → Phishing Infrastructure
+    if consistency.get("score", 0) >= 2 and consistency.get("brands_detected"):
+        return "Phishing Infrastructure"
     
     # URL-driven domain (F1 → F2)
     if url.get("malicious"):
@@ -1115,6 +1216,22 @@ class IntegratedSocialEngineeringDetector:
                 "reasons": [],
             }
         }
+        
+        # ---------------------------
+        # F3: Cross-Field Consistency Engine
+        # ---------------------------
+        consistency = analyze_consistency(original_msg, normalized_msg, context)
+        context["consistency"] = consistency
+        
+        # Add inconsistency signal (0-1 scale)
+        sig["inconsistency"] = consistency["normalized_signal"]
+        
+        # Controlled scoring boost based on inconsistency
+        inconsistency_score = consistency["score"]
+        if inconsistency_score >= 2:
+            overall = min(100, overall + 10)
+        elif inconsistency_score == 1:
+            overall = min(100, overall + 5)
         
         # ---------------------------
         # BIAS-FREE MULTILINGUAL SCORING
