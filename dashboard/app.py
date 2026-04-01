@@ -275,12 +275,14 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
         st.session_state["last_analysis"] = {
             "message": msg,
             "risk_level": risk,
+            "attack_type": r.get("attack_type", ""),
             "categories": cats,
             "rag_confidence": rag_score,
             "rule_confidence": rule_score,
             "overall_confidence": final_score,
             "signal_breakdown": fused_output.get("per_signal_breakdown", {}),
             "fusion_meta": fused_output.get("fusion_meta", {}),
+            "context": r.get("context", {}),
         }
 
         # ---------------------------
@@ -529,11 +531,15 @@ with st.sidebar:
         st.markdown("## Export Report")
 
         analysis = st.session_state["last_analysis"]
+        original_msg = analysis.get("message", "")
+        
         report = {
             "timestamp": datetime.now().isoformat(),
-            "message": analysis.get("message", "")[:200],  # Truncate for privacy
+            "message": original_msg[:200],  # Truncate for JSON/CSV
             "risk_level": analysis.get("risk_level"),
+            "attack_type": analysis.get("attack_type", ""),
             "categories": analysis.get("categories"),
+            "overall_confidence": analysis.get("overall_confidence"),
             "confidence": {
                 "rag": analysis.get("rag_confidence"),
                 "rule": analysis.get("rule_confidence"),
@@ -547,6 +553,7 @@ with st.sidebar:
                 }
                 for name, data in analysis.get("signal_breakdown", {}).items()
             },
+            "context": analysis.get("context", {}),
             "fusion_metadata": analysis.get("fusion_meta", {}),
         }
 
@@ -555,7 +562,7 @@ with st.sidebar:
         # Generate export data
         json_data = get_json_data(report)
         csv_data = get_csv_data(report)
-        pdf_data = get_pdf_data(report)
+        pdf_data = get_pdf_data(report, original_msg)
 
         col1, col2, col3 = st.columns(3)
         

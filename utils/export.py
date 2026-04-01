@@ -7,7 +7,9 @@ Provides both file-based and in-memory export for Streamlit.
 import csv
 import json
 import io
-from typing import Dict, Any, Union
+import hashlib
+from datetime import datetime
+from typing import Dict, Any, Optional
 
 
 def get_json_data(result: Dict[str, Any]) -> str:
@@ -39,142 +41,283 @@ def get_csv_data(result: Dict[str, Any]) -> str:
     return output.getvalue()
 
 
-def get_pdf_data(result: Dict[str, Any]) -> bytes:
-    """Return result as PDF bytes (in-memory)."""
+def get_pdf_data(result: Dict[str, Any], original_msg: str = "") -> bytes:
+    """Return result as professional PDF report bytes (in-memory)."""
     try:
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
         from reportlab.lib.pagesizes import letter
-        from reportlab.pdfgen import canvas
-        return _get_pdf_reportlab(result)
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_LEFT, TA_CENTER
+        from reportlab.lib import colors
+        return _get_pdf_professional(result, original_msg)
     except ImportError:
-        return _get_pdf_text(result)
+        return _get_pdf_text(result, original_msg)
 
 
-def _get_pdf_reportlab(result: Dict[str, Any]) -> bytes:
-    """Generate PDF using reportlab (in-memory)."""
+def _get_pdf_professional(result: Dict[str, Any], original_msg: str) -> bytes:
+    """Generate professional PDF report using reportlab.platypus."""
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib.pagesizes import letter
-    from reportlab.pdfgen import canvas
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
     
     buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
-    y = height - 50
+    doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    styles = getSampleStyleSheet()
+    story = []
     
+    # Custom styles
+    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=18, 
+                                  textColor=colors.HexColor('#1a365d'), alignment=TA_CENTER)
+    section_style = ParagraphStyle('Section', parent=styles['Heading2'], fontSize=13,
+                                    textColor=colors.HexColor('#2c5282'), spaceBefore=12, spaceAfter=6)
+    body_style = ParagraphStyle('Body', parent=styles['Normal'], fontSize=10, spaceAfter=4)
+    bullet_style = ParagraphStyle('Bullet', parent=styles['Normal'], fontSize=10, 
+                                   leftIndent=20, spaceAfter=3)
+    message_style = ParagraphStyle('Message', parent=styles['Normal'], fontSize=9,
+                                    backColor=colors.HexColor('#f7fafc'), leftIndent=10,
+                                    rightIndent=10, spaceBefore=6, spaceAfter=6)
+    
+    # Extract data
     url_info = result.get("context", {}).get("url", {})
     consistency = result.get("context", {}).get("consistency", {})
     signals = result.get("signals", result.get("context", {}).get("signals", {}))
-    
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, y, "Phishing Detection Report")
-    y -= 20
-    c.setFont("Helvetica", 10)
-    c.drawString(50, y, "-" * 50)
-    y -= 30
-    
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, "Risk Level:")
-    c.setFont("Helvetica", 12)
-    c.drawString(150, y, str(result.get("risk_level", result.get("risk", "N/A"))))
-    y -= 20
-    
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, "Confidence:")
-    c.setFont("Helvetica", 12)
+    risk = str(result.get("risk_level", result.get("risk", "N/A"))).upper()
     conf = result.get("overall_confidence", result.get("confidence", 0))
-    c.drawString(150, y, f"{conf:.2f}" if isinstance(conf, (int, float)) else str(conf))
-    y -= 30
+    if isinstance(conf, dict):
+        conf = conf.get("overall", 0)
+    attack_type = result.get("attack_type", "Not Identified")
     
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, "Attack Type:")
-    y -= 15
-    c.setFont("Helvetica", 11)
-    c.drawString(70, y, str(result.get("attack_type", "N/A")))
-    y -= 25
+    # Generate report ID
+    timestamp = datetime.now()
+    report_id = hashlib.md5(f"{timestamp.isoformat()}{original_msg[:50]}".encode()).hexdigest()[:8].upper()
     
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, "Signals:")
-    y -= 15
-    c.setFont("Helvetica", 10)
+    # 1. HEADER
+    story.append(Paragraph("SocEngDetect Report", title_style))
+    story.append(Spacer(1, 6))
+    story.append(Paragraph(f"<font size=9 color='#718096'>Report ID: {report_id} | Generated: {timestamp.strftime('%Y-%m-%d %H:%M:%S')}</font>", 
+                           ParagraphStyle('Meta', alignment=TA_CENTER)))
+    story.append(Spacer(1, 12))
+    
+    # 2. ANALYZED MESSAGE
+    if original_msg:
+        story.append(Paragraph("Analyzed Message", section_style))
+        safe_msg = original_msg.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        safe_msg = safe_msg.replace('\n', '<br/>')
+        story.append(Paragraph(safe_msg, message_style))
+        story.append(Spacer(1, 8))
+    
+    # 3. DETECTION SUMMARY
+    story.append(Paragraph("Detection Summary", section_style))
+    
+    risk_colors = {"HIGH": "#e53e3e", "POTENTIAL": "#dd6b20", "LOW": "#3182ce", "SAFE": "#38a169"}
+    risk_color = risk_colors.get(risk, "#718096")
+    
+    summary_data = [
+        ["Risk Level", f"<font color='{risk_color}'><b>{risk}</b></font>"],
+        ["Confidence", f"{conf:.0f}%" if isinstance(conf, (int, float)) else str(conf)],
+        ["Attack Type", attack_type or "Not Identified"],
+    ]
+    
+    for label, value in summary_data:
+        story.append(Paragraph(f"<b>{label}:</b> {value}", body_style))
+    story.append(Spacer(1, 8))
+    
+    # 4. KEY INDICATORS (signals > 0.3)
+    story.append(Paragraph("Key Indicators", section_style))
+    strong_signals = []
+    
+    signal_labels = {
+        "urgency": "Urgency pressure detected",
+        "impersonation": "Impersonation tactics present",
+        "authority": "Authority manipulation detected",
+        "fear_threat": "Fear/threat language used",
+        "reward_lure": "Reward/lure tactics present",
+        "inconsistency": "Content inconsistencies found"
+    }
+    
     if isinstance(signals, dict):
         for key, value in signals.items():
-            if not key.startswith("_"):
-                c.drawString(70, y, f"{key}: {value}")
-                y -= 12
-                if y < 100:
-                    c.showPage()
-                    y = height - 50
-    y -= 10
+            if key.startswith("_"):
+                continue
+            score = value.get("score", value) if isinstance(value, dict) else value
+            if isinstance(score, (int, float)) and score > 0.3:
+                confidence = "high" if score > 0.6 else "moderate"
+                label = signal_labels.get(key, key.replace("_", " ").title())
+                strong_signals.append(f"• {label} ({confidence} confidence)")
     
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, "Categories:")
-    y -= 15
-    c.setFont("Helvetica", 11)
-    cats = result.get("categories", [])
-    c.drawString(70, y, ", ".join(cats) if cats else "None")
-    y -= 25
+    if strong_signals:
+        for sig in strong_signals[:5]:
+            story.append(Paragraph(sig, bullet_style))
+    else:
+        story.append(Paragraph("• No significant threat indicators detected", bullet_style))
+    story.append(Spacer(1, 8))
     
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, "URL Analysis:")
-    y -= 15
-    c.setFont("Helvetica", 10)
-    c.drawString(70, y, f"Domain: {consistency.get('domain', 'N/A')}")
-    y -= 12
-    c.drawString(70, y, f"Malicious: {url_info.get('malicious', False)}")
-    y -= 12
-    c.drawString(70, y, f"Trusted: {url_info.get('trusted', False)}")
-    y -= 25
+    # 5. URL ANALYSIS (if exists)
+    domain = consistency.get("domain", "")
+    if domain or url_info.get("malicious") or url_info.get("urls"):
+        story.append(Paragraph("URL Analysis", section_style))
+        if domain:
+            story.append(Paragraph(f"<b>Domain:</b> {domain}", body_style))
+        story.append(Paragraph(f"<b>Malicious:</b> {'Yes' if url_info.get('malicious') else 'No'}", body_style))
+        story.append(Paragraph(f"<b>Trusted:</b> {'Yes' if url_info.get('trusted') else 'No'}", body_style))
+        story.append(Spacer(1, 8))
     
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, "Consistency Check:")
-    y -= 15
-    c.setFont("Helvetica", 10)
-    c.drawString(70, y, f"Score: {consistency.get('score', 0)}")
-    y -= 12
+    # 6. CONSISTENCY CHECK
+    story.append(Paragraph("Consistency Check", section_style))
+    cons_score = consistency.get("score", 0)
     cons_signals = consistency.get("signals", [])
-    if cons_signals:
-        c.drawString(70, y, f"Issues: {', '.join(cons_signals)}")
     
-    c.save()
+    if cons_score > 0 or cons_signals:
+        story.append(Paragraph(f"<b>Score:</b> {cons_score}", body_style))
+        if cons_signals:
+            story.append(Paragraph("Brand or context mismatch detected", body_style))
+            for sig in cons_signals[:3]:
+                story.append(Paragraph(f"• {sig}", bullet_style))
+    else:
+        story.append(Paragraph("No inconsistencies detected", body_style))
+    story.append(Spacer(1, 8))
+    
+    # 7. ANALYSIS INSIGHTS
+    story.append(Paragraph("Analysis Insights", section_style))
+    insights = []
+    
+    if risk in ["HIGH", "POTENTIAL"]:
+        if attack_type and attack_type != "Not Identified":
+            insights.append(f"Message patterns match known {attack_type.lower()} attempts")
+        if strong_signals:
+            insights.append("Multiple manipulation techniques detected in message content")
+        if url_info.get("malicious"):
+            insights.append("Contains links to potentially dangerous domains")
+    else:
+        insights.append("Message does not exhibit strong phishing characteristics")
+        insights.append("Low similarity to known attack patterns in database")
+    
+    for insight in insights[:3]:
+        story.append(Paragraph(f"• {insight}", bullet_style))
+    story.append(Spacer(1, 10))
+    
+    # 8. RECOMMENDATIONS
+    story.append(Paragraph("Recommended Actions", section_style))
+    
+    if risk in ["HIGH", "POTENTIAL"]:
+        story.append(Paragraph("<b>What You Should Do:</b>", body_style))
+        dos = [
+            "Verify sender identity through official channels",
+            "Access accounts directly via official website (not through links)",
+            "Report suspicious message to IT/security team",
+            "Contact the claimed organization using verified contact info"
+        ]
+        for tip in dos[:3]:
+            story.append(Paragraph(f"• {tip}", bullet_style))
+        
+        story.append(Spacer(1, 6))
+        story.append(Paragraph("<b>What to Avoid:</b>", body_style))
+        donts = [
+            "Do not click any links in the message",
+            "Do not enter credentials or personal information",
+            "Do not download any attachments",
+            "Do not reply with sensitive information"
+        ]
+        for tip in donts[:3]:
+            story.append(Paragraph(f"• {tip}", bullet_style))
+    else:
+        story.append(Paragraph("• Message appears safe, but always verify unexpected requests", bullet_style))
+        story.append(Paragraph("• When in doubt, contact the sender through known channels", bullet_style))
+    
+    # Footer
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("<font size=8 color='#a0aec0'>Generated by Social Engineering Detection System | This is an automated analysis</font>",
+                           ParagraphStyle('Footer', alignment=TA_CENTER)))
+    
+    doc.build(story)
     buffer.seek(0)
     return buffer.getvalue()
 
 
-def _get_pdf_text(result: Dict[str, Any]) -> bytes:
+def _get_pdf_text(result: Dict[str, Any], original_msg: str = "") -> bytes:
     """Fallback: generate plain text as bytes."""
     url_info = result.get("context", {}).get("url", {})
     consistency = result.get("context", {}).get("consistency", {})
     signals = result.get("signals", result.get("context", {}).get("signals", {}))
     
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    risk = str(result.get("risk_level", result.get("risk", 'N/A'))).upper()
+    conf = result.get("overall_confidence", result.get("confidence", 0))
+    if isinstance(conf, dict):
+        conf = conf.get("overall", 0)
+    
     lines = [
-        "Phishing Detection Report",
+        "=" * 50,
+        "SOCENGDETECT REPORT",
+        "=" * 50,
+        f"Generated: {timestamp}",
+        "",
+        "ANALYZED MESSAGE",
         "-" * 30,
+        original_msg if original_msg else "(No message provided)",
         "",
-        f"Risk: {result.get('risk_level', result.get('risk', 'N/A'))}",
-        f"Confidence: {result.get('overall_confidence', result.get('confidence', 0)):.2f}",
+        "DETECTION SUMMARY",
+        "-" * 30,
+        f"Risk Level: {risk}",
+        f"Confidence: {conf:.0f}%" if isinstance(conf, (int, float)) else f"Confidence: {conf}",
+        f"Attack Type: {result.get('attack_type', 'Not Identified')}",
         "",
-        "Attack Type:",
-        f"  {result.get('attack_type', 'N/A')}",
-        "",
-        "Signals:",
+        "KEY INDICATORS",
+        "-" * 30,
     ]
     
+    found_signals = False
     if isinstance(signals, dict):
         for key, value in signals.items():
-            if not key.startswith("_"):
-                lines.append(f"  {key}: {value}")
+            if key.startswith("_"):
+                continue
+            score = value.get("score", value) if isinstance(value, dict) else value
+            if isinstance(score, (int, float)) and score > 0.3:
+                conf_level = "high" if score > 0.6 else "moderate"
+                lines.append(f"  • {key.replace('_', ' ').title()} ({conf_level})")
+                found_signals = True
+    
+    if not found_signals:
+        lines.append("  • No significant indicators detected")
     
     lines.extend([
         "",
-        "Categories:",
-        f"  {', '.join(result.get('categories', [])) or 'None'}",
-        "",
-        "URL:",
-        f"  domain: {consistency.get('domain', 'N/A')}",
-        f"  malicious: {url_info.get('malicious', False)}",
-        "",
-        "Consistency:",
-        f"  score: {consistency.get('score', 0)}",
-        f"  signals: {', '.join(consistency.get('signals', [])) or 'None'}",
+        "CONSISTENCY CHECK",
+        "-" * 30,
+        f"Score: {consistency.get('score', 0)}",
     ])
+    
+    cons_signals = consistency.get("signals", [])
+    if cons_signals:
+        lines.append("Issues: " + ", ".join(cons_signals))
+    else:
+        lines.append("No inconsistencies detected")
+    
+    lines.extend([
+        "",
+        "RECOMMENDED ACTIONS",
+        "-" * 30,
+    ])
+    
+    if risk in ["HIGH", "POTENTIAL"]:
+        lines.extend([
+            "Do:",
+            "  • Verify sender through official channels",
+            "  • Report to IT/security team",
+            "Avoid:",
+            "  • Clicking links in message",
+            "  • Entering credentials or personal info",
+        ])
+    else:
+        lines.extend([
+            "  • Message appears safe",
+            "  • Always verify unexpected requests",
+        ])
+    
+    lines.extend(["", "=" * 50])
     
     return "\n".join(lines).encode("utf-8")
 
