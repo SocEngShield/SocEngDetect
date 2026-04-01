@@ -3,3 +3,4 @@ plotly
 numpy
 sentence-transformers
 scikit-learn
+reportlab

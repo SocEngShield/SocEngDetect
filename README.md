@@ -217,7 +217,6 @@ Contributions are welcome. Areas for improvement:
 - Batch processing mode for multiple messages
 - API endpoint for integration with other systems
 - Additional visualization types
-- Export formats (PDF, CSV)
 
 **Testing**
 - Expand test dataset
