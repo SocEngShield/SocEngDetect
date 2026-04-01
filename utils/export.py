@@ -128,6 +128,21 @@ def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[st
     risk_class = risk_class_map.get(risk, "")
     
     # Build insights
+    raw_why_flagged = result.get("why_flagged", [])
+    similar_patterns = result.get("similar_attack_patterns", [])
+
+    why_flagged = []
+    seen_explanations = set()
+    for item in raw_why_flagged:
+        norm = item.strip()
+        key = norm.lower()
+        if not norm or key in seen_explanations:
+            continue
+        seen_explanations.add(key)
+        why_flagged.append(norm)
+        if len(why_flagged) == 4:
+            break
+
     insights = []
     if risk in ["HIGH", "POTENTIAL"]:
         if attack_type and attack_type != "Not Identified":
@@ -191,7 +206,9 @@ def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[st
             "signals": consistency.get("signals", [])
         },
         "insights": insights,
-        "recommendations": recommendations
+        "recommendations": recommendations,
+        "why_flagged": why_flagged,
+        "similar_attack_patterns": similar_patterns
     }
 
 
@@ -416,11 +433,10 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
     if why_flagged:
         story.append(Paragraph("Why This Message Was Flagged", section_style))
         seen_explanations = set()
-        skip_prefixes = ("rag category signal", "top similarity is", "this matches known patterns")
         for item in why_flagged:
             norm = item.strip()
             key = norm.lower()
-            if not norm or key in seen_explanations or any(key.startswith(p) for p in skip_prefixes):
+            if not norm or key in seen_explanations:
                 continue
             seen_explanations.add(key)
             story.append(Paragraph(f"• {norm}", bullet_style))
