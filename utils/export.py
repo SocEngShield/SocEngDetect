@@ -127,6 +127,23 @@ def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[st
     risk_class_map = {"HIGH": "risk-high", "POTENTIAL": "risk-potential", "LOW": "risk-low", "SAFE": "risk-safe"}
     risk_class = risk_class_map.get(risk, "")
     
+    # Process signals for bar chart
+    signals_for_chart = []
+    if isinstance(signals_raw, dict):
+        for key, value in signals_raw.items():
+            if key.startswith("_"):
+                continue
+            score = value.get("score", value) if isinstance(value, dict) else value
+            if isinstance(score, (int, float)):
+                label = signal_labels.get(key, key.replace("_", " ").title())
+                signals_for_chart.append({
+                    "name": label,
+                    "score": score,
+                    "percentage": int(score * 100)
+                })
+    # Sort by score descending
+    signals_for_chart = sorted(signals_for_chart, key=lambda x: x["score"], reverse=True)
+
     # Build insights
     raw_why_flagged = result.get("why_flagged", [])
     similar_patterns = result.get("similar_attack_patterns", [])
@@ -192,6 +209,7 @@ def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[st
         "original_msg": original_msg,
         "risk_level": risk,
         "risk_class": risk_class,
+        "signals_for_chart": signals_for_chart,
         "confidence": int(conf) if isinstance(conf, (int, float)) else conf,
         "attack_type": attack_type or "Not Identified",
         "signals": signals,

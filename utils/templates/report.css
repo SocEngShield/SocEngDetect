@@ -94,6 +94,56 @@ body {
     padding-bottom: 8px;
 }
 
+/* Signal Chart */
+.signal-chart {
+    background: var(--card);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.chart-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.chart-row:last-child { margin-bottom: 0; }
+
+.chart-label {
+    width: 150px;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.chart-bar-container {
+    flex-grow: 1;
+    height: 8px;
+    background: #2a2a2a;
+    border-radius: 4px;
+    margin: 0 15px;
+    overflow: hidden;
+}
+
+.chart-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+}
+
+.chart-bar-fill.high { background: var(--danger); }
+.chart-bar-fill.moderate { background: var(--warning); }
+.chart-bar-fill.low { background: var(--success); }
+
+.chart-value {
+    width: 40px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: right;
+}
+
 /* Summary Grid */
 .summary-grid {
     display: grid;

@@ -86,6 +86,22 @@
             </section>
         </div>
 
+        <section class="section">
+            <h3 class="section-heading">Threat Signal Distribution</h3>
+            <div class="signal-chart">
+                {% for signal in signals_for_chart %}
+                <div class="chart-row">
+                    <div class="chart-label">{{ signal.name }}</div>
+                    <div class="chart-bar-container">
+                        <div class="chart-bar-fill {{ 'high' if signal.score > 0.6 else 'moderate' if signal.score > 0.3 else 'low' }}" 
+                             style="width: {{ signal.percentage }}%;"></div>
+                    </div>
+                    <div class="chart-value">{{ signal.percentage }}%</div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
         {% if why_flagged %}
         <section class="section reasons-section">
             <h3 class="section-heading">Why This Message Was Flagged</h3>
