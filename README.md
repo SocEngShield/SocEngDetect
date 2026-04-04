@@ -152,7 +152,7 @@ social_engineering_detector/
 │   ├── integrated_detector.py
 │   ├── rag_detector.py
 │   ├── knowledge_base.py
-│   └── text_cleaner.py    # URL/email extraction
+│   └── __init__.py
 ├── security_logic/        # Rule engine and signals
 │   ├── rule_engine.py
 │   ├── signal_fusion.py
