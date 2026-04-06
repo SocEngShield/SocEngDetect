@@ -33,6 +33,15 @@ AUTHORITY_ORGANIZATIONS = [
     r'\b(microsoft|google|apple|amazon)\s+(support|security|team)\b',
 ]
 
+# BEC (Business Email Compromise) patterns
+BEC_PATTERNS = [
+    r'\b(new|updated?)\s+(vendor|supplier|bank)\s+(account|details|information)\b',
+    r'\b(wire|process|send)\s+(?:the\s+)?payment\b',
+    r'\b(payment\s+instructions?\s+(?:have\s+)?changed?)\b',
+    r'\b(invoice\s+(?:is\s+)?attached?)\b',
+    r'\bbank\s+account\s+(?:details\s+)?attached\b',
+]
+
 # Phase 2: Directive/compliance language patterns
 DIRECTIVE_PATTERNS = [
     r'\b(you\s+must)\b',
@@ -85,6 +94,7 @@ def analyze(text: str) -> SignalResult:
     title_matches = _find_matches(text, AUTHORITY_TITLES)
     department_matches = _find_matches(text, AUTHORITY_DEPARTMENTS)
     organization_matches = _find_matches(text, AUTHORITY_ORGANIZATIONS)
+    bec_matches = _find_matches(text, BEC_PATTERNS)
     
     authority_found = False
     
@@ -99,6 +109,12 @@ def analyze(text: str) -> SignalResult:
     if organization_matches:
         authority_found = True
         evidence.append(f"Authority organization detected: {', '.join(organization_matches)}")
+    
+    # BEC pattern detection
+    bec_found = len(bec_matches) > 0
+    if bec_found:
+        authority_found = True  # BEC implies authority abuse
+        evidence.append(f"BEC pattern detected: {', '.join(bec_matches[:2])}")
     
     # Phase 2: Detect directive/compliance language
     directive_matches = _find_matches(text, DIRECTIVE_PATTERNS)
@@ -148,7 +164,13 @@ def analyze(text: str) -> SignalResult:
         score = 0.1
         evidence.append("Directive language without authority claim (minimal risk)")
     
+    # BEC bonus (high risk even without explicit authority)
+    if bec_found:
+        score += 0.35
+        evidence.append("BEC (Business Email Compromise) indicators detected")
+    
     # No matches: score remains 0.0
+    score = min(score, 0.85)  # Cap score
     
     # Map score to confidence
     if score == 0.0:

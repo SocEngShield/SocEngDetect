@@ -77,6 +77,22 @@ def analyze(text: str) -> SignalResult:
         r"(?:your\s+)?(?:bank|card|payment)\s+(?:has\s+been\s+)?(?:flagged|blocked|frozen)",
     ]
 
+    # Tech support scam patterns
+    tech_support_threats = [
+        r"(?:computer|device|system|browser)\s+(?:is\s+)?(?:infected|compromised|hacked|sending\s+spam)",
+        r"(?:virus|malware|trojan|spyware)\s+(?:detected|found|infection)",
+        r"(?:call|contact)\s+(?:this|our)\s+(?:number|support|helpline)",
+        r"(?:download|install)\s+(?:this|our)\s+(?:fix|tool|software|patch)",
+        r"(?:your\s+)?ip\s+(?:address\s+)?(?:linked|associated|flagged)\s+(?:to|with|for)\s+(?:illegal|criminal|suspicious)",
+    ]
+
+    # QR code specific threats
+    qr_threats = [
+        r"(?:scan|use)\s+(?:this|the)\s+(?:qr|barcode|code)",
+        r"qr\s+(?:code\s+)?(?:required|needed|authentication|payment|verification)",
+        r"(?:payment|verification|authentication)\s+(?:via|through|using)\s+qr",
+    ]
+
     for patterns, message, increment in [
         (account_threats, "Account compromise or security threat detected", 0.18),
         (legal_threats, "Legal or enforcement threat detected", 0.18),
@@ -84,6 +100,8 @@ def analyze(text: str) -> SignalResult:
         (compliance_threats, "Threat of consequences for non-compliance detected", 0.12),
         (data_threats, "Threat to data or files detected", 0.15),
         (financial_threats, "Financial threat or penalty detected", 0.15),
+        (tech_support_threats, "Tech support scam threat detected", 0.2),
+        (qr_threats, "QR-based threat detected", 0.2),
     ]:
         for pattern in patterns:
             if re.search(pattern, text_lower):

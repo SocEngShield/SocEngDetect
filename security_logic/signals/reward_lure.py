@@ -90,6 +90,17 @@ def analyze(text: str) -> SignalResult:
         r'\b(?:you\'?ll|you\s+will)\s+receive\s+\d+%\b',  # "You'll receive 30%"
     ]
 
+    # Category 5: NFT/Crypto scam patterns (+0.3)
+    crypto_nft_patterns = [
+        r'\bnft\s+(?:mint(?:ing)?|drop|airdrop|collection)\b',
+        r'\bconnect\s+(?:your\s+)?wallet\b',
+        r'\bwallet\s+(?:verification|authentication|connection)\b',
+        r'\bapprove\s+(?:the\s+)?transaction\b',
+        r'\b(?:free|exclusive)\s+(?:nft|token|airdrop)\b',
+        r'\bwhitelist\s+(?:spot|access)\b',
+        r'\b(?:limited|rare)\s+(?:nft|token|mint)\b',
+    ]
+
     # Category 5: Too-good-to-be-true indicators (+0.2)
     tgtbt_patterns = [
         r'\b(?:100|200|300|400|500|1000)\s*%\s+(?:returns?|profit|roi)\b',
@@ -125,6 +136,12 @@ def analyze(text: str) -> SignalResult:
     if scam_match:
         score += 0.3
         evidence.append("Scam-specific pattern detected (investment/work-from-home)")
+
+    # Check NFT/crypto patterns
+    crypto_nft_match = any(re.search(p, text, re.IGNORECASE) for p in crypto_nft_patterns)
+    if crypto_nft_match:
+        score += 0.35
+        evidence.append("NFT/Crypto scam pattern detected (wallet/mint)")
 
     # Check too-good-to-be-true patterns
     tgtbt_match = any(re.search(p, text, re.IGNORECASE) for p in tgtbt_patterns)
