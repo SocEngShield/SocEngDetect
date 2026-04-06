@@ -90,6 +90,12 @@ SCENARIOS = {
         "Due to unauthorized charges on your account, you're eligible for a $300 refund. This offer expires soon — confirm your details immediately to receive your compensation.",
         "NOTICE: As a victim of the recent security incident, you qualify for identity protection services worth $200. Register now before enrollment closes.",
     ],
+    # Authority + Reward → Executive bonus/incentive scam
+    ("authority", "reward"): [
+        "From the CEO's Office: As recognition for your outstanding performance, you've been selected for an exclusive $2,000 bonus. Complete verification through this secure portal to receive your reward.",
+        "HR Department Notice: You qualify for our employee appreciation program with a $500 gift card reward. Submit your details through the attached form to claim your bonus.",
+        "This is the Finance Department. Your department has been allocated bonus funds totaling $1,500 per employee. Register through this link within 48 hours to receive your payment.",
+    ],
 }
 
 # Complex scenarios (3+ signals)
@@ -117,6 +123,18 @@ COMPLEX_SCENARIOS = {
         "This is Agent Williams from the IRS Criminal Investigation Division. Your tax records show serious discrepancies that may result in legal action. Contact our office immediately to resolve this matter and avoid prosecution.",
         "OFFICIAL NOTICE: This is the Social Security Administration. Your SSN has been suspended due to suspicious activity. Failure to verify your identity will result in benefit termination and potential legal consequences.",
         "This is the Federal Trade Commission. Your identity has been linked to fraudulent activity. You must verify your information immediately to clear your record and avoid further investigation.",
+    ],
+    # Authority + Reward + Urgency → Executive bonus with deadline
+    ("authority", "reward", "urgency"): [
+        "URGENT from HR: You've been selected for an exclusive $3,000 performance bonus, but enrollment closes in 2 hours. Complete your verification immediately through this secure portal.",
+        "From the CFO's Office: Your department allocation of $2,500 in bonus funds expires today. Submit your banking details within 1 hour to receive your payment.",
+        "Finance Department Notice: As part of our quarterly incentive program, you qualify for $1,800 in rewards. Claim within 30 minutes or funds will be redistributed.",
+    ],
+    # Authority + Reward + Impersonation → Fake executive reward
+    ("authority", "reward", "impersonation"): [
+        "This is Mark from the CEO's executive team. You've been chosen for our confidential employee recognition award of $5,000. Reply with your details to process your reward.",
+        "Hi, this is HR Director Sarah Johnson. Congratulations on being selected for our top performer bonus of $2,000! Verify your employee ID through this link to claim.",
+        "From IT Security: As compensation for participating in our security audit, you're entitled to a $500 bonus. Complete verification through the attached portal.",
     ],
 }
 
