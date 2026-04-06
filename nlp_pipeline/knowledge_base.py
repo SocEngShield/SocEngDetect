@@ -2,16 +2,37 @@
 Social Engineering Attack Patterns Knowledge Base.
 Static expanded dataset, grouped by category.
 
-Distribution:
+Sources:
+  - FBI IC3 Annual Reports (2022-2023)
+  - APWG Phishing Activity Trends Reports (Q3-Q4 2023)
+  - FTC Consumer Sentinel Network Data Book (2024)
+  - Microsoft Digital Defense Report (2023)
+  - IRS/SSA Official Scam Alerts
+
+Distribution (updated):
   - urgency             : 91
   - reward_lure         : 81
   - authority           : 76
   - impersonation       : 81
   - fear_threat         : 96
+  - qr_phishing         : 15  (NEW - Source: FBI IC3 2023)
+  - bec                 : 10  (NEW - Source: FBI IC3 2023)
+  - crypto_scam         : 10  (NEW - Source: FTC 2024, APWG Q4 2023)
+  - gov_impersonation   : 10  (NEW - Source: IRS, SSA, FBI)
+  - delivery_scam       : 8   (NEW - Source: USPS, FTC 2024)
+  - tech_support        : 8   (NEW - Source: Microsoft, FTC)
+  - smishing            : 8   (NEW - Source: FBI IC3 2023)
+  - romance_scam        : 10  (NEW - Source: FBI IC3 2023)
+  - job_scam            : 10  (NEW - Source: FTC 2024, BBB)
+  - invoice_fraud       : 8   (NEW - Source: FBI IC3 2023)
+  - utility_scam        : 5   (NEW - Source: FTC 2024)
+  - advance_fee         : 7   (NEW - Source: FBI IC3, FTC)
+  - charity_scam        : 5   (NEW - Source: FTC, FEMA)
+  - health_scam         : 5   (NEW - Source: OIG, FTC 2024)
   - legitimate_but_tricky: 46
   - normal_communication: 46
-  - safe                : 65
-  - total               : 582
+  - safe                : 85  (expanded)
+  - total               : ~700+
 """
 
 SOCIAL_ENGINEERING_DATASET = [
@@ -649,5 +670,206 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "Team happy hour at 5 PM today.", "label": "legitimate", "category": "safe", "confidence": 0.98},
     {"text": "Contract signed and filed successfully.", "label": "legitimate", "category": "safe", "confidence": 0.97},
     {"text": "Your benefits enrollment has been confirmed.", "label": "legitimate", "category": "safe", "confidence": 0.97},
+
+
+    # ==============================================================
+    #  QR CODE PHISHING (Source: FBI IC3 2023, FTC Scam Alerts 2024)
+    # ==============================================================
+    # QR codes used in parking meters, payment scams, crypto fraud
+    {"text": "Scan this QR code to verify your identity and secure your account", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.94},
+    {"text": "Use the QR code below to update your payment information", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.93},
+    {"text": "Scan QR to claim your reward before it expires", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.92},
+    {"text": "QR code attached for immediate account verification", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.91},
+    {"text": "Pay parking fee by scanning this QR code", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.88},
+    {"text": "Scan to receive your crypto airdrop - limited time only", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.95},
+    {"text": "Your package requires QR code verification for delivery", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.90},
+    {"text": "Scan this code to unlock exclusive member benefits", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.89},
+    {"text": "QR payment required to process your refund", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.92},
+    {"text": "Scan the barcode to confirm your bank transfer", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.91},
+    {"text": "Use this QR to reset your password securely", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.90},
+    {"text": "Restaurant menu - scan QR code to view and pay", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.75},
+    {"text": "Scan QR code on your invoice to complete payment", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.87},
+    {"text": "Authenticate your session by scanning this QR code", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.92},
+    {"text": "QR code verification needed for your tax refund", "label": "social_engineering", "category": "qr_phishing", "confidence": 0.94},
+
+    # ==============================================================
+    #  BUSINESS EMAIL COMPROMISE (Source: FBI IC3 2023)
+    # ==============================================================
+    {"text": "I need you to wire $50,000 to this account immediately. Don't tell anyone - this is confidential.", "label": "social_engineering", "category": "bec", "confidence": 0.96},
+    {"text": "Change the payment account for invoice #4521 to this new bank. Process urgently.", "label": "social_engineering", "category": "bec", "confidence": 0.94},
+    {"text": "This is the CEO. I need gift cards for a client. Buy $2000 in Apple cards and send codes.", "label": "social_engineering", "category": "bec", "confidence": 0.97},
+    {"text": "We're changing vendors. Wire the payment to this updated account before Friday.", "label": "social_engineering", "category": "bec", "confidence": 0.93},
+    {"text": "Invoice attached. Please update our banking details in your system and pay to new account.", "label": "social_engineering", "category": "bec", "confidence": 0.92},
+    {"text": "I'm in a meeting. Purchase 5 Amazon gift cards ($500 each) and email me the codes ASAP.", "label": "social_engineering", "category": "bec", "confidence": 0.96},
+    {"text": "Payroll update: Direct deposit for employees should go to this new routing number.", "label": "social_engineering", "category": "bec", "confidence": 0.95},
+    {"text": "This is HR. Update your direct deposit to this account for your bonus payment.", "label": "social_engineering", "category": "bec", "confidence": 0.93},
+    {"text": "Vendor payment urgent. Accountant is out. Wire $85,000 to attached details. Keep confidential.", "label": "social_engineering", "category": "bec", "confidence": 0.95},
+    {"text": "Real estate closing today. Wire earnest money to escrow at this account number.", "label": "social_engineering", "category": "bec", "confidence": 0.91},
+
+    # ==============================================================
+    #  CRYPTOCURRENCY SCAMS (Source: FTC 2024, APWG Q4 2023)
+    # ==============================================================
+    {"text": "Connect your wallet to claim free ETH airdrop. Limited to first 1000 users.", "label": "social_engineering", "category": "crypto_scam", "confidence": 0.95},
+    {"text": "Your wallet has been compromised. Enter seed phrase to secure funds.", "label": "social_engineering", "category": "crypto_scam", "confidence": 0.98},
+    {"text": "Validate your MetaMask wallet to continue using DeFi services.", "label": "social_engineering", "category": "crypto_scam", "confidence": 0.94},
+    {"text": "Bitcoin giveaway! Send 0.1 BTC and receive 1 BTC back immediately.", "label": "social_engineering", "category": "crypto_scam", "confidence": 0.97},
+    {"text": "Your NFT mint is ready. Connect wallet and approve transaction.", "label": "social_engineering", "category": "crypto_scam", "confidence": 0.89},
+    {"text": "Crypto exchange security alert. Verify wallet to prevent freeze.", "label": "social_engineering", "category": "crypto_scam", "confidence": 0.93},
+    {"text": "Investment opportunity: 50% guaranteed returns on crypto in 30 days.", "label": "social_engineering", "category": "crypto_scam", "confidence": 0.96},
+    {"text": "Enter your private key to migrate tokens to new blockchain.", "label": "social_engineering", "category": "crypto_scam", "confidence": 0.98},
+    {"text": "Romance partner needs help converting cryptocurrency. Send to this wallet.", "label": "social_engineering", "category": "crypto_scam", "confidence": 0.94},
+    {"text": "Pig butchering investment: Join our exclusive crypto trading group for guaranteed profits.", "label": "social_engineering", "category": "crypto_scam", "confidence": 0.95},
+
+    # ==============================================================
+    #  GOVERNMENT IMPERSONATION (Source: IRS, SSA, FBI IC3 2023)
+    # ==============================================================
+    {"text": "IRS Notice: You owe back taxes. Pay immediately via gift card to avoid arrest.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.97},
+    {"text": "Social Security Administration: Your SSN has been suspended. Call immediately.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.96},
+    {"text": "Medicare: Update your card information to continue receiving benefits.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.93},
+    {"text": "DMV: Your license will be suspended. Pay fine via this link.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.92},
+    {"text": "FBI Warning: Your identity has been used in crimes. Cooperate or face charges.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.95},
+    {"text": "Customs: Package held. Pay customs duty via wire transfer to release.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.91},
+    {"text": "Student loan forgiveness: Apply now by providing SSN and bank details.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.94},
+    {"text": "Court summons: Appear or pay fine immediately. Warrant issued.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.93},
+    {"text": "Immigration: Your visa status requires immediate verification.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.92},
+    {"text": "EPA grant: You qualify for $10,000 environmental grant. Apply with bank info.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.90},
+
+    # ==============================================================
+    #  DELIVERY/SHIPPING SCAMS (Source: USPS, FTC 2024)
+    # ==============================================================
+    {"text": "USPS: Package delivery failed. Update address and pay $1.99 redelivery fee.", "label": "social_engineering", "category": "delivery_scam", "confidence": 0.94},
+    {"text": "FedEx: Customs charges due. Pay to release your international package.", "label": "social_engineering", "category": "delivery_scam", "confidence": 0.93},
+    {"text": "Your Amazon package cannot be delivered. Verify address and payment method.", "label": "social_engineering", "category": "delivery_scam", "confidence": 0.91},
+    {"text": "DHL: Shipment on hold. Schedule delivery by clicking this link.", "label": "social_engineering", "category": "delivery_scam", "confidence": 0.90},
+    {"text": "UPS: Package requires signature. Reschedule at this link with card on file.", "label": "social_engineering", "category": "delivery_scam", "confidence": 0.89},
+    {"text": "Royal Mail: You have an undelivered parcel. Pay fee to receive.", "label": "social_engineering", "category": "delivery_scam", "confidence": 0.92},
+    {"text": "Missed delivery. Track your package: [suspicious link]", "label": "social_engineering", "category": "delivery_scam", "confidence": 0.88},
+    {"text": "Your order is held at customs. Pay import duty to release.", "label": "social_engineering", "category": "delivery_scam", "confidence": 0.91},
+
+    # ==============================================================
+    #  TECH SUPPORT SCAMS (Source: Microsoft, FTC 2024)
+    # ==============================================================
+    {"text": "Microsoft detected virus on your computer. Call this number immediately.", "label": "social_engineering", "category": "tech_support", "confidence": 0.95},
+    {"text": "Your computer has been blocked. Call support to remove malware.", "label": "social_engineering", "category": "tech_support", "confidence": 0.94},
+    {"text": "Apple: Your iCloud has been breached. Call Apple Support now.", "label": "social_engineering", "category": "tech_support", "confidence": 0.93},
+    {"text": "Security warning: Browser infected. Download this tool to fix.", "label": "social_engineering", "category": "tech_support", "confidence": 0.92},
+    {"text": "Windows Defender alert: Trojan detected. Contact Microsoft certified partner.", "label": "social_engineering", "category": "tech_support", "confidence": 0.94},
+    {"text": "Your antivirus subscription expired. Renew now or risk infection.", "label": "social_engineering", "category": "tech_support", "confidence": 0.88},
+    {"text": "Pop-up: Your PC is at risk. Call toll-free support for immediate help.", "label": "social_engineering", "category": "tech_support", "confidence": 0.95},
+    {"text": "Router compromised. Download this security patch immediately.", "label": "social_engineering", "category": "tech_support", "confidence": 0.91},
+
+    # ==============================================================
+    #  SMISHING / SMS SPECIFIC (Source: FBI IC3 2023, FTC)
+    # ==============================================================
+    {"text": "Your bank account is locked. Reply YES to verify or call 1-800-XXX.", "label": "social_engineering", "category": "smishing", "confidence": 0.93},
+    {"text": "Free msg: You've won $1000 Walmart gift card. Claim: bit.ly/xxx", "label": "social_engineering", "category": "smishing", "confidence": 0.95},
+    {"text": "Netflix: Payment failed. Update billing at netflix-secure.com", "label": "social_engineering", "category": "smishing", "confidence": 0.94},
+    {"text": "Apple ID locked. Verify at apple-id-support.com to restore access.", "label": "social_engineering", "category": "smishing", "confidence": 0.95},
+    {"text": "Venmo: Suspicious login. Tap to secure: venmo-verify.com", "label": "social_engineering", "category": "smishing", "confidence": 0.94},
+    {"text": "Your Chase card ending 1234 was charged $499. Reply STOP if not you.", "label": "social_engineering", "category": "smishing", "confidence": 0.91},
+    {"text": "PayPal: Unusual activity detected. Confirm identity at paypa1-secure.com", "label": "social_engineering", "category": "smishing", "confidence": 0.96},
+    {"text": "USPS: Your package has a $3.99 shipping fee. Pay here to deliver.", "label": "social_engineering", "category": "smishing", "confidence": 0.93},
+
+    # ==============================================================
+    #  ROMANCE/PIG BUTCHERING SCAMS (Source: FBI IC3 2023, FTC 2024)
+    # ==============================================================
+    {"text": "I know we just met online but I feel a deep connection. Can you help with my medical bills?", "label": "social_engineering", "category": "romance_scam", "confidence": 0.94},
+    {"text": "My daughter is sick and I'm stuck overseas. Can you wire money for her treatment?", "label": "social_engineering", "category": "romance_scam", "confidence": 0.95},
+    {"text": "I'm a US soldier deployed abroad. I need money for my flight home to meet you.", "label": "social_engineering", "category": "romance_scam", "confidence": 0.96},
+    {"text": "I've been trading crypto and making huge profits. Let me show you how.", "label": "social_engineering", "category": "romance_scam", "confidence": 0.92},
+    {"text": "My inheritance is stuck. I need you to pay the release fee and we'll share it.", "label": "social_engineering", "category": "romance_scam", "confidence": 0.95},
+    {"text": "I want to visit you but my passport was stolen. Can you send money for a new one?", "label": "social_engineering", "category": "romance_scam", "confidence": 0.94},
+    {"text": "I have a business opportunity that guarantees 300% returns. Trust me.", "label": "social_engineering", "category": "romance_scam", "confidence": 0.93},
+    {"text": "Send the money via Western Union. I'll pay you back double when I arrive.", "label": "social_engineering", "category": "romance_scam", "confidence": 0.96},
+    {"text": "My crypto trading platform needs an initial deposit. Join my exclusive group.", "label": "social_engineering", "category": "romance_scam", "confidence": 0.94},
+    {"text": "I'm stranded at the airport with no money. Please help me, my love.", "label": "social_engineering", "category": "romance_scam", "confidence": 0.93},
+
+    # ==============================================================
+    #  JOB/EMPLOYMENT SCAMS (Source: FTC 2024, Better Business Bureau)
+    # ==============================================================
+    {"text": "Work from home! Earn $5000/week. No experience needed. Start today!", "label": "social_engineering", "category": "job_scam", "confidence": 0.94},
+    {"text": "Congratulations! You've been selected for a mystery shopper position. Send ID to confirm.", "label": "social_engineering", "category": "job_scam", "confidence": 0.93},
+    {"text": "Remote data entry job: $50/hour. Send your SSN and bank info for direct deposit setup.", "label": "social_engineering", "category": "job_scam", "confidence": 0.96},
+    {"text": "You need to purchase equipment for this job. We'll reimburse you after training.", "label": "social_engineering", "category": "job_scam", "confidence": 0.95},
+    {"text": "Job offer: Process payments from home. Keep 10% commission on each transaction.", "label": "social_engineering", "category": "job_scam", "confidence": 0.94},
+    {"text": "LinkedIn recruiter: Exciting opportunity! Pay $200 for training materials to start.", "label": "social_engineering", "category": "job_scam", "confidence": 0.95},
+    {"text": "Urgent hiring: Cash check and wire portion to supplier. Easy money!", "label": "social_engineering", "category": "job_scam", "confidence": 0.97},
+    {"text": "Google is hiring remote workers. Apply with personal details at google-careers-apply.com", "label": "social_engineering", "category": "job_scam", "confidence": 0.94},
+    {"text": "Your resume matched our job. Interview via Telegram. Send ID for background check.", "label": "social_engineering", "category": "job_scam", "confidence": 0.93},
+    {"text": "Start earning today as an app tester. Buy gift cards, send codes, get reimbursed.", "label": "social_engineering", "category": "job_scam", "confidence": 0.96},
+
+    # ==============================================================
+    #  INVOICE/PAYMENT FRAUD (Source: FBI IC3 2023)
+    # ==============================================================
+    {"text": "Invoice attached. Please note our bank details have changed. Pay to new account.", "label": "social_engineering", "category": "invoice_fraud", "confidence": 0.95},
+    {"text": "This is your supplier. We've changed banks. Update payment info immediately.", "label": "social_engineering", "category": "invoice_fraud", "confidence": 0.94},
+    {"text": "Urgent: Wire payment to updated account before contract deadline.", "label": "social_engineering", "category": "invoice_fraud", "confidence": 0.93},
+    {"text": "Our accounting department requires payment to this new routing number.", "label": "social_engineering", "category": "invoice_fraud", "confidence": 0.92},
+    {"text": "Please disregard previous invoice. Updated invoice with correct bank attached.", "label": "social_engineering", "category": "invoice_fraud", "confidence": 0.94},
+    {"text": "Final reminder: Outstanding invoice must be paid to avoid service termination.", "label": "social_engineering", "category": "invoice_fraud", "confidence": 0.88},
+    {"text": "Legal notice: Pay this invoice within 24 hours or face collection action.", "label": "social_engineering", "category": "invoice_fraud", "confidence": 0.91},
+    {"text": "Subscription renewal invoice. Auto-charge failed. Manual payment required.", "label": "social_engineering", "category": "invoice_fraud", "confidence": 0.87},
+
+    # ==============================================================
+    #  UTILITY/SERVICE SCAMS (Source: FTC 2024)
+    # ==============================================================
+    {"text": "Electric company: Your power will be shut off in 30 minutes. Pay now to avoid.", "label": "social_engineering", "category": "utility_scam", "confidence": 0.94},
+    {"text": "Water service disconnection notice. Immediate payment required via gift card.", "label": "social_engineering", "category": "utility_scam", "confidence": 0.95},
+    {"text": "Gas company: Suspected leak at your address. Pay inspection fee or service terminated.", "label": "social_engineering", "category": "utility_scam", "confidence": 0.93},
+    {"text": "Internet provider: Your service will be suspended. Pay overdue balance now.", "label": "social_engineering", "category": "utility_scam", "confidence": 0.89},
+    {"text": "This is your phone carrier. Pay now to avoid number deactivation.", "label": "social_engineering", "category": "utility_scam", "confidence": 0.90},
+
+    # ==============================================================
+    #  ADVANCE FEE / INHERITANCE SCAMS (Source: FBI IC3, FTC)
+    # ==============================================================
+    {"text": "You're entitled to inheritance from deceased relative. Pay legal fees to claim.", "label": "social_engineering", "category": "advance_fee", "confidence": 0.96},
+    {"text": "Nigerian prince needs help transferring $15 million. You'll receive 30%.", "label": "social_engineering", "category": "advance_fee", "confidence": 0.98},
+    {"text": "Lottery official: You won $2.5 million. Pay taxes upfront to receive winnings.", "label": "social_engineering", "category": "advance_fee", "confidence": 0.97},
+    {"text": "Unclaimed funds in your name. Pay processing fee to release $500,000.", "label": "social_engineering", "category": "advance_fee", "confidence": 0.95},
+    {"text": "Bank of England: Dormant account with your name. Send ID and fee to claim.", "label": "social_engineering", "category": "advance_fee", "confidence": 0.96},
+    {"text": "UN compensation fund: You qualify for $950,000. Pay $500 courier fee.", "label": "social_engineering", "category": "advance_fee", "confidence": 0.97},
+    {"text": "Grant approved! Pay $250 administrative fee to receive $10,000 government grant.", "label": "social_engineering", "category": "advance_fee", "confidence": 0.94},
+
+    # ==============================================================
+    #  CHARITY/DISASTER SCAMS (Source: FTC, FEMA)
+    # ==============================================================
+    {"text": "Donate now to help earthquake victims. Send via wire transfer for immediate relief.", "label": "social_engineering", "category": "charity_scam", "confidence": 0.88},
+    {"text": "Hurricane relief fund: Your donation is tax deductible. Pay via gift card.", "label": "social_engineering", "category": "charity_scam", "confidence": 0.92},
+    {"text": "Children's cancer foundation: Donate today and save a life. Cash only.", "label": "social_engineering", "category": "charity_scam", "confidence": 0.85},
+    {"text": "Veterans charity: Support our troops. Wire donation to this account.", "label": "social_engineering", "category": "charity_scam", "confidence": 0.87},
+    {"text": "COVID relief fund: Send Bitcoin donation to help frontline workers.", "label": "social_engineering", "category": "charity_scam", "confidence": 0.91},
+
+    # ==============================================================
+    #  HEALTH/MEDICARE SCAMS (Source: OIG, FTC 2024)
+    # ==============================================================
+    {"text": "Medicare: Free genetic testing kit available. Provide Medicare number to receive.", "label": "social_engineering", "category": "health_scam", "confidence": 0.93},
+    {"text": "Your new Medicare card is ready. Verify identity with SSN and DOB.", "label": "social_engineering", "category": "health_scam", "confidence": 0.94},
+    {"text": "Pharmacy: Your prescription is ready. Update insurance with card number.", "label": "social_engineering", "category": "health_scam", "confidence": 0.86},
+    {"text": "COVID vaccine registration: Enter personal details to schedule appointment.", "label": "social_engineering", "category": "health_scam", "confidence": 0.84},
+    {"text": "Health insurance: Your policy needs immediate update. Call or face coverage loss.", "label": "social_engineering", "category": "health_scam", "confidence": 0.89},
+
+    # ==============================================================
+    #  EXTENDED BENIGN / LEGITIMATE (balance dataset)
+    # ==============================================================
+    {"text": "Your Uber ride receipt from yesterday is attached.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Sprint planning meeting moved to 2 PM. Please update your calendar.", "label": "legitimate", "category": "safe", "confidence": 0.99},
+    {"text": "Your code review for PR #1234 has been approved.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Slack workspace invite: Join the engineering team channel.", "label": "legitimate", "category": "safe", "confidence": 0.97},
+    {"text": "GitHub: You were mentioned in issue #567.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Your annual performance review is scheduled for next Monday.", "label": "legitimate", "category": "safe", "confidence": 0.97},
+    {"text": "Conference registration confirmed. Badge pickup at registration desk.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Office closed for holiday. Normal hours resume Tuesday.", "label": "legitimate", "category": "safe", "confidence": 0.99},
+    {"text": "Your expense report for Q3 has been processed.", "label": "legitimate", "category": "safe", "confidence": 0.97},
+    {"text": "Team building event: Bowling next Friday at 5 PM. RSVP requested.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Your AWS bill for October is available in the billing console.", "label": "legitimate", "category": "safe", "confidence": 0.97},
+    {"text": "Reminder: Submit timesheets by end of day Friday.", "label": "legitimate", "category": "safe", "confidence": 0.97},
+    {"text": "Your library books are due in 3 days. Return or renew online.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Gym membership renewal: Your annual membership renews next month.", "label": "legitimate", "category": "safe", "confidence": 0.96},
+    {"text": "Weather alert: Heavy rain expected tomorrow. Drive safely.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Your Spotify Wrapped is ready! See your top songs of the year.", "label": "legitimate", "category": "safe", "confidence": 0.97},
+    {"text": "New episode available: Your favorite podcast released a new episode.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Movie tickets confirmed: 2 tickets for Saturday 7 PM showing.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Your food delivery is on the way. Estimated arrival: 25 minutes.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Thank you for your purchase at Target. Receipt attached.", "label": "legitimate", "category": "safe", "confidence": 0.98},
 
 ]
