@@ -3,10 +3,12 @@
 Evaluation script for Social Engineering Detection System.
 
 Computes Precision, Recall, and F1 Score for attack detection.
-Runs independently without modifying any existing system files.
+Supports both main test set and held-out validation set.
 
 Usage:
-    python evaluate.py
+    python evaluate.py              # Evaluate main test set
+    python evaluate.py --validation # Evaluate held-out validation set
+    python evaluate.py --full       # Evaluate both sets
 """
 
 import sys
@@ -16,19 +18,31 @@ from datetime import datetime
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from test_dataset import TEST_SAMPLES, get_stats, get_url_attack_samples
+from test_dataset import (
+    TEST_SAMPLES, VALIDATION_SAMPLES, get_stats,
+    get_url_attack_samples, get_validation_samples,
+    get_qr_attack_samples, get_multilingual_samples
+)
 from nlp_pipeline.integrated_detector import IntegratedSocialEngineeringDetector
 from nlp_pipeline.rag_detector import get_detector
 from nlp_pipeline.knowledge_base import SOCIAL_ENGINEERING_DATASET
 
 
-def evaluate_system(verbose=True):
+def evaluate_system(verbose=True, samples=None, set_name="Test"):
     """
-    Run evaluation on the test dataset and compute metrics.
+    Run evaluation on the specified dataset and compute metrics.
+    
+    Args:
+        verbose: Print detailed output
+        samples: List of samples to evaluate (defaults to TEST_SAMPLES)
+        set_name: Name of the dataset for display
     """
+    if samples is None:
+        samples = TEST_SAMPLES
+    
     if verbose:
         print("=" * 60)
-        print("SOCIAL ENGINEERING DETECTION SYSTEM - EVALUATION")
+        print(f"SOCIAL ENGINEERING DETECTION - {set_name.upper()} SET EVALUATION")
         print("=" * 60)
         print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print()
@@ -66,13 +80,24 @@ def evaluate_system(verbose=True):
     url_attacks_detected = 0
     url_attacks_missed = 0
     
-    total = len(TEST_SAMPLES)
+    # Track QR-based attack detection
+    qr_attacks_detected = 0
+    qr_attacks_missed = 0
+    
+    # Track multilingual detection
+    multilingual_detected = 0
+    multilingual_missed = 0
+    
+    num_attacks = sum(1 for s in samples if s["attack"])
+    num_benign = sum(1 for s in samples if not s["attack"])
+    total = len(samples)
+    
     if verbose:
         print(f"[*] Running evaluation on {total} samples...")
-        print(f"    ({stats['attacks']} attacks, {stats['benign']} benign, {stats['url_attacks']} URL-based)")
+        print(f"    ({num_attacks} attacks, {num_benign} benign)")
         print("-" * 60)
     
-    for i, sample in enumerate(TEST_SAMPLES, 1):
+    for i, sample in enumerate(samples, 1):
         text = sample["text"]
         actual_attack = sample["attack"]
         
@@ -89,20 +114,36 @@ def evaluate_system(verbose=True):
         # Check if URL-based attack
         is_url_attack = any(p in text.lower() for p in ["http://", "https://", ".xyz", ".tk", ".ru", "bit.ly"])
         
+        # Check if QR-based attack
+        is_qr_attack = any(p in text.lower() for p in ["qr", "scan", "barcode"])
+        
+        # Check if multilingual
+        is_multilingual = any(ord(c) > 127 for c in text)
+        
         # Update counters
         if actual_attack and predicted_attack:
             tp += 1
             if is_url_attack:
                 url_attacks_detected += 1
+            if is_qr_attack:
+                qr_attacks_detected += 1
+            if is_multilingual:
+                multilingual_detected += 1
         elif actual_attack and not predicted_attack:
             fn += 1
             if is_url_attack:
                 url_attacks_missed += 1
+            if is_qr_attack:
+                qr_attacks_missed += 1
+            if is_multilingual:
+                multilingual_missed += 1
             false_negatives_list.append({
                 "text": text[:80] + "..." if len(text) > 80 else text,
                 "expected_labels": sample["labels"],
                 "confidence": result["overall_confidence"],
                 "has_url": is_url_attack,
+                "has_qr": is_qr_attack,
+                "is_multilingual": is_multilingual,
             })
         elif not actual_attack and predicted_attack:
             fp += 1
@@ -132,6 +173,12 @@ def evaluate_system(verbose=True):
     # URL attack metrics (F1 evaluation)
     url_attack_recall = url_attacks_detected / (url_attacks_detected + url_attacks_missed) if (url_attacks_detected + url_attacks_missed) > 0 else 0.0
     
+    # QR attack metrics
+    qr_attack_recall = qr_attacks_detected / (qr_attacks_detected + qr_attacks_missed) if (qr_attacks_detected + qr_attacks_missed) > 0 else 0.0
+    
+    # Multilingual metrics
+    multilingual_recall = multilingual_detected / (multilingual_detected + multilingual_missed) if (multilingual_detected + multilingual_missed) > 0 else 0.0
+    
     if verbose:
         # Print results
         print("=" * 60)
@@ -160,12 +207,15 @@ def evaluate_system(verbose=True):
         print("-" * 40)
         print()
         
-        # F1 URL attack evaluation
-        print("URL-BASED ATTACK DETECTION (F1):")
+        # Specialized detection metrics
+        print("SPECIALIZED DETECTION METRICS:")
         print("-" * 40)
-        print(f"  URL Attacks Detected:  {url_attacks_detected}")
-        print(f"  URL Attacks Missed:    {url_attacks_missed}")
-        print(f"  URL Attack Recall:     {url_attack_recall:.1%}")
+        if url_attacks_detected + url_attacks_missed > 0:
+            print(f"  URL Attack Recall:         {url_attack_recall:.1%} ({url_attacks_detected}/{url_attacks_detected + url_attacks_missed})")
+        if qr_attacks_detected + qr_attacks_missed > 0:
+            print(f"  QR Phishing Recall:        {qr_attack_recall:.1%} ({qr_attacks_detected}/{qr_attacks_detected + qr_attacks_missed})")
+        if multilingual_detected + multilingual_missed > 0:
+            print(f"  Multilingual Recall:       {multilingual_recall:.1%} ({multilingual_detected}/{multilingual_detected + multilingual_missed})")
         print("-" * 40)
         print()
         
@@ -221,13 +271,52 @@ def evaluate_system(verbose=True):
         "f1": f1,
         "accuracy": accuracy,
         "total_samples": total,
-        "attack_samples": stats["attacks"],
-        "benign_samples": stats["benign"],
+        "attack_samples": num_attacks,
+        "benign_samples": num_benign,
         "url_attack_recall": url_attack_recall,
+        "qr_attack_recall": qr_attack_recall,
+        "multilingual_recall": multilingual_recall,
         "attack_type_distribution": attack_type_counts,
         "false_positives": false_positives_list,
         "false_negatives": false_negatives_list,
+        "set_name": set_name,
     }
+
+
+def evaluate_validation_set(verbose=True):
+    """Evaluate held-out validation set (final evaluation only)."""
+    return evaluate_system(verbose=verbose, samples=VALIDATION_SAMPLES, set_name="Validation")
+
+
+def evaluate_full(verbose=True):
+    """Evaluate both main test set and validation set."""
+    print("\n" + "=" * 60)
+    print("FULL EVALUATION: MAIN TEST SET + VALIDATION SET")
+    print("=" * 60 + "\n")
+    
+    test_metrics = evaluate_system(verbose=verbose, samples=TEST_SAMPLES, set_name="Test")
+    print("\n")
+    val_metrics = evaluate_system(verbose=verbose, samples=VALIDATION_SAMPLES, set_name="Validation")
+    
+    # Combined summary
+    print("\n" + "=" * 60)
+    print("COMBINED SUMMARY")
+    print("=" * 60)
+    print(f"\n{'Metric':<25} {'Test Set':>12} {'Validation':>12}")
+    print("-" * 50)
+    print(f"{'Precision':<25} {test_metrics['precision']*100:>11.1f}% {val_metrics['precision']*100:>11.1f}%")
+    print(f"{'Recall':<25} {test_metrics['recall']*100:>11.1f}% {val_metrics['recall']*100:>11.1f}%")
+    print(f"{'F1 Score':<25} {test_metrics['f1']*100:>11.1f}% {val_metrics['f1']*100:>11.1f}%")
+    print(f"{'Accuracy':<25} {test_metrics['accuracy']*100:>11.1f}% {val_metrics['accuracy']*100:>11.1f}%")
+    print("-" * 50)
+    
+    if val_metrics.get('qr_attack_recall', 0) > 0:
+        print(f"{'QR Phishing Recall':<25} {'N/A':>12} {val_metrics['qr_attack_recall']*100:>11.1f}%")
+    if val_metrics.get('multilingual_recall', 0) > 0:
+        print(f"{'Multilingual Recall':<25} {'N/A':>12} {val_metrics['multilingual_recall']*100:>11.1f}%")
+    print()
+    
+    return {"test": test_metrics, "validation": val_metrics}
 
 
 def print_summary(metrics):
@@ -260,9 +349,19 @@ def compare_results(current, previous_f1=None):
 
 
 if __name__ == "__main__":
-    metrics = evaluate_system()
-    print_summary(metrics)
-    
-    # Optional: Compare with previous baseline
-    # Uncomment and set previous F1 score to track progress
-    # compare_results(metrics, previous_f1=0.826)
+    # Parse command line arguments
+    if "--validation" in sys.argv:
+        metrics = evaluate_validation_set()
+        print_summary(metrics)
+    elif "--full" in sys.argv:
+        results = evaluate_full()
+        print("\nTest Set:")
+        print_summary(results["test"])
+        print("Validation Set:")
+        print_summary(results["validation"])
+    else:
+        metrics = evaluate_system()
+        print_summary(metrics)
+        
+        # Compare with baseline
+        compare_results(metrics, previous_f1=0.874)

@@ -915,20 +915,114 @@ TEST_SAMPLES = [
     },
 ]
 
+# =========================================================================
+# HELD-OUT VALIDATION SET (20% - DO NOT USE FOR TRAINING/TUNING)
+# These samples are for final evaluation only
+# =========================================================================
+VALIDATION_SAMPLES = [
+    # QR Phishing attacks (new category)
+    {"text": "Scan this QR code to verify your PayPal account before it's suspended.", "labels": ["Urgency", "Impersonation"], "attack": True},
+    {"text": "Use QR to claim your Amazon gift card reward. Limited time only!", "labels": ["Reward/Lure", "Urgency"], "attack": True},
+    {"text": "QR code payment required to release your package from customs.", "labels": ["Fear/Threat"], "attack": True},
+    {"text": "Scan barcode to update your banking credentials securely.", "labels": ["Authority"], "attack": True},
+    {"text": "QR authentication needed to prevent account termination.", "labels": ["Fear/Threat", "Urgency"], "attack": True},
+    
+    # BEC attacks
+    {"text": "CFO here. Wire $75,000 to vendor immediately. Keep confidential.", "labels": ["Authority", "Urgency"], "attack": True},
+    {"text": "New vendor bank account details attached. Process payment today.", "labels": ["Authority", "Urgency"], "attack": True},
+    {"text": "Buy Apple gift cards for client appreciation. Send codes ASAP.", "labels": ["Authority", "Urgency"], "attack": True},
+    {"text": "Payroll department: Update direct deposit to this new account number.", "labels": ["Authority"], "attack": True},
+    {"text": "This is HR. Your bonus will be deposited to this new account.", "labels": ["Authority", "Reward/Lure"], "attack": True},
+    
+    # Crypto scams
+    {"text": "Connect MetaMask wallet to claim free Ethereum airdrop now!", "labels": ["Reward/Lure", "Urgency"], "attack": True},
+    {"text": "Enter seed phrase to recover compromised wallet assets.", "labels": ["Fear/Threat", "Urgency"], "attack": True},
+    {"text": "Guaranteed 100% returns on Bitcoin investment. Join now!", "labels": ["Reward/Lure"], "attack": True},
+    {"text": "NFT minting live! Connect wallet and approve transaction.", "labels": ["Urgency"], "attack": True},
+    {"text": "Crypto exchange security: Verify wallet or funds frozen.", "labels": ["Fear/Threat", "Authority"], "attack": True},
+    
+    # Government impersonation
+    {"text": "IRS: You owe $5,000 in taxes. Pay via gift card to avoid arrest.", "labels": ["Authority", "Fear/Threat"], "attack": True},
+    {"text": "Social Security suspended. Call immediately to restore.", "labels": ["Authority", "Fear/Threat", "Urgency"], "attack": True},
+    {"text": "DMV: License suspended. Pay fine online to reinstate.", "labels": ["Authority", "Fear/Threat"], "attack": True},
+    {"text": "FBI: Your IP linked to illegal activity. Cooperate now.", "labels": ["Authority", "Fear/Threat"], "attack": True},
+    {"text": "Medicare: Free genetic test kit. Provide Medicare number.", "labels": ["Authority", "Reward/Lure"], "attack": True},
+    
+    # Tech support scams
+    {"text": "Windows Defender: Critical virus detected! Call Microsoft immediately.", "labels": ["Authority", "Fear/Threat", "Urgency"], "attack": True},
+    {"text": "Your computer is sending spam. Call this number to fix.", "labels": ["Fear/Threat", "Urgency"], "attack": True},
+    {"text": "Apple Support: iCloud breached. Verify credentials now.", "labels": ["Authority", "Fear/Threat"], "attack": True},
+    {"text": "Antivirus expired. Renew immediately or risk infection.", "labels": ["Fear/Threat", "Urgency"], "attack": True},
+    {"text": "Browser infected with malware. Download fix tool now.", "labels": ["Fear/Threat", "Urgency"], "attack": True},
+    
+    # Multilingual attacks
+    {"text": "紧急通知：您的账户已被暂停。立即验证以恢复访问。", "labels": ["Urgency", "Fear/Threat"], "attack": True},
+    {"text": "Срочно! Ваш аккаунт заблокирован. Подтвердите пароль немедленно.", "labels": ["Urgency", "Fear/Threat"], "attack": True},
+    {"text": "عاجل: تم تعليق حسابك. انقر هنا للتحقق من هويتك.", "labels": ["Urgency", "Fear/Threat"], "attack": True},
+    {"text": "긴급: 계정이 정지되었습니다. 지금 비밀번호를 확인하세요.", "labels": ["Urgency", "Fear/Threat"], "attack": True},
+    {"text": "Votre compte sera suspendu. Vérifiez immédiatement avec ce lien.", "labels": ["Urgency", "Fear/Threat"], "attack": True},
+    
+    # Adversarial/Obfuscated
+    {"text": "V e r i f y your acc0unt n0w or it will be $uspended!", "labels": ["Urgency", "Fear/Threat"], "attack": True},
+    {"text": "Urgent: Your pаypal аccount needs verification. Click here.", "labels": ["Urgency", "Impersonation"], "attack": True},
+    {"text": "Your Аmаzоn order has a problem. Update раyment info.", "labels": ["Impersonation", "Urgency"], "attack": True},
+    {"text": "L0gin to your bаnk аccount imm3diately to avoid susp3nsion.", "labels": ["Urgency", "Fear/Threat"], "attack": True},
+    {"text": "C1ick here to c1aim your $1000 r3ward before it exp1res!", "labels": ["Reward/Lure", "Urgency"], "attack": True},
+    
+    # Romance/pig butchering
+    {"text": "I'm an engineer stuck overseas. Send $500 and I'll pay you back double.", "labels": ["Reward/Lure"], "attack": True},
+    {"text": "My crypto platform has 50% daily returns. Join my exclusive group.", "labels": ["Reward/Lure"], "attack": True},
+    {"text": "I need help with medical bills. Can you wire money via Western Union?", "labels": ["Fear/Threat"], "attack": True},
+    {"text": "Send the customs fee and I'll send you the $50,000 package.", "labels": ["Reward/Lure"], "attack": True},
+    {"text": "Investment opportunity: guaranteed profits, no risk, act now!", "labels": ["Reward/Lure", "Urgency"], "attack": True},
+    
+    # Benign samples for validation
+    {"text": "Your Uber ride has ended. Receipt attached for your records.", "labels": [], "attack": False},
+    {"text": "Team standup at 10 AM tomorrow. Please prepare your updates.", "labels": [], "attack": False},
+    {"text": "Your GitHub pull request has been merged successfully.", "labels": [], "attack": False},
+    {"text": "Conference call link: https://zoom.us/j/987654321", "labels": [], "attack": False},
+    {"text": "Please review the attached document before our meeting.", "labels": [], "attack": False},
+    {"text": "Office will be closed for maintenance this Saturday.", "labels": [], "attack": False},
+    {"text": "Your expense report has been approved by your manager.", "labels": [], "attack": False},
+    {"text": "New blog post: 10 Tips for Remote Work Productivity", "labels": [], "attack": False},
+    {"text": "Your dentist appointment is confirmed for Thursday 2 PM.", "labels": [], "attack": False},
+    {"text": "Package delivered to front door. Thank you for shopping with us.", "labels": [], "attack": False},
+    {"text": "Your Spotify Premium subscription renewed successfully.", "labels": [], "attack": False},
+    {"text": "Flight itinerary attached for your trip next week.", "labels": [], "attack": False},
+    {"text": "Welcome to our newsletter! Here's what's new this month.", "labels": [], "attack": False},
+    {"text": "Your library books are due in 5 days. Renew online if needed.", "labels": [], "attack": False},
+    {"text": "Team happy hour at 5 PM. Join us at the usual spot!", "labels": [], "attack": False},
+    {"text": "Your annual performance review is scheduled for next Monday.", "labels": [], "attack": False},
+    {"text": "Movie tickets confirmed: 2 seats for Saturday 8 PM showing.", "labels": [], "attack": False},
+    {"text": "Your food delivery is on the way. Arrives in 20 minutes.", "labels": [], "attack": False},
+    {"text": "Weather update: Sunny skies expected for the weekend.", "labels": [], "attack": False},
+    {"text": "Thank you for your purchase at Target. See you again soon!", "labels": [], "attack": False},
+]
+
 
 def get_attack_samples():
-    """Return only attack samples."""
+    """Return only attack samples from main test set."""
     return [s for s in TEST_SAMPLES if s["attack"]]
 
 
 def get_benign_samples():
-    """Return only benign samples."""
+    """Return only benign samples from main test set."""
     return [s for s in TEST_SAMPLES if not s["attack"]]
 
 
 def get_all_samples():
-    """Return all test samples."""
+    """Return all main test samples (training/tuning allowed)."""
     return TEST_SAMPLES
+
+
+def get_validation_samples():
+    """Return held-out validation samples (final evaluation only)."""
+    return VALIDATION_SAMPLES
+
+
+def get_all_samples_with_validation():
+    """Return combined test + validation samples."""
+    return TEST_SAMPLES + VALIDATION_SAMPLES
 
 
 def get_url_attack_samples():
@@ -937,14 +1031,34 @@ def get_url_attack_samples():
     return [s for s in TEST_SAMPLES if s["attack"] and any(p in s["text"].lower() for p in url_patterns)]
 
 
+def get_qr_attack_samples():
+    """Return attack samples related to QR code phishing."""
+    qr_patterns = ["qr", "scan", "barcode"]
+    all_samples = TEST_SAMPLES + VALIDATION_SAMPLES
+    return [s for s in all_samples if s["attack"] and any(p in s["text"].lower() for p in qr_patterns)]
+
+
+def get_multilingual_samples():
+    """Return samples containing non-ASCII characters (multilingual)."""
+    def has_non_ascii(text):
+        return any(ord(c) > 127 for c in text)
+    all_samples = TEST_SAMPLES + VALIDATION_SAMPLES
+    return [s for s in all_samples if has_non_ascii(s["text"])]
+
+
 def get_stats():
     """Return dataset statistics."""
     attacks = get_attack_samples()
     benign = get_benign_samples()
     url_attacks = get_url_attack_samples()
+    val_attacks = [s for s in VALIDATION_SAMPLES if s["attack"]]
+    val_benign = [s for s in VALIDATION_SAMPLES if not s["attack"]]
     return {
         "total": len(TEST_SAMPLES),
         "attacks": len(attacks),
         "benign": len(benign),
         "url_attacks": len(url_attacks),
+        "validation_total": len(VALIDATION_SAMPLES),
+        "validation_attacks": len(val_attacks),
+        "validation_benign": len(val_benign),
     }
