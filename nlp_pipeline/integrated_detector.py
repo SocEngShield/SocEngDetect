@@ -601,8 +601,15 @@ class IntegratedSocialEngineeringDetector:
         "suspended", "hacked", "compromised", "ransomware",
         "encrypted", "dark web", "webcam", "leaked", "breach",
         "income tax", "deactivated", "permanently", "frozen",
-        "action will be taken", "credentials", "share info","card blocked", "payment failed", "transaction declined"
-
+        "action will be taken", "credentials", "share info",
+        "card blocked", "payment failed", "transaction declined",
+        # Tech support scam patterns
+        "infected", "virus", "malware", "trojan", "spyware",
+        "sending spam", "call this number", "download fix",
+        "ip linked", "ip address linked", "illegal activity",
+        # QR phishing patterns
+        "qr code", "scan qr", "qr payment", "qr authentication",
+        "scan this code", "scan the code", "barcode",
     ]
 
     DEADLINE_KW = [
@@ -617,6 +624,8 @@ class IntegratedSocialEngineeringDetector:
         "income tax", "aadhaar", "court", "police", "fir",
         "prosecution", "arrest", "non-bailable", "cyber cell",
         "irs", "tax department", "income tax department",
+        "fbi", "cia", "dhs", "homeland security", "federal bureau",
+        "customs", "immigration",
     ]
 
     _IDENTITY_RX = [
@@ -640,6 +649,10 @@ class IntegratedSocialEngineeringDetector:
         "ceo", "cfo", "cto", "manager", "director", "supervisor",
         "president", "chairman", "head of", "department head",
         "team lead", "executive", "boss", "vp of",
+        # BEC patterns
+        "vendor bank account", "new bank account", "payment instructions",
+        "wire transfer", "process payment", "invoice attached",
+        "bank details attached", "updated payment",
     ]
 
     _SENSITIVE_RX = [
@@ -668,6 +681,12 @@ class IntegratedSocialEngineeringDetector:
         "bitcoin investment", "crypto investment", "stimulus payment",
         "pre-approved", "bad credit ok", "randomly selected",
         "prince", "transfer million", "receive 30%", "receive 20%",
+        # NFT/Crypto scam patterns
+        "nft minting", "nft drop", "nft airdrop", "connect wallet",
+        "wallet verification", "approve transaction", "exclusive nft",
+        "free nft", "whitelist spot", "limited mint",
+        "daily returns", "50% daily", "100% daily", "monthly returns",
+        "crypto platform", "trading platform", "investment platform",
     ]
 
     # Scam indicator patterns (regex) for stronger detection
