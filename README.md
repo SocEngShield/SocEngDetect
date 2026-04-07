@@ -20,7 +20,7 @@ A Python-based system that detects social engineering attacks in messages using 
 - RAG/Semantic Detection using `sentence-transformers` with cosine similarity scoring
 - Rule-Based Signal Engine detecting urgency, authority, impersonation, reward/lure, and fear/threat patterns
 - Weighted Fusion Layer (60% RAG + 40% Rules) combining ML and rule-based confidence scores
-- URL/Link Analysis with malicious domain pattern detection
+- URL/Link Analysis with 15+ offline detection checks
 - Email address extraction and analysis
 
 **Explainability Features**
@@ -31,11 +31,25 @@ A Python-based system that detects social engineering attacks in messages using 
 - Similar attack patterns from knowledge base with similarity scores
 - Category-specific actionable recommendations
 
+**Offline URL Analysis**
+The system performs comprehensive URL risk assessment without external APIs:
+- Suspicious TLD detection (.xyz, .tk, .top, .support, etc.)
+- Brand lookalike/typosquatting detection (paypa1, amaz0n, etc.)
+- @ symbol credential tricks
+- Double extensions (.pdf.exe)
+- Unicode/homograph attacks
+- Brand-in-subdomain attacks
+- IP address URLs
+- URL shortener detection
+- Excessive subdomain patterns
+- Unusual port detection
+
 **Multilingual Keyword Detection**
 The system maps common phishing keywords from these languages to English for detection:
 - Spanish, French, German, Italian, Portuguese
+- Chinese, Russian, Arabic, Korean (keyword-based)
 
-Note: Detection works by recognizing specific keywords (e.g., "urgente" → "urgent") in predominantly English text. Full support for non-Latin scripts (Chinese, Japanese, Russian) is limited to keyword recognition only.
+Note: Detection works by recognizing specific keywords (e.g., "urgente" -> "urgent") in messages. Full NLP support for non-Latin scripts is keyword-based only.
 
 **Attack Simulator**
 - Generates realistic phishing messages based on selected manipulation tactics
@@ -43,7 +57,7 @@ Note: Detection works by recognizing specific keywords (e.g., "urgente" → "urg
 - Useful for testing detection capabilities and security training
 
 **Evaluation Framework**
-- Comprehensive test dataset with labeled samples
+- Comprehensive test dataset with 150+ labeled samples
 - Computes Precision, Recall, F1 Score, Accuracy
 - Tracks URL-based attack detection separately
 - Provides confusion matrix and misclassification analysis
@@ -51,19 +65,22 @@ Note: Detection works by recognizing specific keywords (e.g., "urgente" → "urg
 
 **Interactive Dashboard**
 - Real-time message analysis with confidence scoring
-- Visual signal strength charts
+- Visual signal strength charts (bar graph)
 - Risk level classification (SAFE, LOW, POTENTIAL, HIGH)
+- Dynamic privacy mode indicator
 - Attack simulation mode
 - Multi-format report export (JSON, CSV, PDF)
+- Color-coded API status indicators
 
 **Export Features**
 - JSON: Raw structured data for integration
-- CSV: Flattened format for spreadsheet analysis
+- CSV: Comprehensive flattened format with individual signal scores and API results
 - PDF: Professional human-readable reports with:
   - Modern card-based HTML/CSS layout (WeasyPrint + Jinja2)
   - Risk-coded color scheme
+  - Signal strength visualization
+  - External threat intelligence results
   - Actionable recommendations
-  - Analysis insights
 
 ## Installation
 
@@ -104,6 +121,7 @@ The project requires the following packages:
 - `numpy` - Numerical computing
 - `sentence-transformers` - Semantic similarity detection
 - `scikit-learn` - Machine learning utilities
+- `requests` - HTTP requests for external APIs
 - `reportlab` - PDF generation (fallback)
 - `jinja2` - HTML template rendering
 - `weasyprint` - HTML to PDF conversion
@@ -159,8 +177,14 @@ social_engineering_detector/
 │   ├── multilingual_map.py
 │   ├── url_knowledge_base.py
 │   └── signals/           # Individual detectors
+├── utils/                 # Utilities
+│   ├── api_config.py      # API configuration
+│   ├── api_integrations.py # External API calls
+│   ├── export.py          # JSON/CSV/PDF export
+│   └── templates/         # PDF templates
 ├── evaluate.py            # Evaluation with metrics
 ├── test_dataset.py        # Labeled test samples
+├── .env.example           # API key template
 └── requirements.txt
 ```
 
@@ -168,7 +192,7 @@ social_engineering_detector/
 
 **Detection Model**
 - RAG: `sentence-transformers/all-MiniLM-L6-v2`
-- Knowledge Base: 550+  patterns
+- Knowledge Base: 550+ patterns
 - Fusion Weights: 60% RAG / 40% Rules
 - Risk Thresholds: SAFE (0-24%), LOW (25-49%), POTENTIAL (50-74%), HIGH (75-100%)
 
@@ -178,6 +202,13 @@ social_engineering_detector/
 3. Authority: Executive/IT/government impersonation
 4. Impersonation: Fake brand/service claims
 5. Reward/Lure: Prizes, cashback, lottery offers
+
+**Offline URL Analysis**
+- No external API required
+- 15+ detection patterns
+- Suspicious TLD, brand lookalike, typosquatting detection
+- Unicode/homograph attack detection
+- IP-based URL detection
 
 ## Testing
 
@@ -215,7 +246,7 @@ Use the dashboard's Attack Simulator mode to:
 
 - Multilingual support is keyword-based and works best with predominantly English text containing non-English keywords
 - Non-Latin scripts (Chinese, Japanese, Russian, Arabic) have limited support
-- Very short messages (under 10 characters) cannot not be analyzed effectively
+- Very short messages (under 10 characters) cannot be analyzed effectively
 - The system analyzes text content only; it does not validate actual URLs or email addresses
 - Performance depends on the quality and coverage of the knowledge base patterns
 
@@ -237,6 +268,7 @@ The system supports optional external threat intelligence APIs for enhanced URL 
 | VirusTotal | 500 req/day | URL reputation scanning |
 | Google Safe Browsing | 10K req/day | Malware/phishing detection |
 | AbuseIPDB | 1K req/day | IP abuse reporting |
+| URLhaus | Unlimited | Malware URL database |
 
 ### Setup Instructions
 
@@ -244,6 +276,7 @@ The system supports optional external threat intelligence APIs for enhanced URL 
    - **VirusTotal**: [virustotal.com/gui/join-us](https://www.virustotal.com/gui/join-us)
    - **Google Safe Browsing**: [Google Cloud Console](https://console.cloud.google.com/apis/library/safebrowsing.googleapis.com)
    - **AbuseIPDB**: [abuseipdb.com/register](https://www.abuseipdb.com/register)
+   - **URLhaus**: Free, no key required (works automatically)
 
 2. **Configure via .env file** (recommended):
 ```bash
@@ -269,7 +302,7 @@ export GOOGLE_SAFEBROWSING_API_KEY=your_key_here
 export ABUSEIPDB_API_KEY=your_key_here
 ```
 
-3. **Enable in Dashboard**: Toggle "Enable External Checks" in the sidebar
+3. **Enable in Dashboard**: Toggle "Enable External API Checks" in the sidebar
 
 ### Privacy Notice
 
