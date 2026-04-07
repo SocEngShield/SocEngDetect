@@ -276,6 +276,85 @@ def check_ip_abuseipdb(ip: str) -> dict:
 
 
 # ---------------------------
+# URLHAUS (FREE - NO API KEY)
+# ---------------------------
+
+def check_url_urlhaus(url: str) -> dict:
+    """
+    Check URL against URLhaus malware database.
+    FREE - No API key required!
+    
+    Returns:
+        dict with keys:
+            - enabled: bool
+            - malicious: bool
+            - threat_type: str
+            - error: str (if any)
+    """
+    result = {"enabled": True, "source": "urlhaus"}
+    
+    if not REQUESTS_AVAILABLE:
+        result["enabled"] = False
+        return result
+    
+    # Check cache
+    cache_key = f"urlhaus:{hashlib.md5(url.encode()).hexdigest()}"
+    cached = _get_cached(cache_key)
+    if cached:
+        cached["cached"] = True
+        return cached
+    
+    try:
+        response = requests.post(
+            "https://urlhaus-api.abuse.ch/v1/url/",
+            data={"url": url},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=10
+        )
+        
+        if response.status_code != 200:
+            result["error"] = f"API error: {response.status_code}"
+            return result
+        
+        data = response.json()
+        query_status = data.get("query_status", "")
+        
+        if query_status == "ok":
+            # URL found in database (malicious)
+            result.update({
+                "malicious": True,
+                "threat_type": data.get("threat", "malware"),
+                "tags": data.get("tags", []),
+                "date_added": data.get("date_added", ""),
+            })
+        elif query_status == "no_results":
+            # URL not in database (likely clean)
+            result.update({
+                "malicious": False,
+                "threat_type": None,
+            })
+        else:
+            # Handle other statuses
+            result.update({
+                "malicious": False,
+                "threat_type": None,
+            })
+        
+        _set_cache(cache_key, result)
+        return result
+        
+    except requests.Timeout:
+        result["error"] = "Request timeout"
+        return result
+    except requests.RequestException as e:
+        result["error"] = str(e)
+        return result
+    except Exception as e:
+        result["error"] = f"Unexpected error: {e}"
+        return result
+
+
+# ---------------------------
 # COMBINED URL CHECK
 # ---------------------------
 
@@ -345,6 +424,15 @@ def check_url_external(url: str) -> dict:
                     threat_signals += 1
         except:
             pass  # IP lookup failed, skip
+    
+    # URLhaus check (FREE - always enabled)
+    urlhaus_result = check_url_urlhaus(url)
+    result["sources"].append(urlhaus_result)
+    if urlhaus_result.get("enabled") and not urlhaus_result.get("error"):
+        result["enabled"] = True
+        total_sources += 1
+        if urlhaus_result.get("malicious"):
+            threat_signals += 2
     
     # Calculate aggregate threat score
     if total_sources > 0:

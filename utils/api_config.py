@@ -1,69 +1,105 @@
 """
 API Configuration — Optional external API integration.
 All API features are DISABLED by default (privacy-first).
-Enable via environment variables only.
+Enable via .env file or environment variables.
 """
 
 import os
+from pathlib import Path
 
-# ---------------------------
-# MASTER API TOGGLE
-# ---------------------------
-# Set SOCENG_API_ENABLED=true in environment to enable API features
-API_ENABLED = os.getenv("SOCENG_API_ENABLED", "false").lower() == "true"
+# Load .env file directly (no dependency on python-dotenv)
+def _load_env_file():
+    """Load .env file manually without external dependencies."""
+    env_path = Path(__file__).parent.parent / ".env"
+    if not env_path.exists():
+        return
+    try:
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                if '=' in line:
+                    key, _, value = line.partition('=')
+                    key = key.strip()
+                    value = value.strip()
+                    if key and value:
+                        os.environ[key] = value
+    except Exception:
+        pass
 
-# ---------------------------
-# VIRUSTOTAL API
-# ---------------------------
-# Free tier: 4 requests/minute, 500/day
-# Get key: https://www.virustotal.com/gui/join-us
-VIRUSTOTAL_API_KEY = os.getenv("VIRUSTOTAL_API_KEY", "")
+# Load on import
+_load_env_file()
+
+
+def _get_env(key: str, default: str = "") -> str:
+    """Get environment variable."""
+    return os.environ.get(key, default)
+
+
+def get_virustotal_key() -> str:
+    """Get VirusTotal API key."""
+    return _get_env("VIRUSTOTAL_API_KEY", "")
+
+
+def get_abuseipdb_key() -> str:
+    """Get AbuseIPDB API key."""
+    return _get_env("ABUSEIPDB_API_KEY", "")
+
+
+def get_safebrowsing_key() -> str:
+    """Get Google Safe Browsing API key."""
+    return _get_env("GOOGLE_SAFEBROWSING_API_KEY", "")
+
+
+def is_api_enabled() -> bool:
+    """Check if API features are enabled (auto-enable if keys present)."""
+    explicit = os.environ.get("SOCENG_API_ENABLED", "").lower()
+    if explicit == "false":
+        return False
+    if get_virustotal_key() or get_abuseipdb_key() or get_safebrowsing_key():
+        return True
+    return explicit == "true"
+
+
+# Legacy compatibility (reads at import time)
+API_ENABLED = is_api_enabled()
+VIRUSTOTAL_API_KEY = get_virustotal_key()
+ABUSEIPDB_API_KEY = get_abuseipdb_key()
+GOOGLE_SAFEBROWSING_API_KEY = get_safebrowsing_key()
 VIRUSTOTAL_ENABLED = bool(VIRUSTOTAL_API_KEY) and API_ENABLED
-
-# ---------------------------
-# ABUSEIPDB API
-# ---------------------------
-# Free tier: 1000 checks/day
-# Get key: https://www.abuseipdb.com/register
-ABUSEIPDB_API_KEY = os.getenv("ABUSEIPDB_API_KEY", "")
 ABUSEIPDB_ENABLED = bool(ABUSEIPDB_API_KEY) and API_ENABLED
-
-# ---------------------------
-# GOOGLE SAFE BROWSING API
-# ---------------------------
-# Free tier: 10,000 requests/day
-# Get key: https://console.cloud.google.com/apis/library/safebrowsing.googleapis.com
-GOOGLE_SAFEBROWSING_API_KEY = os.getenv("GOOGLE_SAFEBROWSING_API_KEY", "")
 GOOGLE_SAFEBROWSING_ENABLED = bool(GOOGLE_SAFEBROWSING_API_KEY) and API_ENABLED
 
-# ---------------------------
-# RATE LIMITING
-# ---------------------------
-VIRUSTOTAL_RATE_LIMIT = 4  # requests per minute
-ABUSEIPDB_RATE_LIMIT = 15  # requests per minute
-GOOGLE_RATE_LIMIT = 100    # requests per minute
+# Rate limits
+VIRUSTOTAL_RATE_LIMIT = 4
+ABUSEIPDB_RATE_LIMIT = 15
+GOOGLE_RATE_LIMIT = 100
 
-# ---------------------------
-# CACHE SETTINGS
-# ---------------------------
+# Cache
 API_CACHE_ENABLED = True
-API_CACHE_TTL_SECONDS = 3600  # 1 hour
+API_CACHE_TTL_SECONDS = 3600
 
 
 def get_api_status() -> dict:
-    """Get current API configuration status."""
+    """Get current API configuration status (reads fresh)."""
+    vt_key = get_virustotal_key()
+    aip_key = get_abuseipdb_key()
+    gsb_key = get_safebrowsing_key()
+    enabled = is_api_enabled()
+    
     return {
-        "api_enabled": API_ENABLED,
+        "api_enabled": enabled,
         "virustotal": {
-            "enabled": VIRUSTOTAL_ENABLED,
-            "configured": bool(VIRUSTOTAL_API_KEY),
+            "enabled": bool(vt_key) and enabled,
+            "configured": bool(vt_key),
         },
         "abuseipdb": {
-            "enabled": ABUSEIPDB_ENABLED,
-            "configured": bool(ABUSEIPDB_API_KEY),
+            "enabled": bool(aip_key) and enabled,
+            "configured": bool(aip_key),
         },
         "google_safebrowsing": {
-            "enabled": GOOGLE_SAFEBROWSING_ENABLED,
-            "configured": bool(GOOGLE_SAFEBROWSING_API_KEY),
+            "enabled": bool(gsb_key) and enabled,
+            "configured": bool(gsb_key),
         },
     }
