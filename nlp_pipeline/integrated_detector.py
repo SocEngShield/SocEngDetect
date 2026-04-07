@@ -6,7 +6,7 @@ Weights: 0.6 RAG + 0.4 Rules. Risk: SAFE/LOW/POTENTIAL/HIGH.
 
 import re
 import random
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 try:
     from .rag_detector import get_detector
@@ -22,11 +22,13 @@ try:
         is_trusted, analyze_url_kb
     )
     from security_logic.multilingual_map import normalize_text, normalize_obfuscation
+    from security_logic.email_analyzer import analyze_sender, analyze_email_headers
 except ImportError:
     from ..security_logic.url_knowledge_base import (
         is_trusted, analyze_url_kb
     )
     from ..security_logic.multilingual_map import normalize_text, normalize_obfuscation
+    from ..security_logic.email_analyzer import analyze_sender, analyze_email_headers
 
 
 # ---------------------------
@@ -876,7 +878,7 @@ class IntegratedSocialEngineeringDetector:
             return False
         return any(rx.search(msg) for rx in self._whitelist_rx)
 
-    def analyze_message(self, message: str) -> Dict:
+    def analyze_message(self, message: str, sender: str = None, email_headers: Dict = None) -> Dict:
         msg = message.lower()
         
         # ---------------------------
@@ -904,6 +906,10 @@ class IntegratedSocialEngineeringDetector:
         
         # Store match_count for later bias-free scoring
         sig["_multilingual_match_count"] = match_count
+        
+        # Store sender/headers for email analysis later
+        self._current_sender = sender
+        self._current_headers = email_headers
         
         top_k_results = self.rag.retrieve_top_k(message, k=8)
         rule_signals = extract_rule_signals(message)
@@ -1159,6 +1165,7 @@ class IntegratedSocialEngineeringDetector:
         has_sens = sig["sensitive"]
         has_dl = bool(sig["deadline"])
 
+        # Floor adjustments based on signal strength
         if has_gov:
             overall = max(overall, 70.0)
         if has_sens and has_dl:
@@ -1173,6 +1180,16 @@ class IntegratedSocialEngineeringDetector:
             overall = max(overall, 40.0)
         if rule_conf > 70.0 and "Fear/Threat" in cats:
             overall = max(overall, 65.0)
+        
+        # OTP/romance scam floor (highly dangerous)
+        if sig.get("otp_scam"):
+            overall = max(overall, 70.0)
+        if sig.get("romance_scam"):
+            overall = max(overall, 60.0)
+        
+        # Scam pattern floor (investment/lottery)
+        if sig.get("scam"):
+            overall = max(overall, 55.0)
 
         overall = round(max(0.0, min(100.0, overall)), 2)
 
@@ -1247,6 +1264,37 @@ class IntegratedSocialEngineeringDetector:
                 "reasons": [],
             }
         }
+        
+        # ---------------------------
+        # EMAIL HEADER ANALYSIS
+        # ---------------------------
+        if self._current_headers:
+            email_score, email_reasons, email_parsed = analyze_email_headers(
+                self._current_headers, original_msg
+            )
+            context["email"] = {
+                "parsed": email_parsed,
+                "score": email_score,
+                "reasons": email_reasons,
+            }
+            # Boost overall if sender looks suspicious
+            if email_score >= 0.5:
+                overall = min(100, overall + 15)
+            elif email_score >= 0.3:
+                overall = min(100, overall + 8)
+        elif self._current_sender:
+            email_score, email_reasons, email_parsed = analyze_sender(
+                self._current_sender, original_msg
+            )
+            context["email"] = {
+                "parsed": email_parsed,
+                "score": email_score,
+                "reasons": email_reasons,
+            }
+            if email_score >= 0.5:
+                overall = min(100, overall + 15)
+            elif email_score >= 0.3:
+                overall = min(100, overall + 8)
         
         # ---------------------------
         # F3: Cross-Field Consistency Engine
