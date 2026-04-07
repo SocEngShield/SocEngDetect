@@ -224,7 +224,51 @@ Use the dashboard's Attack Simulator mode to:
 - First run requires downloading transformer model files (~80MB)
 - Analysis typically completes in under 3 seconds per message
 - Dashboard supports real-time analysis
-- All processing is local; no external API calls
+- All processing is local by default; no external API calls
+
+## Optional: External API Integration
+
+The system supports optional external threat intelligence APIs for enhanced URL checking. **These are disabled by default** to maintain the privacy-first design.
+
+### Supported APIs
+
+| API | Free Tier | Purpose |
+|-----|-----------|---------|
+| VirusTotal | 500 req/day | URL reputation scanning |
+| Google Safe Browsing | 10K req/day | Malware/phishing detection |
+| AbuseIPDB | 1K req/day | IP abuse reporting |
+
+### Setup Instructions
+
+1. **Get API Keys** (all free):
+   - **VirusTotal**: [virustotal.com/gui/join-us](https://www.virustotal.com/gui/join-us)
+   - **Google Safe Browsing**: [Google Cloud Console](https://console.cloud.google.com/apis/library/safebrowsing.googleapis.com)
+   - **AbuseIPDB**: [abuseipdb.com/register](https://www.abuseipdb.com/register)
+
+2. **Set Environment Variables**:
+```bash
+# Windows
+set SOCENG_API_ENABLED=true
+set VIRUSTOTAL_API_KEY=your_key_here
+set GOOGLE_SAFEBROWSING_API_KEY=your_key_here
+set ABUSEIPDB_API_KEY=your_key_here
+
+# Linux/macOS
+export SOCENG_API_ENABLED=true
+export VIRUSTOTAL_API_KEY=your_key_here
+export GOOGLE_SAFEBROWSING_API_KEY=your_key_here
+export ABUSEIPDB_API_KEY=your_key_here
+```
+
+3. **Enable in Dashboard**: Toggle "Enable External URL Checks" in the sidebar
+
+### Privacy Notice
+
+When external APIs are enabled:
+- URLs extracted from messages are sent to configured services
+- No message text is sent externally
+- Results are cached for 1 hour to reduce API calls
+- You can disable APIs at any time via the sidebar toggle
 
 ## Contributing
 
