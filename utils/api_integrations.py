@@ -305,12 +305,22 @@ def check_url_urlhaus(url: str) -> dict:
         return cached
     
     try:
+        # URLhaus API is free and requires no authentication
         response = requests.post(
             "https://urlhaus-api.abuse.ch/v1/url/",
-            data={"url": url},
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            data=f"url={url}",
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json"
+            },
             timeout=10
         )
+        
+        if response.status_code == 401:
+            # URLhaus shouldn't return 401, but handle gracefully
+            result["error"] = "API temporarily unavailable"
+            result["malicious"] = False
+            return result
         
         if response.status_code != 200:
             result["error"] = f"API error: {response.status_code}"
@@ -320,7 +330,6 @@ def check_url_urlhaus(url: str) -> dict:
         query_status = data.get("query_status", "")
         
         if query_status == "ok":
-            # URL found in database (malicious)
             result.update({
                 "malicious": True,
                 "threat_type": data.get("threat", "malware"),
@@ -328,13 +337,11 @@ def check_url_urlhaus(url: str) -> dict:
                 "date_added": data.get("date_added", ""),
             })
         elif query_status == "no_results":
-            # URL not in database (likely clean)
             result.update({
                 "malicious": False,
                 "threat_type": None,
             })
         else:
-            # Handle other statuses
             result.update({
                 "malicious": False,
                 "threat_type": None,

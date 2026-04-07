@@ -44,3 +44,6 @@ dist/
 
 # Test utilities
 test_api_config.py
+
+# Personal docs
+DEMO_GUIDE.md
