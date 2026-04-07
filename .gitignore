@@ -41,3 +41,6 @@ dist/
 .env
 .env.local
 *.env
+
+# Test utilities
+test_api_config.py

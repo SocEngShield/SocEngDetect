@@ -245,22 +245,31 @@ The system supports optional external threat intelligence APIs for enhanced URL 
    - **Google Safe Browsing**: [Google Cloud Console](https://console.cloud.google.com/apis/library/safebrowsing.googleapis.com)
    - **AbuseIPDB**: [abuseipdb.com/register](https://www.abuseipdb.com/register)
 
-2. **Set Environment Variables**:
+2. **Configure via .env file** (recommended):
+```bash
+# Copy the template
+cp .env.example .env
+
+# Edit .env and add your API keys
+VIRUSTOTAL_API_KEY=your_key_here
+GOOGLE_SAFEBROWSING_API_KEY=your_key_here
+ABUSEIPDB_API_KEY=your_key_here
+```
+
+   Or **set environment variables** directly:
 ```bash
 # Windows
-set SOCENG_API_ENABLED=true
 set VIRUSTOTAL_API_KEY=your_key_here
 set GOOGLE_SAFEBROWSING_API_KEY=your_key_here
 set ABUSEIPDB_API_KEY=your_key_here
 
 # Linux/macOS
-export SOCENG_API_ENABLED=true
 export VIRUSTOTAL_API_KEY=your_key_here
 export GOOGLE_SAFEBROWSING_API_KEY=your_key_here
 export ABUSEIPDB_API_KEY=your_key_here
 ```
 
-3. **Enable in Dashboard**: Toggle "Enable External URL Checks" in the sidebar
+3. **Enable in Dashboard**: Toggle "Enable External Checks" in the sidebar
 
 ### Privacy Notice
 
