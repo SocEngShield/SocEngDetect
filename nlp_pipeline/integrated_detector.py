@@ -482,7 +482,18 @@ def extract_pattern_features(text: str) -> Dict:
     }
 
 
-def get_similar_patterns(top_k_results: List[Dict]) -> List[Dict]:
+def get_similar_patterns(top_k_results: List[Dict], max_patterns: int = 5, min_similarity: float = 0.25) -> List[Dict]:
+    """
+    Get similar attack patterns from knowledge base.
+    
+    Args:
+        top_k_results: Top K results from RAG retrieval
+        max_patterns: Maximum number of patterns to return (default 5)
+        min_similarity: Minimum similarity threshold (0-1 scale, default 0.25 = 25%)
+    
+    Returns:
+        List of similar patterns with text, category, and similarity score
+    """
     if not top_k_results:
         return []
 
@@ -495,6 +506,12 @@ def get_similar_patterns(top_k_results: List[Dict]) -> List[Dict]:
     selected: List[Dict] = []
     for row in filtered:
         text = row.get("text", "").strip()
+        similarity = float(row.get("similarity", 0.0))
+        
+        # Skip if below minimum similarity threshold
+        if similarity < min_similarity:
+            continue
+            
         if not text:
             continue
 
@@ -518,11 +535,11 @@ def get_similar_patterns(top_k_results: List[Dict]) -> List[Dict]:
             {
                 "text": text,
                 "category": row.get("category", "unknown"),
-                "similarity": round(float(row.get("similarity", 0.0)) * 100, 2),
+                "similarity": round(similarity * 100, 2),
             }
         )
 
-        if len(selected) == 3:
+        if len(selected) >= max_patterns:
             break
 
     return selected

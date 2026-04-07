@@ -424,12 +424,14 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
                             st.markdown(f"- **Google Safe Browsing**: Safe")
                     elif source_name == "abuseipdb":
                         score = source.get("abuse_confidence_score", 0)
-                        st.markdown(f"- **AbuseIPDB**: Abuse score {score}%")
-                    elif source_name == "urlhaus":
-                        if source.get("malicious"):
-                            st.markdown(f"- **URLhaus**: MALWARE URL ({source.get('threat_type', 'unknown')})")
-                        else:
-                            st.markdown(f"- **URLhaus**: Not in malware database")
+                        country = source.get("country_code", "")
+                        isp = source.get("isp", "")
+                        reports = source.get("total_reports", 0)
+                        st.markdown(f"- **AbuseIPDB**: Abuse confidence {score}%")
+                        if country or isp:
+                            st.markdown(f"  - Location: {country} | ISP: {isp}")
+                        if reports > 0:
+                            st.markdown(f"  - Total abuse reports: {reports}")
 
         # ============================
         # BAR CHART
@@ -639,14 +641,12 @@ with st.sidebar:
             vt_color = "#4ade80" if vt_ok else "#f87171"
             gsb_color = "#4ade80" if gsb_ok else "#f87171"
             aip_color = "#4ade80" if aip_ok else "#f87171"
-            uh_color = "#4ade80"  # URLhaus is always available (free, no key)
             
             st.markdown(f"""
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9rem;">
+            <div style="display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 0.9rem;">
                 <span><span style="color: {vt_color}; font-size: 1.2em;">●</span> VirusTotal</span>
-                <span><span style="color: {gsb_color}; font-size: 1.2em;">●</span> SafeBrowsing</span>
+                <span><span style="color: {gsb_color}; font-size: 1.2em;">●</span> Google Safe Browsing</span>
                 <span><span style="color: {aip_color}; font-size: 1.2em;">●</span> AbuseIPDB</span>
-                <span><span style="color: {uh_color}; font-size: 1.2em;">●</span> URLhaus</span>
             </div>
             """, unsafe_allow_html=True)
     else:
@@ -657,22 +657,22 @@ with st.sidebar:
     st.markdown("---")
     
     # =====================
-    # SECTION 2: System Information
+    # SECTION 2: System Information (always expanded)
     # =====================
-    with st.expander("System Information", expanded=False):
-        st.markdown("""
-        **Detection Engine**
-        - RAG/ML: Semantic analysis (60%)
-        - Rules: Pattern matching (40%)
-        - Ensemble: Weighted fusion
-        
-        **Risk Thresholds**
-        - HIGH: 75-100%
-        - POTENTIAL: 50-74%
-        - LOW: 25-49%
-        - SAFE: 0-24%
-        """)
-        st.markdown(f"**Knowledge Base:** {len(SOCIAL_ENGINEERING_DATASET)} patterns")
+    st.markdown("#### System Information")
+    st.markdown("""
+    **Detection Engine**
+    - RAG/ML: Semantic analysis (60%)
+    - Rules: Pattern matching (40%)
+    - Ensemble: Weighted fusion
+    
+    **Risk Thresholds**
+    - HIGH: 75-100%
+    - POTENTIAL: 50-74%
+    - LOW: 25-49%
+    - SAFE: 0-24%
+    """)
+    st.markdown(f"**Knowledge Base:** {len(SOCIAL_ENGINEERING_DATASET)} patterns")
     
     # =====================
     # SECTION 3: Export (only if analysis exists)

@@ -263,12 +263,17 @@ def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[st
                     api_sources.append({"name": "Google Safe Browsing", "status": "Safe"})
             elif source_name == "abuseipdb":
                 score = source.get("abuse_confidence_score", 0)
-                api_sources.append({"name": "AbuseIPDB", "status": f"Abuse score: {score}%"})
-            elif source_name == "urlhaus":
-                if source.get("malicious"):
-                    api_sources.append({"name": "URLhaus", "status": f"MALWARE ({source.get('threat_type', 'unknown')})"})
-                else:
-                    api_sources.append({"name": "URLhaus", "status": "Not in malware database"})
+                country = source.get("country_code", "")
+                isp = source.get("isp", "")
+                reports = source.get("total_reports", 0)
+                status_parts = [f"Abuse confidence: {score}%"]
+                if country:
+                    status_parts.append(f"Country: {country}")
+                if isp:
+                    status_parts.append(f"ISP: {isp}")
+                if reports > 0:
+                    status_parts.append(f"Reports: {reports}")
+                api_sources.append({"name": "AbuseIPDB", "status": " | ".join(status_parts)})
         
         external_api_data = {
             "enabled": True,
