@@ -25,6 +25,15 @@ from bar_chart import create_bar_chart, get_top_signals
 from simulator import generate_attack_message
 from utils.export import get_json_data, get_csv_data, get_pdf_data
 
+# API IMPORTS (optional features)
+try:
+    from utils.api_config import get_api_status, API_ENABLED
+    from utils.api_integrations import check_url_external
+    API_AVAILABLE = True
+except ImportError:
+    API_AVAILABLE = False
+    API_ENABLED = False
+
 
 # ---------------------------
 # UTILS
@@ -199,6 +208,93 @@ st.markdown("---")
 
 
 # ---------------------------
+# SIDEBAR: API SETTINGS
+# ---------------------------
+
+with st.sidebar:
+    st.header("⚙️ Settings")
+    
+    # Privacy notice
+    st.markdown("---")
+    st.subheader("🔒 Privacy Mode")
+    st.info("**Default: All analysis is LOCAL**\nNo data leaves your machine.")
+    
+    # API toggle section
+    st.markdown("---")
+    st.subheader("🌐 External APIs (Optional)")
+    
+    if API_AVAILABLE:
+        api_status = get_api_status()
+        
+        use_external_api = st.checkbox(
+            "Enable External URL Checks",
+            value=False,
+            help="Send URLs to VirusTotal/Google Safe Browsing for enhanced detection"
+        )
+        
+        if use_external_api:
+            st.warning("⚠️ URLs will be sent to external services")
+            
+            # Show configured APIs
+            st.markdown("**Configured APIs:**")
+            if api_status["virustotal"]["configured"]:
+                st.markdown("✅ VirusTotal")
+            else:
+                st.markdown("❌ VirusTotal (set VIRUSTOTAL_API_KEY)")
+            
+            if api_status["google_safebrowsing"]["configured"]:
+                st.markdown("✅ Google Safe Browsing")
+            else:
+                st.markdown("❌ Google Safe Browsing (set GOOGLE_SAFEBROWSING_API_KEY)")
+            
+            if api_status["abuseipdb"]["configured"]:
+                st.markdown("✅ AbuseIPDB")
+            else:
+                st.markdown("❌ AbuseIPDB (set ABUSEIPDB_API_KEY)")
+            
+            if not any([api_status["virustotal"]["configured"], 
+                       api_status["google_safebrowsing"]["configured"],
+                       api_status["abuseipdb"]["configured"]]):
+                st.error("No API keys configured. Set environment variables.")
+        
+        # Store in session state for use in analysis
+        st.session_state["use_external_api"] = use_external_api
+    else:
+        st.markdown("API module not available")
+        st.session_state["use_external_api"] = False
+    
+    # API Setup Guide
+    with st.expander("📖 How to Get API Keys"):
+        st.markdown("""
+**VirusTotal** (Free: 500 requests/day)
+1. Go to [virustotal.com](https://www.virustotal.com/gui/join-us)
+2. Create free account
+3. Go to Profile → API Key
+4. Set: `VIRUSTOTAL_API_KEY=your_key`
+
+**Google Safe Browsing** (Free: 10K/day)
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create project → Enable Safe Browsing API
+3. Create API credentials
+4. Set: `GOOGLE_SAFEBROWSING_API_KEY=your_key`
+
+**AbuseIPDB** (Free: 1000/day)
+1. Go to [abuseipdb.com](https://www.abuseipdb.com/register)
+2. Create free account
+3. Go to Account → API → Create Key
+4. Set: `ABUSEIPDB_API_KEY=your_key`
+
+**Enable APIs:**
+```
+set SOCENG_API_ENABLED=true
+```
+        """)
+    
+    st.markdown("---")
+    st.caption("v6.0 | Privacy-First Design")
+
+
+# ---------------------------
 # SESSION STATE INIT
 # ---------------------------
 
@@ -256,6 +352,14 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
                 r["rag_confidence"],
                 r.get("categories", [])
             )
+            
+            # Optional: External API URL check
+            external_api_result = None
+            if st.session_state.get("use_external_api", False) and API_AVAILABLE:
+                urls = r.get("context", {}).get("url", {}).get("urls", [])
+                if urls:
+                    with st.spinner("Checking URLs with external APIs..."):
+                        external_api_result = check_url_external(urls[0])
 
         attack = r["attack_detected"]
         cats = r["categories"]
@@ -469,6 +573,43 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
                 st.subheader("What You Should Avoid")
                 for tip in donts:
                     st.markdown(f"- {tip}")
+            
+            # ---------------------------
+            # EXTERNAL API RESULTS (if enabled)
+            # ---------------------------
+            if external_api_result and external_api_result.get("enabled"):
+                st.markdown("---")
+                st.subheader(" External Threat Intelligence")
+                
+                threat_score = external_api_result.get("threat_score", 0)
+                summary = external_api_result.get("summary", "")
+                
+                if threat_score >= 0.5:
+                    st.error(f" **{summary}**")
+                elif threat_score >= 0.25:
+                    st.warning(f" {summary}")
+                else:
+                    st.success(f" {summary}")
+                
+                # Show individual source results
+                with st.expander("API Details"):
+                    for source in external_api_result.get("sources", []):
+                        source_name = source.get("source", "Unknown")
+                        if source.get("error"):
+                            st.markdown(f"- **{source_name}**: Error - {source['error']}")
+                        elif source_name == "virustotal":
+                            if source.get("malicious"):
+                                st.markdown(f"- **VirusTotal**: 🔴 Malicious ({source.get('positives', 0)}/{source.get('total', 0)} vendors)")
+                            else:
+                                st.markdown(f"- **VirusTotal**: ✅ Clean")
+                        elif source_name == "google_safebrowsing":
+                            if not source.get("safe", True):
+                                st.markdown(f"- **Google Safe Browsing**: 🔴 Threats: {', '.join(source.get('threats', []))}")
+                            else:
+                                st.markdown(f"- **Google Safe Browsing**: ✅ Safe")
+                        elif source_name == "abuseipdb":
+                            score = source.get("abuse_confidence_score", 0)
+                            st.markdown(f"- **AbuseIPDB**: Abuse score {score}%")
 
         # Safe message indicators
         if risk == "SAFE":
