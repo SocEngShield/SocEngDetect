@@ -211,69 +211,6 @@ st.markdown("---")
 # SIDEBAR: SETTINGS
 # ---------------------------
 
-with st.sidebar:
-    st.markdown("## Settings")
-    
-    # Privacy badge
-    st.success("**Privacy Mode Active**\nAll analysis runs locally.")
-    
-    st.markdown("---")
-    
-    # External APIs section
-    st.markdown("### External API Integration")
-    st.caption("Optional - enhances URL threat detection")
-    
-    # Custom CSS for highlighted toggle
-    st.markdown("""
-    <style>
-    div[data-testid="stToggle"] {
-        background-color: #1e3a5f;
-        padding: 12px 16px;
-        border-radius: 8px;
-        border: 2px solid #3d5a80;
-        margin: 8px 0;
-    }
-    div[data-testid="stToggle"] label {
-        font-size: 1.1rem !important;
-        font-weight: 600 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    if API_AVAILABLE:
-        api_status = get_api_status()
-        
-        use_external_api = st.toggle(
-            "Enable External Checks",
-            value=False,
-            help="Query threat intelligence APIs for URL verification"
-        )
-        st.session_state["use_external_api"] = use_external_api
-        
-        if use_external_api:
-            st.warning("URLs sent to external services")
-            
-            # Compact API status display
-            vt_ok = api_status["virustotal"]["configured"]
-            gsb_ok = api_status["google_safebrowsing"]["configured"]
-            aip_ok = api_status["abuseipdb"]["configured"]
-            
-            status_col1, status_col2 = st.columns(2)
-            with status_col1:
-                st.markdown(f"{'[OK]' if vt_ok else '[ ]'} VirusTotal")
-                st.markdown(f"{'[OK]' if gsb_ok else '[ ]'} SafeBrowsing")
-            with status_col2:
-                st.markdown(f"{'[OK]' if aip_ok else '[ ]'} AbuseIPDB")
-                st.markdown("[OK] URLhaus")
-            
-            if not any([vt_ok, gsb_ok, aip_ok]):
-                st.info("URLhaus active (no key needed)")
-    else:
-        st.caption("API module unavailable")
-        st.session_state["use_external_api"] = False
-    
-    st.markdown("---")
-    st.caption("v6.1 | Privacy-First")
 
 
 # ---------------------------
@@ -638,34 +575,121 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
 # ---------------------------
 
 with st.sidebar:
-    st.markdown("## System Information")
-    st.info(
-        "**RAG** — Semantic detection (60% weight)\n\n"
-        "**Rules** — Keyword signals (40% weight)\n\n"
-        "**Ensemble** — Weighted fusion + severity floors"
-    )
+    # Custom CSS for sidebar styling
+    st.markdown("""
+    <style>
+    /* Toggle styling - larger and more prominent */
+    div[data-testid="stToggle"] {
+        background-color: #1a1a2e;
+        padding: 16px 20px;
+        border-radius: 10px;
+        border: 2px solid #3d5a80;
+        margin: 12px 0;
+    }
+    div[data-testid="stToggle"] label {
+        font-size: 1.15rem !important;
+        font-weight: 600 !important;
+    }
+    div[data-testid="stToggle"] label > div {
+        transform: scale(1.3);
+    }
+    /* Status indicator styling */
+    .api-status-ok { color: #4ade80; font-weight: 600; }
+    .api-status-off { color: #f87171; font-weight: 600; }
+    .sidebar-section { 
+        background: #1a1a2e; 
+        padding: 12px 16px; 
+        border-radius: 8px; 
+        margin: 8px 0;
+        border-left: 3px solid #3d5a80;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("## Settings")
+    
+    # =====================
+    # SECTION 1: Privacy & API Toggle
+    # =====================
+    if API_AVAILABLE:
+        api_status = get_api_status()
+        
+        use_external_api = st.toggle(
+            "Enable External API Checks",
+            value=False,
+            help="Query threat intelligence APIs for URL verification"
+        )
+        st.session_state["use_external_api"] = use_external_api
+        
+        # Dynamic privacy status based on toggle
+        if use_external_api:
+            st.warning("**External Mode** — URLs sent to threat intelligence APIs")
+        else:
+            st.success("**Privacy Mode Active** — All analysis runs locally")
+        
+        # API Status Display (only when enabled)
+        if use_external_api:
+            st.markdown("#### API Status")
+            
+            vt_ok = api_status["virustotal"]["configured"]
+            gsb_ok = api_status["google_safebrowsing"]["configured"]
+            aip_ok = api_status["abuseipdb"]["configured"]
+            
+            # Color-coded status using HTML
+            vt_color = "#4ade80" if vt_ok else "#f87171"
+            gsb_color = "#4ade80" if gsb_ok else "#f87171"
+            aip_color = "#4ade80" if aip_ok else "#f87171"
+            uh_color = "#4ade80"  # URLhaus is always available (free, no key)
+            
+            st.markdown(f"""
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9rem;">
+                <span><span style="color: {vt_color}; font-size: 1.2em;">●</span> VirusTotal</span>
+                <span><span style="color: {gsb_color}; font-size: 1.2em;">●</span> SafeBrowsing</span>
+                <span><span style="color: {aip_color}; font-size: 1.2em;">●</span> AbuseIPDB</span>
+                <span><span style="color: {uh_color}; font-size: 1.2em;">●</span> URLhaus</span>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.session_state["use_external_api"] = False
+        st.success("**Privacy Mode Active** — All analysis runs locally")
+        st.caption("API module not available")
+    
     st.markdown("---")
-    st.markdown("## Risk Level Thresholds")
-    st.markdown(
-        "**HIGH** — 75-100%\n\n"
-        "**POTENTIAL** — 50-74.99%\n\n"
-        "**LOW** — 25-49.99%\n\n"
-        "**SAFE** — 0-24.99%"
-    )
-    st.markdown("---")
-    st.markdown(f"**Knowledge Base Patterns:** {len(SOCIAL_ENGINEERING_DATASET)}")
-
-    # Export functionality
+    
+    # =====================
+    # SECTION 2: System Information
+    # =====================
+    with st.expander("System Information", expanded=False):
+        st.markdown("""
+        **Detection Engine**
+        - RAG/ML: Semantic analysis (60%)
+        - Rules: Pattern matching (40%)
+        - Ensemble: Weighted fusion
+        
+        **Risk Thresholds**
+        - HIGH: 75-100%
+        - POTENTIAL: 50-74%
+        - LOW: 25-49%
+        - SAFE: 0-24%
+        """)
+        st.markdown(f"**Knowledge Base:** {len(SOCIAL_ENGINEERING_DATASET)} patterns")
+    
+    # =====================
+    # SECTION 3: Export (only if analysis exists)
+    # =====================
     if "last_analysis" in st.session_state:
         st.markdown("---")
-        st.markdown("## Export Report")
+        st.markdown("#### Export Report")
 
         analysis = st.session_state["last_analysis"]
         original_msg = analysis.get("message", "")
         
+        # Get external_api_result if it exists in session
+        ext_api = st.session_state.get("external_api_result", None)
+        
         report = {
             "timestamp": datetime.now().isoformat(),
-            "message": original_msg[:200],  # Truncate for JSON/CSV
+            "message": original_msg[:200],
             "risk_level": analysis.get("risk_level"),
             "attack_type": analysis.get("attack_type", ""),
             "categories": analysis.get("categories"),
@@ -687,12 +711,11 @@ with st.sidebar:
             "fusion_metadata": analysis.get("fusion_meta", {}),
             "why_flagged": analysis.get("why_flagged", []),
             "similar_attack_patterns": analysis.get("similar_attack_patterns", []),
-            "external_api": external_api_result if external_api_result else None,
+            "external_api": ext_api,
         }
 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
-        # Generate export data
         json_data = get_json_data(report)
         csv_data = get_csv_data(report)
         pdf_data = get_pdf_data(report, original_msg)

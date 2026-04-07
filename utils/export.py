@@ -27,21 +27,60 @@ def get_json_data(result: Dict[str, Any]) -> str:
 
 
 def get_csv_data(result: Dict[str, Any]) -> str:
-    """Return result as CSV string (in-memory)."""
+    """Return result as comprehensive CSV string (in-memory)."""
     url_info = result.get("context", {}).get("url", {})
     consistency = result.get("context", {}).get("consistency", {})
-    signals = result.get("signals", result.get("context", {}).get("signals", {}))
+    signals_raw = result.get("signals", result.get("context", {}).get("signals", {}))
+    confidence = result.get("confidence", {})
+    external_api = result.get("external_api", {})
     
+    # Flatten signals into separate columns
+    signal_scores = {}
+    if isinstance(signals_raw, dict):
+        for sig_name, sig_data in signals_raw.items():
+            if isinstance(sig_data, dict):
+                signal_scores[f"signal_{sig_name}"] = sig_data.get("score", 0)
+            else:
+                signal_scores[f"signal_{sig_name}"] = sig_data
+    
+    # Build comprehensive row
     row = {
-        "risk": result.get("risk_level", result.get("risk", "")),
-        "confidence": result.get("overall_confidence", result.get("confidence", "")),
+        "timestamp": result.get("timestamp", ""),
+        "risk_level": result.get("risk_level", result.get("risk", "")),
+        "confidence_overall": confidence.get("overall", result.get("overall_confidence", "")),
+        "confidence_rag": confidence.get("rag", ""),
+        "confidence_rule": confidence.get("rule", ""),
         "attack_type": result.get("attack_type", ""),
-        "signals": json.dumps(signals) if isinstance(signals, dict) else str(signals),
-        "categories": ", ".join(result.get("categories", [])),
-        "url_domain": consistency.get("domain", ""),
-        "url_malicious": url_info.get("malicious", False),
-        "inconsistency_score": consistency.get("score", 0),
+        "categories": "|".join(result.get("categories", [])),
+        "message_preview": result.get("message", "")[:100].replace("\n", " "),
     }
+    
+    # Add individual signal scores
+    row.update(signal_scores)
+    
+    # Add URL analysis
+    row.update({
+        "url_domain": consistency.get("domain", ""),
+        "url_malicious": str(url_info.get("malicious", False)),
+        "url_trusted": str(url_info.get("trusted", False)),
+        "inconsistency_score": consistency.get("score", 0),
+    })
+    
+    # Add external API results if available
+    if external_api and external_api.get("enabled"):
+        row["api_threat_score"] = external_api.get("threat_score", 0)
+        row["api_summary"] = external_api.get("summary", "")
+        # Add individual source results
+        for source in external_api.get("sources", []):
+            src_name = source.get("source", "unknown")
+            if source.get("error"):
+                row[f"api_{src_name}"] = f"Error: {source['error']}"
+            elif src_name == "virustotal":
+                row[f"api_{src_name}"] = "malicious" if source.get("malicious") else "clean"
+            elif src_name == "google_safebrowsing":
+                row[f"api_{src_name}"] = "unsafe" if not source.get("safe", True) else "safe"
+            elif src_name == "abuseipdb":
+                row[f"api_{src_name}"] = f"abuse_score:{source.get('abuse_confidence_score', 0)}"
     
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=row.keys())

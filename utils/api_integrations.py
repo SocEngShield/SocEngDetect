@@ -305,19 +305,15 @@ def check_url_urlhaus(url: str) -> dict:
         return cached
     
     try:
-        # URLhaus API is free and requires no authentication
+        # URLhaus API - use form data encoding properly
         response = requests.post(
             "https://urlhaus-api.abuse.ch/v1/url/",
-            data=f"url={url}",
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Accept": "application/json"
-            },
+            data={"url": url},
+            headers={"Accept": "application/json"},
             timeout=10
         )
         
         if response.status_code == 401:
-            # URLhaus shouldn't return 401, but handle gracefully
             result["error"] = "API temporarily unavailable"
             result["malicious"] = False
             return result
