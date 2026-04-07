@@ -267,8 +267,7 @@ The system supports optional external threat intelligence APIs for enhanced URL 
 |-----|-----------|---------|
 | VirusTotal | 500 req/day | URL reputation scanning |
 | Google Safe Browsing | 10K req/day | Malware/phishing detection |
-| AbuseIPDB | 1K req/day | IP abuse reporting |
-| URLhaus | Unlimited | Malware URL database |
+| AbuseIPDB | 1K req/day | IP abuse reporting & geolocation |
 
 ### Setup Instructions
 
@@ -276,7 +275,6 @@ The system supports optional external threat intelligence APIs for enhanced URL 
    - **VirusTotal**: [virustotal.com/gui/join-us](https://www.virustotal.com/gui/join-us)
    - **Google Safe Browsing**: [Google Cloud Console](https://console.cloud.google.com/apis/library/safebrowsing.googleapis.com)
    - **AbuseIPDB**: [abuseipdb.com/register](https://www.abuseipdb.com/register)
-   - **URLhaus**: Free, no key required (works automatically)
 
 2. **Configure via .env file** (recommended):
 ```bash

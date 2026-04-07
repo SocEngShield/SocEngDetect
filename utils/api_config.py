@@ -52,17 +52,12 @@ def get_safebrowsing_key() -> str:
     return _get_env("GOOGLE_SAFEBROWSING_API_KEY", "")
 
 
-def get_urlhaus_key() -> str:
-    """Get URLhaus API key."""
-    return _get_env("URLHAUS_API_KEY", "")
-
-
 def is_api_enabled() -> bool:
     """Check if API features are enabled (auto-enable if keys present)."""
     explicit = os.environ.get("SOCENG_API_ENABLED", "").lower()
     if explicit == "false":
         return False
-    if get_virustotal_key() or get_abuseipdb_key() or get_safebrowsing_key() or get_urlhaus_key():
+    if get_virustotal_key() or get_abuseipdb_key() or get_safebrowsing_key():
         return True
     return explicit == "true"
 
@@ -72,17 +67,14 @@ API_ENABLED = is_api_enabled()
 VIRUSTOTAL_API_KEY = get_virustotal_key()
 ABUSEIPDB_API_KEY = get_abuseipdb_key()
 GOOGLE_SAFEBROWSING_API_KEY = get_safebrowsing_key()
-URLHAUS_API_KEY = get_urlhaus_key()
 VIRUSTOTAL_ENABLED = bool(VIRUSTOTAL_API_KEY) and API_ENABLED
 ABUSEIPDB_ENABLED = bool(ABUSEIPDB_API_KEY) and API_ENABLED
 GOOGLE_SAFEBROWSING_ENABLED = bool(GOOGLE_SAFEBROWSING_API_KEY) and API_ENABLED
-URLHAUS_ENABLED = bool(URLHAUS_API_KEY) and API_ENABLED
 
 # Rate limits
 VIRUSTOTAL_RATE_LIMIT = 4
 ABUSEIPDB_RATE_LIMIT = 15
 GOOGLE_RATE_LIMIT = 100
-URLHAUS_RATE_LIMIT = 100
 
 # Cache
 API_CACHE_ENABLED = True
@@ -94,7 +86,6 @@ def get_api_status() -> dict:
     vt_key = get_virustotal_key()
     aip_key = get_abuseipdb_key()
     gsb_key = get_safebrowsing_key()
-    uh_key = get_urlhaus_key()
     enabled = is_api_enabled()
     
     return {
@@ -111,8 +102,7 @@ def get_api_status() -> dict:
             "enabled": bool(gsb_key) and enabled,
             "configured": bool(gsb_key),
         },
-        "urlhaus": {
-            "enabled": bool(uh_key) and enabled,
+    }
             "configured": bool(uh_key),
         },
     }
