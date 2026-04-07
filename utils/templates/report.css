@@ -276,6 +276,44 @@ body {
     font-weight: bold;
 }
 
+/* External API Section */
+.api-section {
+    background: var(--card);
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid var(--info);
+    margin-bottom: 30px;
+}
+.api-summary {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border);
+}
+.api-summary p {
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+.api-sources h4 {
+    font-size: 13px;
+    margin-bottom: 10px;
+    color: var(--info);
+}
+.api-sources ul {
+    list-style: none;
+    font-size: 12px;
+}
+.api-sources li {
+    margin-bottom: 8px;
+    padding-left: 15px;
+    position: relative;
+}
+.api-sources li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--info);
+}
+
 .protocol-box h4 { font-size: 13px; margin-bottom: 12px; }
 .protocol-box ul { list-style: none; font-size: 12px; }
 .protocol-box li { margin-bottom: 8px; padding-left: 15px; position: relative; }

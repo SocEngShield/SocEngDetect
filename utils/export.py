@@ -203,6 +203,41 @@ def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[st
             ]
         }
     
+    # Process external API results
+    external_api = result.get("external_api")
+    external_api_data = None
+    if external_api and external_api.get("enabled"):
+        api_sources = []
+        for source in external_api.get("sources", []):
+            source_name = source.get("source", "Unknown")
+            if source.get("error"):
+                api_sources.append({"name": source_name, "status": f"Error: {source['error']}"})
+            elif source_name == "virustotal":
+                if source.get("malicious"):
+                    api_sources.append({"name": "VirusTotal", "status": f"MALICIOUS ({source.get('positives', 0)}/{source.get('total', 0)} vendors)"})
+                else:
+                    api_sources.append({"name": "VirusTotal", "status": "Clean"})
+            elif source_name == "google_safebrowsing":
+                if not source.get("safe", True):
+                    api_sources.append({"name": "Google Safe Browsing", "status": f"THREATS: {', '.join(source.get('threats', []))}"})
+                else:
+                    api_sources.append({"name": "Google Safe Browsing", "status": "Safe"})
+            elif source_name == "abuseipdb":
+                score = source.get("abuse_confidence_score", 0)
+                api_sources.append({"name": "AbuseIPDB", "status": f"Abuse score: {score}%"})
+            elif source_name == "urlhaus":
+                if source.get("malicious"):
+                    api_sources.append({"name": "URLhaus", "status": f"MALWARE ({source.get('threat_type', 'unknown')})"})
+                else:
+                    api_sources.append({"name": "URLhaus", "status": "Not in malware database"})
+        
+        external_api_data = {
+            "enabled": True,
+            "threat_score": external_api.get("threat_score", 0),
+            "summary": external_api.get("summary", ""),
+            "sources": api_sources
+        }
+    
     return {
         "report_id": report_id,
         "timestamp": timestamp.strftime('%Y-%m-%d %H:%M:%S'),
@@ -226,7 +261,8 @@ def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[st
         "insights": insights,
         "recommendations": recommendations,
         "why_flagged": why_flagged,
-        "similar_attack_patterns": similar_patterns
+        "similar_attack_patterns": similar_patterns,
+        "external_api": external_api_data
     }
 
 

@@ -124,6 +124,24 @@
         </section>
         {% endif %}
 
+        {% if external_api and external_api.enabled %}
+        <section class="section api-section">
+            <h3 class="section-heading">External Threat Intelligence</h3>
+            <div class="api-summary">
+                <p><strong>Threat Score:</strong> {{ '{:.0f}'.format(external_api.threat_score * 100) }}%</p>
+                <p><strong>Summary:</strong> {{ external_api.summary }}</p>
+            </div>
+            <div class="api-sources">
+                <h4>API Sources:</h4>
+                <ul>
+                    {% for source in external_api.sources %}
+                    <li><strong>{{ source.name }}:</strong> {{ source.status }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+        {% endif %}
+
         <section class="protocol-section">
             <h3 class="section-heading">Incident Response Protocol</h3>
             <div class="protocol-grid">
