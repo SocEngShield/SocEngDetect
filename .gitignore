@@ -36,3 +36,8 @@ dist/
 # IDE/editor files
 .vscode/
 .idea/
+
+# Environment/secrets
+.env
+.env.local
+*.env

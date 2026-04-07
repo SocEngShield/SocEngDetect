@@ -7,4 +7,4 @@ reportlab
 jinja2
 weasyprint
 torchvision
-requests  # Optional: for external API integrations
+requests
