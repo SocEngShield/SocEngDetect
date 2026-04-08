@@ -190,18 +190,53 @@ social_engineering_detector/
 
 ## Technical Details
 
-**Detection Model**
-- RAG: `sentence-transformers/all-MiniLM-L6-v2`
-- Knowledge Base: 550+ patterns
-- Fusion Weights: 60% RAG / 40% Rules
+### Detection Architecture
+
+This system uses a **Retrieval-Augmented Generation (RAG)** approach combined with rule-based signal analysis. It is NOT a fine-tuned/trained ML model—it's a retrieval system with semantic understanding.
+
+**Key Points for Technical Review:**
+- We use pre-trained embeddings (sentence-transformers/all-MiniLM-L6-v2)
+- No gradient descent or model training occurs
+- Knowledge base is the retrieval index (700+ curated patterns)
+- Sources: FBI IC3, APWG, FTC, Microsoft Digital Defense Report, IRS/SSA
+
+### RAG Detector
+
+| Component | Details |
+|-----------|---------|
+| Model | sentence-transformers/all-MiniLM-L6-v2 |
+| Embedding Dimensions | 384 |
+| Parameters | 22.7M (lightweight) |
+| Inference Time | <50ms per message |
+| Knowledge Base | 700+ patterns from official sources |
+
+**Confidence Calculation:**
+1. Encode input message to 384D vector
+2. Compute cosine similarity against knowledge base
+3. Apply sigmoid transformation: `prob = 1/(1 + exp(-9*(score - 0.40)))`
+4. Apply keyword floors and neighbor agreement boost
+5. Convert to percentage (0-100%)
+
+### Signal Detectors
+1. **Urgency**: Time pressure, deadlines, "act now" language
+2. **Fear/Threat**: Account suspension, legal threats, penalties
+3. **Authority**: Executive/IT/government impersonation
+4. **Impersonation**: Fake brand/service identity claims
+5. **Reward/Lure**: Prizes, cashback, lottery, financial offers
+
+### Signal Fusion (Weighted Ensemble)
+```
+Final Score = 0.6 × RAG_Confidence + 0.4 × Rule_Confidence
+```
+- Agreement boost: +15% when both ML and rules detect same signal
 - Risk Thresholds: SAFE (0-24%), LOW (25-49%), POTENTIAL (50-74%), HIGH (75-100%)
 
-**Signal Detectors**
-1. Urgency: Time pressure, deadlines
-2. Fear/Threat: Account suspension, legal threats
-3. Authority: Executive/IT/government impersonation
-4. Impersonation: Fake brand/service claims
-5. Reward/Lure: Prizes, cashback, lottery offers
+### Similarity Score Calculation
+```python
+cosine_similarity(A, B) = (A · B) / (||A|| × ||B||)
+```
+- Range: 0.0 (different) to 1.0 (identical)
+- Minimum threshold: 25% to appear in similar patterns
 
 **Offline URL Analysis**
 - No external API required
