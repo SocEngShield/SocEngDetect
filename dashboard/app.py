@@ -106,7 +106,8 @@ def highlight_suspicious_phrases(text: str, signals: dict) -> str:
             r"(expires?|expir(?:ing|ation)|deadline|limited time|hurry|asap|don't delay|don't wait)",
             r"(final warning|final notice|last chance|time(?:-| )sensitive|respond (?:now|today|immediately))",
             r"(must (?:act|respond|verify|confirm)|required (?:now|immediately)|action required)",
-            r"(running out|ends (?:today|soon|tonight)|only \d+ (?:left|remaining|hours?|days?))",
+            r"(running out|ends (?:today|soon|tonight)|only \d+ (?:left|remaining|hours?|days?)|quick)",
+            r"(do it now|immediately|attention|promptly|without delay|crucial|critical time)",
         ],
         "fear_threat": [
             r"(suspended|terminated|legal action|court|police|arrest|frozen|blocked|deactivated)",
@@ -215,26 +216,26 @@ st.markdown("""
 <style>
     /* ===== GLOBAL THEME ===== */
     :root {
-        --primary: #3d5a80;
-        --primary-light: #5c7a9e;
+        --primary: #476a9c;
+        --primary-light: #6b8db5;
         --accent: #00d4ff;
         --success: #10b981;
         --warning: #f59e0b;
         --danger: #ef4444;
         --safe: #10b981;
-        --bg-dark: #0f172a;
-        --bg-card: #1e293b;
-        --text-primary: #f1f5f9;
-        --text-muted: #94a3b8;
-        --border-radius: 12px;
-        --shadow: 0 4px 20px rgba(0,0,0,0.25);
-        --glass-bg: rgba(30, 41, 59, 0.8);
-        --glass-border: rgba(148, 163, 184, 0.1);
+        --bg-dark: #0a0f18; /* Darker for better contrast */
+        --bg-card: #182235;
+        --text-primary: #f8fafc;
+        --text-muted: #cbd5e1;
+        --border-radius: 8px;
+        --shadow: 0 4px 15px rgba(0,0,0,0.4);
+        --glass-bg: #1e293b; /* Solid instead of mostly transparent */
+        --glass-border: #334155; /* Distinct border */
     }
     
     /* Base layout */
     .block-container { padding-top: 2rem; padding-bottom: 2rem; max-width: 1200px; }
-    .stApp { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%); }
+    .stApp { background-color: var(--bg-dark); }
     
     /* ===== CLEAN MINIMAL CARDS ===== */
     .glass-card {
@@ -252,55 +253,62 @@ st.markdown("""
         padding: 1.5rem 2rem;
         border-radius: var(--border-radius);
         text-align: center;
-        margin: 1rem 0;
-        border-left: 4px solid;
+        border-left: 5px solid;
+        transition: all 0.3s ease;
+    }
+    .verdict-box:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
     .verdict-text {
-        font-size: 1.5rem;
-        font-weight: 700;
+        font-size: 1.6rem;
+        font-weight: 800;
         margin: 0 0 0.5rem 0;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.03em;
     }
     .verdict-meta {
         font-size: 0.95rem;
         margin: 0.25rem 0;
+        color: #e2e8f0;
     }
     .verdict-high {
-        background: linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.05) 100%);
-        border-color: var(--danger);
-        color: #fecaca;
+        background: rgba(127, 29, 29, 0.4);
+        border-color: #ef4444;
+        color: #fca5a5;
     }
     .verdict-high .verdict-text { color: #f87171; }
     .verdict-potential {
-        background: linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(245,158,11,0.05) 100%);
-        border-color: var(--warning);
-        color: #fde68a;
+        background: rgba(120, 53, 15, 0.4);
+        border-color: #f59e0b;
+        color: #fcd34d;
     }
     .verdict-potential .verdict-text { color: #fbbf24; }
     .verdict-low {
-        background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(59,130,246,0.05) 100%);
+        background: rgba(30, 58, 138, 0.4);
         border-color: #3b82f6;
-        color: #bfdbfe;
+        color: #93c5fd;
     }
     .verdict-low .verdict-text { color: #60a5fa; }
     .verdict-safe {
-        background: linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.05) 100%);
-        border-color: var(--success);
-        color: #a7f3d0;
+        background: rgba(6, 78, 59, 0.4);
+        border-color: #10b981;
+        color: #6ee7b7;
     }
     .verdict-safe .verdict-text { color: #34d399; }
     
-    /* ===== RISK INDICATOR (replacing gauge) ===== */
+    /* ===== RISK INDICATOR (shifted right) ===== */
     .risk-indicator {
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 1.5rem;
-        padding: 1rem;
+        padding: 1.5rem;
         background: var(--glass-bg);
         border-radius: var(--border-radius);
         border: 1px solid var(--glass-border);
+        box-shadow: var(--shadow);
     }
+
     .risk-score {
         font-size: 2.5rem;
         font-weight: 800;
@@ -376,42 +384,38 @@ st.markdown("""
     
     /* ===== HIGHLIGHTED TEXT ===== */
     .analyzed-text-box {
-        background: var(--glass-bg);
+        background: #111827; /* Darker distinct background */
         border: 1px solid var(--glass-border);
         border-radius: var(--border-radius);
         padding: 1.25rem;
-        font-size: 0.95rem;
+        font-size: 1rem;
         line-height: 1.7;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
     }
     .highlight-urgent { 
-        background: rgba(251,191,36,0.3); 
-        padding: 2px 6px; 
-        border-radius: 4px;
-        border-bottom: 2px solid #fbbf24;
+        border-bottom: 2px dashed #fbbf24;
+        color: #fde68a;
+        font-weight: 500;
     }
     .highlight-threat { 
-        background: rgba(248,113,113,0.3); 
-        padding: 2px 6px; 
-        border-radius: 4px;
-        border-bottom: 2px solid #f87171;
+        border-bottom: 2px dashed #f87171;
+        color: #fecaca;
+        font-weight: 500;
     }
     .highlight-reward { 
-        background: rgba(167,139,250,0.3); 
-        padding: 2px 6px; 
-        border-radius: 4px;
-        border-bottom: 2px solid #a78bfa;
+        border-bottom: 2px dashed #a78bfa;
+        color: #ddd6fe;
+        font-weight: 500;
     }
     .highlight-authority { 
-        background: rgba(96,165,250,0.3); 
-        padding: 2px 6px; 
-        border-radius: 4px;
-        border-bottom: 2px solid #60a5fa;
+        border-bottom: 2px dashed #60a5fa;
+        color: #bfdbfe;
+        font-weight: 500;
     }
     .highlight-impersonation { 
-        background: rgba(45,212,191,0.3); 
-        padding: 2px 6px; 
-        border-radius: 4px;
-        border-bottom: 2px solid #2dd4bf;
+        border-bottom: 2px dashed #2dd4bf;
+        color: #a7f3d0;
+        font-weight: 500;
     }
     
     /* ===== SCORE BARS ===== */
@@ -732,6 +736,22 @@ if comparison_mode:
                 st.warning(f"Message A is more suspicious (+{diff:.1f}%)")
             else:
                 st.warning(f"Message B is more suspicious (+{diff:.1f}%)")
+            
+            # Save for export
+            st.session_state["last_analysis"] = {
+                "message": f"COMPARISON MODE\n\nMESSAGE A:\n{msg_a}\n\nMESSAGE B:\n{msg_b}",
+                "risk_level": risk_a if score_a > score_b else risk_b,
+                "attack_type": r_a.get("attack_type", "") if score_a > score_b else r_b.get("attack_type", ""),
+                "categories": r_a.get("categories", []) + r_b.get("categories", []),
+                "rag_confidence": max(rag_a, rag_b),
+                "rule_confidence": max(rule_score_a, rule_score_b),
+                "overall_confidence": max(score_a, score_b),
+                "signal_breakdown": fused_a.get("per_signal_breakdown", {}) if score_a > score_b else fused_b.get("per_signal_breakdown", {}),
+                "fusion_meta": fused_a.get("fusion_meta", {}) if score_a > score_b else fused_b.get("fusion_meta", {}),
+                "context": r_a.get("context", {}) if score_a > score_b else r_b.get("context", {}),
+                "why_flagged": r_a.get("why_flagged", []) + r_b.get("why_flagged", []),
+                "similar_attack_patterns": r_a.get("similar_attack_patterns", []) if score_a > score_b else r_b.get("similar_attack_patterns", []),
+            }
 
 else:
     msg = st.text_area(
@@ -816,19 +836,21 @@ if not comparison_mode and st.button("ANALYZE MESSAGE", type="primary", use_cont
         risk_color = {"HIGH": "#f87171", "POTENTIAL": "#fbbf24", "LOW": "#60a5fa", "SAFE": "#34d399"}.get(risk, "#34d399")
         
         st.markdown(
-            f'''<div class="verdict-box {verdict_css}">
-                <div class="verdict-text">{verdict_text}</div>
-                <div class="verdict-meta"><b>Risk Level:</b> {risk_title} | <b>Score:</b> {final_score:.1f}%</div>
-                <div class="verdict-meta"><b>Category:</b> {cat_label}</div>
-            </div>
-            <div class="risk-indicator">
-                <div>
-                    <div class="risk-score" style="color: {risk_color};">{final_score:.0f}%</div>
-                    <div class="risk-label">Threat Score</div>
+            f'''<div style="display: flex; gap: 1rem; margin: 1rem 0; align-items: stretch; width: 100%;">
+                <div class="verdict-box {verdict_css}" style="flex: 1; margin: 0; display: flex; flex-direction: column; justify-content: center;">
+                    <div class="verdict-text">{verdict_text}</div>
+                    <div class="verdict-meta"><b>Risk Level:</b> {risk_title} | <b>Score:</b> {final_score:.1f}%</div>
+                    <div class="verdict-meta"><b>Category:</b> {cat_label}</div>
                 </div>
-                <div class="risk-bar">
-                    <div class="risk-bar-track">
-                        <div class="risk-bar-fill {risk_bar_class}" style="width: {min(final_score, 100):.1f}%;"></div>
+                <div class="risk-indicator" style="flex: 1; margin: 0; width: auto; max-width: none;">
+                    <div>
+                        <div class="risk-score" style="color: {risk_color};">{final_score:.0f}%</div>
+                        <div class="risk-label">Threat Score</div>
+                    </div>
+                    <div class="risk-bar" style="flex: 1; max-width: auto; min-width: 150px;">
+                        <div class="risk-bar-track">
+                            <div class="risk-bar-fill {risk_bar_class}" style="width: {min(final_score, 100):.1f}%;"></div>
+                        </div>
                     </div>
                 </div>
             </div>''',
@@ -1097,14 +1119,15 @@ with st.sidebar:
     <style>
     /* Sidebar base */
     section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+        background-color: #090e14 !important;
+        border-right: 1px solid #1e293b;
     }
     /* Toggle styling */
     div[data-testid="stToggle"] {
-        background: rgba(30, 41, 59, 0.8);
+        background: #111827;
         padding: 14px 18px;
         border-radius: 10px;
-        border: 1px solid rgba(148, 163, 184, 0.2);
+        border: 1px solid #334155;
         margin: 10px 0;
     }
     div[data-testid="stToggle"] label {
