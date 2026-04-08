@@ -39,7 +39,8 @@ except ImportError:
 # UTILS
 # ---------------------------
 
-def filter_similar_patterns(similar_patterns, max_items=3):
+def filter_similar_patterns(similar_patterns, max_items=5, min_similarity=25.0):
+    """Filter similar patterns to remove duplicates and low-similarity matches."""
     if not similar_patterns:
         return []
 
@@ -53,6 +54,11 @@ def filter_similar_patterns(similar_patterns, max_items=3):
     for item in ordered:
         text = item.get("text", "").strip()
         if not text:
+            continue
+        
+        # Skip patterns below minimum similarity threshold
+        sim_val = similarity_value(item)
+        if sim_val < min_similarity:
             continue
 
         cand_tokens = set(re.findall(r"[a-z0-9]+", text.lower()))
@@ -73,8 +79,6 @@ def filter_similar_patterns(similar_patterns, max_items=3):
         if len(selected) == max_items:
             break
 
-    if len(selected) >= 2:
-        return selected[:max_items]
     return selected
 
 
@@ -91,6 +95,112 @@ def shorten_text(text, max_len=140):
     return clean[: max_len - 3].rstrip() + "..."
 
 
+def highlight_suspicious_phrases(text: str, signals: dict) -> str:
+    """Highlight suspicious phrases in text based on detected signals."""
+    highlighted = text
+    
+    # Expanded patterns for each signal type - more comprehensive coverage
+    highlight_patterns = {
+        "urgency": [
+            r"(urgent(?:ly)?|immediate(?:ly)?|right now|act now|within \d+ (?:hour|minute|day|second)s?)",
+            r"(expires?|expir(?:ing|ation)|deadline|limited time|hurry|asap|don't delay|don't wait)",
+            r"(final warning|final notice|last chance|time(?:-| )sensitive|respond (?:now|today|immediately))",
+            r"(must (?:act|respond|verify|confirm)|required (?:now|immediately)|action required)",
+            r"(running out|ends (?:today|soon|tonight)|only \d+ (?:left|remaining|hours?|days?))",
+        ],
+        "fear_threat": [
+            r"(suspended|terminated|legal action|court|police|arrest|frozen|blocked|deactivated)",
+            r"(hacked|compromised|breach(?:ed)?|investigation|prosecution|warning|alert)",
+            r"(unauthorized|suspicious (?:activity|login|access)|security (?:alert|warning|issue))",
+            r"(permanent(?:ly)?|will be (?:closed|locked|deleted|terminated)|restrict(?:ed|ion))",
+            r"(consequences|penalty|penalties|violation|violated|failure to comply)",
+        ],
+        "reward_lure": [
+            r"(won|winner|prize|reward|congratulations|lottery|gift card|free|cashback)",
+            r"(refund|claim|bonus|selected|lucky|exclusive (?:offer|deal|access))",
+            r"(limited (?:offer|deal)|special (?:offer|promotion)|discount|savings)",
+            r"(\$\d+|\d+\s*(?:dollars|usd|gbp|euro)|\d+%\s*off|complimentary)",
+        ],
+        "authority": [
+            r"(ceo|cfo|cto|director|manager|executive|president|vice president|vp)",
+            r"(it department|security team|admin(?:istrator)?|official|government|federal)",
+            r"(irs|fbi|cia|dhs|tax (?:authority|office)|police department)",
+            r"(microsoft|apple|google|amazon|paypal|netflix|bank of|wells fargo|chase)",
+            r"(hr department|human resources|compliance|legal department|internal)",
+        ],
+        "impersonation": [
+            r"(verify your|confirm your|update your|validate your|authenticate your)",
+            r"(click (?:here|below|this link)|log\s*in|sign\s*in|access your)",
+            r"(account|password|credentials|security (?:check|code)|identity verification)",
+            r"(ssn|social security|credit card|bank (?:account|details)|routing number)",
+            r"(reset your|recover your|unlock your|secure your)",
+        ],
+    }
+    
+    # Map signal names to CSS classes
+    css_classes = {
+        "urgency": "highlight-urgent",
+        "fear_threat": "highlight-threat",
+        "reward_lure": "highlight-reward",
+        "authority": "highlight-authority",
+        "impersonation": "highlight-impersonation",
+    }
+    
+    # Only highlight active signals
+    for signal_name, signal_data in signals.items():
+        if signal_data.get("is_active", False) and signal_name in highlight_patterns:
+            css_class = css_classes.get(signal_name, "")
+            for pattern in highlight_patterns[signal_name]:
+                highlighted = re.sub(
+                    pattern,
+                    f'<span class="{css_class}">\\1</span>',
+                    highlighted,
+                    flags=re.IGNORECASE
+                )
+    
+    return highlighted
+
+
+def create_signal_card_html(signal_name: str, score: float, is_active: bool, ml_boosted: bool = False) -> str:
+    """Create a styled signal card with icon and animated bar."""
+    # Signal icons and colors
+    signal_config = {
+        "urgency": {"icon": "[U]", "bg": "rgba(255,152,0,0.2)", "label": "Urgency"},
+        "fear_threat": {"icon": "[!]", "bg": "rgba(244,67,54,0.2)", "label": "Fear/Threat"},
+        "reward_lure": {"icon": "[R]", "bg": "rgba(156,39,176,0.2)", "label": "Reward/Lure"},
+        "authority": {"icon": "[A]", "bg": "rgba(33,150,243,0.2)", "label": "Authority"},
+        "impersonation": {"icon": "[I]", "bg": "rgba(0,150,136,0.2)", "label": "Impersonation"},
+    }
+    
+    config = signal_config.get(signal_name, {"icon": "[S]", "bg": "rgba(128,128,128,0.2)", "label": signal_name})
+    
+    # Determine strength class
+    if score >= 0.6:
+        strength_class = "signal-high"
+    elif score >= 0.35:
+        strength_class = "signal-medium"
+    else:
+        strength_class = "signal-low"
+    
+    # ML boost indicator
+    boost_badge = '<span style="font-size: 0.7rem; color: #64b5f6; margin-left: 0.3rem;">+ML</span>' if ml_boosted else ''
+    
+    pct = min(score * 100, 100)
+    
+    return f'''
+    <div class="signal-card">
+        <div class="signal-header">
+            <div class="signal-icon" style="background: {config['bg']};">{config['icon']}</div>
+            <span class="signal-name">{config['label']}{boost_badge}</span>
+            <span class="signal-score">{pct:.0f}%</span>
+        </div>
+        <div class="signal-bar-track">
+            <div class="signal-bar-fill {strength_class}" style="width: {pct}%;"></div>
+        </div>
+    </div>
+    '''
+
+
 # ---------------------------
 # PAGE CONFIG
 # ---------------------------
@@ -103,75 +213,287 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    .block-container { padding-top: 2rem; padding-bottom: 2rem; }
+    /* ===== GLOBAL THEME ===== */
+    :root {
+        --primary: #3d5a80;
+        --primary-light: #5c7a9e;
+        --accent: #00d4ff;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --safe: #10b981;
+        --bg-dark: #0f172a;
+        --bg-card: #1e293b;
+        --text-primary: #f1f5f9;
+        --text-muted: #94a3b8;
+        --border-radius: 12px;
+        --shadow: 0 4px 20px rgba(0,0,0,0.25);
+        --glass-bg: rgba(30, 41, 59, 0.8);
+        --glass-border: rgba(148, 163, 184, 0.1);
+    }
+    
+    /* Base layout */
+    .block-container { padding-top: 2rem; padding-bottom: 2rem; max-width: 1200px; }
+    .stApp { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%); }
+    
+    /* ===== CLEAN MINIMAL CARDS ===== */
+    .glass-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--border-radius);
+        padding: 1.25rem;
+        margin: 0.75rem 0;
+        box-shadow: var(--shadow);
+    }
+    
+    /* ===== VERDICT BOX ===== */
     .verdict-box {
-        width: min(900px, 90%);
-        margin: 1rem auto 1.2rem auto;
-        padding: 1.25rem 1rem;
-        border-radius: 0.7rem;
-        border: 2px solid transparent;
+        width: 100%;
+        padding: 1.5rem 2rem;
+        border-radius: var(--border-radius);
         text-align: center;
+        margin: 1rem 0;
+        border-left: 4px solid;
     }
     .verdict-text {
-        font-size: 1.7rem;
-        font-weight: 800;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
         letter-spacing: 0.02em;
-        margin: 0 0 0.55rem 0;
     }
     .verdict-meta {
-        font-size: 1rem;
-        line-height: 1.5;
-        margin: 0.1rem 0;
-        text-align: center;
+        font-size: 0.95rem;
+        margin: 0.25rem 0;
     }
     .verdict-high {
-        background: #ffe5e5;
-        border-color: #d32f2f;
-        color: #1f1f1f;
+        background: linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.05) 100%);
+        border-color: var(--danger);
+        color: #fecaca;
     }
+    .verdict-high .verdict-text { color: #f87171; }
     .verdict-potential {
-        background: #fff4e5;
-        border-color: #ef6c00;
-        color: #1f1f1f;
+        background: linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(245,158,11,0.05) 100%);
+        border-color: var(--warning);
+        color: #fde68a;
     }
+    .verdict-potential .verdict-text { color: #fbbf24; }
     .verdict-low {
-        background: #e6f0ff;
-        border-color: #1e88e5;
-        color: #1f1f1f;
+        background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(59,130,246,0.05) 100%);
+        border-color: #3b82f6;
+        color: #bfdbfe;
     }
+    .verdict-low .verdict-text { color: #60a5fa; }
     .verdict-safe {
-        background: #e6ffe6;
-        border-color: #2e7d32;
-        color: #1f1f1f;
+        background: linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.05) 100%);
+        border-color: var(--success);
+        color: #a7f3d0;
     }
-    .score-title {
-        font-size: 0.95rem;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
+    .verdict-safe .verdict-text { color: #34d399; }
+    
+    /* ===== RISK INDICATOR (replacing gauge) ===== */
+    .risk-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+        padding: 1rem;
+        background: var(--glass-bg);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--glass-border);
     }
-    .score-value {
-        font-size: 1.1rem;
-        font-weight: 700;
-        margin-bottom: 0.45rem;
+    .risk-score {
+        font-size: 2.5rem;
+        font-weight: 800;
+        line-height: 1;
     }
-    .bar-track {
-        width: 100%;
-        height: 0.5rem;
-        background: #eceff3;
-        border-radius: 999px;
+    .risk-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+    .risk-bar {
+        flex: 1;
+        max-width: 200px;
+    }
+    .risk-bar-track {
+        height: 8px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 4px;
         overflow: hidden;
     }
-    .bar-fill {
+    .risk-bar-fill {
         height: 100%;
-        border-radius: 999px;
+        border-radius: 4px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .bar-rag { background: #bcd8ff; }
-    .bar-rule { background: #ffd8b0; }
-    .bar-final { background: #c9eccd; }
+    .risk-high { background: linear-gradient(90deg, #f87171, #ef4444); }
+    .risk-potential { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+    .risk-low { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
+    .risk-safe { background: linear-gradient(90deg, #34d399, #10b981); }
+    
+    /* ===== SIGNAL CARDS ===== */
+    .signal-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        margin: 0.4rem 0;
+    }
+    .signal-header {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-bottom: 0.4rem;
+    }
+    .signal-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+    .signal-name { font-weight: 600; font-size: 0.9rem; }
+    .signal-score { margin-left: auto; font-weight: 700; font-size: 0.95rem; }
+    .signal-bar-track {
+        width: 100%;
+        height: 6px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    .signal-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .signal-high { background: linear-gradient(90deg, #f87171, #ef4444); }
+    .signal-medium { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+    .signal-low { background: linear-gradient(90deg, #34d399, #10b981); }
+    
+    /* ===== HIGHLIGHTED TEXT ===== */
+    .analyzed-text-box {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--border-radius);
+        padding: 1.25rem;
+        font-size: 0.95rem;
+        line-height: 1.7;
+    }
+    .highlight-urgent { 
+        background: rgba(251,191,36,0.3); 
+        padding: 2px 6px; 
+        border-radius: 4px;
+        border-bottom: 2px solid #fbbf24;
+    }
+    .highlight-threat { 
+        background: rgba(248,113,113,0.3); 
+        padding: 2px 6px; 
+        border-radius: 4px;
+        border-bottom: 2px solid #f87171;
+    }
+    .highlight-reward { 
+        background: rgba(167,139,250,0.3); 
+        padding: 2px 6px; 
+        border-radius: 4px;
+        border-bottom: 2px solid #a78bfa;
+    }
+    .highlight-authority { 
+        background: rgba(96,165,250,0.3); 
+        padding: 2px 6px; 
+        border-radius: 4px;
+        border-bottom: 2px solid #60a5fa;
+    }
+    .highlight-impersonation { 
+        background: rgba(45,212,191,0.3); 
+        padding: 2px 6px; 
+        border-radius: 4px;
+        border-bottom: 2px solid #2dd4bf;
+    }
+    
+    /* ===== SCORE BARS ===== */
+    .score-section {
+        background: var(--glass-bg);
+        border-radius: var(--border-radius);
+        padding: 1rem 1.25rem;
+        margin: 0.5rem 0;
+        border: 1px solid var(--glass-border);
+    }
+    .score-title { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+    .score-value { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .bar-track {
+        width: 100%;
+        height: 6px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    .bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+    .bar-rag { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
+    .bar-rule { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+    .bar-final { background: linear-gradient(90deg, #34d399, #10b981); }
+    
+    /* ===== PATTERN CARDS ===== */
+    .pattern-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        padding: 0.85rem 1rem;
+        margin: 0.5rem 0;
+    }
+    .pattern-similarity {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .sim-high { background: rgba(16,185,129,0.2); color: #34d399; }
+    .sim-medium { background: rgba(245,158,11,0.2); color: #fbbf24; }
+    .sim-low { background: rgba(148,163,184,0.2); color: #94a3b8; }
+    
+    /* ===== COMPARISON CARDS ===== */
+    .compare-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--border-radius);
+        padding: 1.25rem;
+        height: 100%;
+    }
+    .compare-header {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    /* ===== BUTTONS ===== */
     #MainMenu, footer { visibility: hidden; }
     .stButton>button {
-        width: 100%; border-radius: .5rem; padding: .75rem 1rem; font-weight: 600;
+        width: 100%;
+        border-radius: 8px;
+        padding: 0.8rem 1.5rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        transition: all 0.3s ease;
+        border: none;
     }
+    .stButton>button[kind="primary"] {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+    .stButton>button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
+    
+    /* ===== EXPANDER STYLING ===== */
+    .streamlit-expanderHeader { background: var(--glass-bg); border-radius: 8px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -199,12 +521,11 @@ if err:
 
 
 # ---------------------------
-# HEADER
+# HEADER (Clean minimal title)
 # ---------------------------
 
-st.title("Social Engineering Detection System")
-st.caption("RAG + NLP + Rule Engine  |  Weighted Ensemble (0.6 RAG / 0.4 Rules)")
-st.markdown("---")
+st.title("Social Engineering Detection")
+st.caption("RAG + NLP + Rule Engine | Weighted Ensemble (0.6 RAG / 0.4 Rules) | Privacy-First")
 
 
 # ---------------------------
@@ -219,6 +540,8 @@ st.markdown("---")
 
 if "simulated_message" not in st.session_state:
     st.session_state.simulated_message = ""
+if "comparison_mode" not in st.session_state:
+    st.session_state.comparison_mode = False
 
 
 # ---------------------------
@@ -249,14 +572,177 @@ with st.expander("Attack Simulation Mode", expanded=False):
 
 st.subheader("Enter Message to Analyze")
 
-msg = st.text_area(
-    "Message Content",
-    value=st.session_state.simulated_message,
-    height=150,
-    placeholder="Your bank account has been suspended. Verify immediately.",
-)
+# Comparison mode toggle
+comp_cols = st.columns([4, 1])
+with comp_cols[1]:
+    comparison_mode = st.checkbox("Compare", key="comparison_mode", help="Compare two messages side-by-side")
 
-if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
+if comparison_mode:
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown("**Message A**")
+        msg_a = st.text_area(
+            "Message A Content",
+            value=st.session_state.simulated_message,
+            height=120,
+            placeholder="First message to analyze...",
+            label_visibility="collapsed"
+        )
+    with col_b:
+        st.markdown("**Message B**")
+        msg_b = st.text_area(
+            "Message B Content",
+            height=120,
+            placeholder="Second message to compare...",
+            label_visibility="collapsed"
+        )
+    msg = msg_a  # Primary message for backward compatibility
+    
+    if st.button("COMPARE MESSAGES", type="primary", use_container_width=True):
+        if (not msg_a or len(msg_a.strip()) < 10) or (not msg_b or len(msg_b.strip()) < 10):
+            st.warning("Please enter at least 10 characters in both messages.")
+        else:
+            with st.spinner("Analyzing both messages..."):
+                time.sleep(0.2)
+                
+                # Analyze Message A
+                r_a = detector.analyze_message(msg_a)
+                rule_a = analyze_text(msg_a)
+                fused_a = fuse_signals(rule_a, r_a["rag_confidence"], r_a.get("categories", []))
+                
+                # Analyze Message B
+                r_b = detector.analyze_message(msg_b)
+                rule_b = analyze_text(msg_b)
+                fused_b = fuse_signals(rule_b, r_b["rag_confidence"], r_b.get("categories", []))
+            
+            # Display comparison results
+            st.markdown("---")
+            st.subheader("Comparison Results")
+            
+            comp_col_a, comp_col_b = st.columns(2)
+            
+            # === MESSAGE A RESULTS ===
+            with comp_col_a:
+                st.markdown('<div class="compare-header">Message A</div>', unsafe_allow_html=True)
+                risk_a = str(r_a.get("risk_level", "SAFE")).strip().upper()
+                score_a = float(r_a["overall_confidence"])
+                rag_a = float(r_a["rag_confidence"])
+                rule_score_a = float(r_a["rule_confidence"])
+                risk_color_a = {"SAFE": "safe", "LOW": "low", "POTENTIAL": "potential", "HIGH": "high"}.get(risk_a, "safe")
+                cats_a = r_a.get("categories", [])
+                cat_label_a = " + ".join(cats_a) if cats_a else "None"
+                
+                # Verdict box
+                st.markdown(f'''
+                <div class="verdict-box verdict-{risk_color_a}">
+                    <div class="verdict-text">{risk_a} RISK</div>
+                    <div class="verdict-meta"><b>Score:</b> {score_a:.1f}%</div>
+                    <div class="verdict-meta"><b>Category:</b> {cat_label_a}</div>
+                </div>
+                ''', unsafe_allow_html=True)
+                
+                # Confidence scores
+                st.markdown(f'''
+                <div class="score-section">
+                    <div class="score-title">RAG Score</div>
+                    <div class="score-value">{rag_a:.1f}%</div>
+                    <div class="bar-track"><div class="bar-fill bar-rag" style="width: {min(rag_a, 100):.1f}%;"></div></div>
+                </div>
+                <div class="score-section">
+                    <div class="score-title">Rule Score</div>
+                    <div class="score-value">{rule_score_a:.1f}%</div>
+                    <div class="bar-track"><div class="bar-fill bar-rule" style="width: {min(rule_score_a, 100):.1f}%;"></div></div>
+                </div>
+                ''', unsafe_allow_html=True)
+                
+                # Analyzed text with highlights
+                breakdown_a = fused_a.get("per_signal_breakdown", {})
+                if risk_a in ["HIGH", "POTENTIAL"]:
+                    st.markdown("**Analyzed Text:**")
+                    highlighted_a = highlight_suspicious_phrases(msg_a, breakdown_a)
+                    st.markdown(f'<div class="analyzed-text-box">{highlighted_a}</div>', unsafe_allow_html=True)
+                
+                # Bar chart
+                st.markdown("**Signal Analysis:**")
+                fig_a = create_bar_chart(fused_a)
+                st.plotly_chart(fig_a, use_container_width=True, key="chart_a")
+            
+            # === MESSAGE B RESULTS ===
+            with comp_col_b:
+                st.markdown('<div class="compare-header">Message B</div>', unsafe_allow_html=True)
+                risk_b = str(r_b.get("risk_level", "SAFE")).strip().upper()
+                score_b = float(r_b["overall_confidence"])
+                rag_b = float(r_b["rag_confidence"])
+                rule_score_b = float(r_b["rule_confidence"])
+                risk_color_b = {"SAFE": "safe", "LOW": "low", "POTENTIAL": "potential", "HIGH": "high"}.get(risk_b, "safe")
+                cats_b = r_b.get("categories", [])
+                cat_label_b = " + ".join(cats_b) if cats_b else "None"
+                
+                # Verdict box
+                st.markdown(f'''
+                <div class="verdict-box verdict-{risk_color_b}">
+                    <div class="verdict-text">{risk_b} RISK</div>
+                    <div class="verdict-meta"><b>Score:</b> {score_b:.1f}%</div>
+                    <div class="verdict-meta"><b>Category:</b> {cat_label_b}</div>
+                </div>
+                ''', unsafe_allow_html=True)
+                
+                # Confidence scores
+                st.markdown(f'''
+                <div class="score-section">
+                    <div class="score-title">RAG Score</div>
+                    <div class="score-value">{rag_b:.1f}%</div>
+                    <div class="bar-track"><div class="bar-fill bar-rag" style="width: {min(rag_b, 100):.1f}%;"></div></div>
+                </div>
+                <div class="score-section">
+                    <div class="score-title">Rule Score</div>
+                    <div class="score-value">{rule_score_b:.1f}%</div>
+                    <div class="bar-track"><div class="bar-fill bar-rule" style="width: {min(rule_score_b, 100):.1f}%;"></div></div>
+                </div>
+                ''', unsafe_allow_html=True)
+                
+                # Analyzed text with highlights
+                breakdown_b = fused_b.get("per_signal_breakdown", {})
+                if risk_b in ["HIGH", "POTENTIAL"]:
+                    st.markdown("**Analyzed Text:**")
+                    highlighted_b = highlight_suspicious_phrases(msg_b, breakdown_b)
+                    st.markdown(f'<div class="analyzed-text-box">{highlighted_b}</div>', unsafe_allow_html=True)
+                
+                # Bar chart
+                st.markdown("**Signal Analysis:**")
+                fig_b = create_bar_chart(fused_b)
+                st.plotly_chart(fig_b, use_container_width=True, key="chart_b")
+            
+            # Comparison summary
+            st.markdown("---")
+            st.subheader("Comparison Summary")
+            diff = abs(score_a - score_b)
+            
+            sum_col1, sum_col2, sum_col3 = st.columns(3)
+            with sum_col1:
+                st.metric("Message A", f"{score_a:.1f}%", delta=None)
+            with sum_col2:
+                st.metric("Message B", f"{score_b:.1f}%", delta=None)
+            with sum_col3:
+                st.metric("Difference", f"{diff:.1f}%", delta=None)
+            
+            if diff < 5:
+                st.info("Both messages have similar risk levels")
+            elif score_a > score_b:
+                st.warning(f"Message A is more suspicious (+{diff:.1f}%)")
+            else:
+                st.warning(f"Message B is more suspicious (+{diff:.1f}%)")
+
+else:
+    msg = st.text_area(
+        "Message Content",
+        value=st.session_state.simulated_message,
+        height=150,
+        placeholder="Your bank account has been suspended. Verify immediately.",
+    )
+
+# Only show analyze button when not in comparison mode
+if not comparison_mode and st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
     if not msg or len(msg.strip()) < 10:
         st.warning("Please enter at least 10 characters.")
     else:
@@ -290,7 +776,7 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
         score_calc = r["confidence_calculation"]
         why_flagged = r.get("why_flagged", [])
         top_k_results = r.get("similar_attack_patterns", [])
-        similar_patterns = filter_similar_patterns(top_k_results, max_items=3)
+        similar_patterns = filter_similar_patterns(top_k_results, max_items=5)
         dos = r.get("dos", [])
         donts = r.get("donts", [])
 
@@ -307,7 +793,7 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
             "fusion_meta": fused_output.get("fusion_meta", {}),
             "context": r.get("context", {}),
             "why_flagged": r.get("why_flagged", []),
-            "similar_attack_patterns": filter_similar_patterns(top_k_results, max_items=3),
+            "similar_attack_patterns": filter_similar_patterns(top_k_results, max_items=5),
         }
 
         # ---------------------------
@@ -325,14 +811,27 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
             ("MESSAGE IS SAFE", "verdict-safe", "SAFE"),
         )
 
+        # Display verdict box (full width, no gauge)
+        risk_bar_class = {"HIGH": "risk-high", "POTENTIAL": "risk-potential", "LOW": "risk-low", "SAFE": "risk-safe"}.get(risk, "risk-safe")
+        risk_color = {"HIGH": "#f87171", "POTENTIAL": "#fbbf24", "LOW": "#60a5fa", "SAFE": "#34d399"}.get(risk, "#34d399")
+        
         st.markdown(
-            (
-                f"<div class='verdict-box {verdict_css}'>"
-                f"<div class='verdict-text'>{verdict_text}</div>"
-                f"<div class='verdict-meta'><b>Risk Level:</b> {risk_title}</div>"
-                f"<div class='verdict-meta'><b>Category:</b> {cat_label}</div>"
-                f"</div>"
-            ),
+            f'''<div class="verdict-box {verdict_css}">
+                <div class="verdict-text">{verdict_text}</div>
+                <div class="verdict-meta"><b>Risk Level:</b> {risk_title} | <b>Score:</b> {final_score:.1f}%</div>
+                <div class="verdict-meta"><b>Category:</b> {cat_label}</div>
+            </div>
+            <div class="risk-indicator">
+                <div>
+                    <div class="risk-score" style="color: {risk_color};">{final_score:.0f}%</div>
+                    <div class="risk-label">Threat Score</div>
+                </div>
+                <div class="risk-bar">
+                    <div class="risk-bar-track">
+                        <div class="risk-bar-fill {risk_bar_class}" style="width: {min(final_score, 100):.1f}%;"></div>
+                    </div>
+                </div>
+            </div>''',
             unsafe_allow_html=True,
         )
 
@@ -340,6 +839,17 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
         attack_type = r.get("attack_type")
         if attack_type:
             st.markdown(f"**Attack Type:** {attack_type}")
+
+        # Highlighted message display (show suspicious phrases)
+        if attack or risk in ["HIGH", "POTENTIAL"]:
+            st.markdown("---")
+            st.markdown("**Analyzed Text** — suspicious phrases highlighted:")
+            breakdown = fused_output.get("per_signal_breakdown", {})
+            highlighted_msg = highlight_suspicious_phrases(msg, breakdown)
+            st.markdown(
+                f'<div class="analyzed-text-box">{highlighted_msg}</div>',
+                unsafe_allow_html=True
+            )
 
         # ---------------------------
         # CONFIDENCE
@@ -351,40 +861,28 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
         s1, s2, s3 = st.columns(3)
 
         with s1:
-            st.markdown("<div class='score-title'>RAG Score</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='score-value'>{format_score(rag_score)}</div>", unsafe_allow_html=True)
-            st.markdown(
-                (
-                    "<div class='bar-track'>"
-                    f"<div class='bar-fill bar-rag' style='width: {min(max(rag_score, 0.0), 100.0):.2f}%;'></div>"
-                    "</div>"
-                ),
-                unsafe_allow_html=True,
-            )
+            st.markdown(f'''
+            <div class="score-section">
+                <div class="score-title">RAG Score</div>
+                <div class="score-value">{format_score(rag_score)}</div>
+                <div class="bar-track"><div class="bar-fill bar-rag" style="width: {min(max(rag_score, 0.0), 100.0):.1f}%;"></div></div>
+            </div>''', unsafe_allow_html=True)
 
         with s2:
-            st.markdown("<div class='score-title'>Rule-based Score</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='score-value'>{format_score(rule_score)}</div>", unsafe_allow_html=True)
-            st.markdown(
-                (
-                    "<div class='bar-track'>"
-                    f"<div class='bar-fill bar-rule' style='width: {min(max(rule_score, 0.0), 100.0):.2f}%;'></div>"
-                    "</div>"
-                ),
-                unsafe_allow_html=True,
-            )
+            st.markdown(f'''
+            <div class="score-section">
+                <div class="score-title">Rule-based Score</div>
+                <div class="score-value">{format_score(rule_score)}</div>
+                <div class="bar-track"><div class="bar-fill bar-rule" style="width: {min(max(rule_score, 0.0), 100.0):.1f}%;"></div></div>
+            </div>''', unsafe_allow_html=True)
 
         with s3:
-            st.markdown("<div class='score-title'>Final Score</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='score-value'>{format_score(final_score)}</div>", unsafe_allow_html=True)
-            st.markdown(
-                (
-                    "<div class='bar-track'>"
-                    f"<div class='bar-fill bar-final' style='width: {min(max(final_score, 0.0), 100.0):.2f}%;'></div>"
-                    "</div>"
-                ),
-                unsafe_allow_html=True,
-            )
+            st.markdown(f'''
+            <div class="score-section">
+                <div class="score-title">Final Score</div>
+                <div class="score-value">{format_score(final_score)}</div>
+                <div class="bar-track"><div class="bar-fill bar-final" style="width: {min(max(final_score, 0.0), 100.0):.1f}%;"></div></div>
+            </div>''', unsafe_allow_html=True)
 
         st.markdown("")
         st.code(score_calc, language="text")
@@ -514,9 +1012,26 @@ if st.button("ANALYZE MESSAGE", type="primary", use_container_width=True):
                 for p in similar_patterns:
                     raw_similarity = float(p.get("similarity", 0.0))
                     similarity_pct = round(raw_similarity * 100, 2) if raw_similarity <= 1 else round(raw_similarity, 2)
-                    preview = shorten_text(p.get("text", ""), max_len=140)
+                    preview = shorten_text(p.get("text", ""), max_len=160)
+                    category = p.get("category", "unknown").replace("_", " ").title()
+                    
+                    # Determine similarity class
+                    if similarity_pct >= 60:
+                        sim_class = "sim-high"
+                    elif similarity_pct >= 40:
+                        sim_class = "sim-medium"
+                    else:
+                        sim_class = "sim-low"
+                    
                     st.markdown(
-                        f"- {preview} (Similarity: {similarity_pct:.2f}%)"
+                        f'''<div class="pattern-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                                <span style="font-size: 0.75rem; color: #a0a0a0;">{category}</span>
+                                <span class="pattern-similarity {sim_class}">{similarity_pct:.1f}% match</span>
+                            </div>
+                            <div style="font-size: 0.9rem;">{preview}</div>
+                        </div>''',
+                        unsafe_allow_html=True
                     )
             else:
                 st.markdown("- No strong similar attack patterns were retrieved.")
@@ -580,35 +1095,37 @@ with st.sidebar:
     # Custom CSS for sidebar styling
     st.markdown("""
     <style>
-    /* Toggle styling - larger and more prominent */
+    /* Sidebar base */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+    }
+    /* Toggle styling */
     div[data-testid="stToggle"] {
-        background-color: #1a1a2e;
-        padding: 16px 20px;
+        background: rgba(30, 41, 59, 0.8);
+        padding: 14px 18px;
         border-radius: 10px;
-        border: 2px solid #3d5a80;
-        margin: 12px 0;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        margin: 10px 0;
     }
     div[data-testid="stToggle"] label {
-        font-size: 1.15rem !important;
+        font-size: 1rem !important;
         font-weight: 600 !important;
     }
-    div[data-testid="stToggle"] label > div {
-        transform: scale(1.3);
-    }
-    /* Status indicator styling */
-    .api-status-ok { color: #4ade80; font-weight: 600; }
+    /* Status colors */
+    .api-status-ok { color: #34d399; font-weight: 600; }
     .api-status-off { color: #f87171; font-weight: 600; }
-    .sidebar-section { 
-        background: #1a1a2e; 
-        padding: 12px 16px; 
-        border-radius: 8px; 
+    .sidebar-info {
+        background: rgba(30, 41, 59, 0.6);
+        padding: 12px 16px;
+        border-radius: 8px;
         margin: 8px 0;
-        border-left: 3px solid #3d5a80;
+        border-left: 3px solid #3b82f6;
+        font-size: 0.9rem;
     }
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown("## Settings")
+    st.markdown("### Settings")
     
     # =====================
     # SECTION 1: Privacy & API Toggle

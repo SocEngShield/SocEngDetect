@@ -77,7 +77,7 @@
             <section class="column">
                 <h3 class="section-heading">Contextual Consistency</h3>
                 <div class="consistency-card {{ 'valid' if consistency.score == 0 else 'issue' }}">
-                    <div class="icon">{{ '✓' if consistency.score == 0 else '⚠️' }}</div>
+                    <div class="icon">{{ 'OK' if consistency.score == 0 else 'WARN' }}</div>
                     <div class="details">
                         <span class="title">Logic Flow: {{ 'Verified' if consistency.score == 0 else 'Anomalous' }}</span>
                         <p>{% if consistency.score > 0 and consistency.signals %}{{ consistency.signals | join(', ') | capitalize }}{% else %}No logical contradictions found in the message flow.{% endif %}</p>
