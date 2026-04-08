@@ -14,11 +14,119 @@ import json
 import io
 import hashlib
 import os
+import re
 from datetime import datetime
 from typing import Dict, Any, Optional
 
 # Template directory path
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "templates")
+
+
+def _risk_to_css_class(risk_level: str) -> str:
+    """Map risk label to CSS class used by the HTML report template."""
+    risk_class_map = {
+        "HIGH": "risk-high",
+        "POTENTIAL": "risk-potential",
+        "LOW": "risk-low",
+        "SAFE": "risk-safe",
+    }
+    return risk_class_map.get(str(risk_level).strip().upper(), "")
+
+
+def _parse_comparison_export_message(original_msg: str) -> Dict[str, Any]:
+    """Parse comparison export text into structured fields for PDF rendering."""
+    parsed = {
+        "is_comparison": False,
+        "display_message": original_msg,
+        "risk_level_a": "",
+        "risk_level_b": "",
+        "risk_class_a": "",
+        "risk_class_b": "",
+        "score_a": "",
+        "score_b": "",
+        "score_diff": "",
+        "comparison_summary": "",
+    }
+
+    if not original_msg:
+        return parsed
+
+    if "COMPARISON MODE RESULTS" not in original_msg.upper():
+        return parsed
+
+    parsed["is_comparison"] = True
+
+    score_a_match = re.search(
+        r"Message\s+A\s+Risk\s+Score:\s*([0-9]+(?:\.[0-9]+)?)%\s*\|\s*Verdict:\s*([A-Za-z_]+)",
+        original_msg,
+        re.IGNORECASE,
+    )
+    score_b_match = re.search(
+        r"Message\s+B\s+Risk\s+Score:\s*([0-9]+(?:\.[0-9]+)?)%\s*\|\s*Verdict:\s*([A-Za-z_]+)",
+        original_msg,
+        re.IGNORECASE,
+    )
+    score_diff_match = re.search(
+        r"Score\s+Difference:\s*([0-9]+(?:\.[0-9]+)?)%",
+        original_msg,
+        re.IGNORECASE,
+    )
+
+    score_a_value = None
+    score_b_value = None
+
+    if score_a_match:
+        score_a_value = float(score_a_match.group(1))
+        risk_a = score_a_match.group(2).strip().upper()
+        parsed["score_a"] = f"{score_a_value:.1f}"
+        parsed["risk_level_a"] = risk_a
+        parsed["risk_class_a"] = _risk_to_css_class(risk_a)
+
+    if score_b_match:
+        score_b_value = float(score_b_match.group(1))
+        risk_b = score_b_match.group(2).strip().upper()
+        parsed["score_b"] = f"{score_b_value:.1f}"
+        parsed["risk_level_b"] = risk_b
+        parsed["risk_class_b"] = _risk_to_css_class(risk_b)
+
+    if score_diff_match:
+        parsed["score_diff"] = f"{float(score_diff_match.group(1)):.1f}"
+
+    if score_a_value is not None and score_b_value is not None:
+        score_diff_value = abs(score_a_value - score_b_value)
+        if not parsed["score_diff"]:
+            parsed["score_diff"] = f"{score_diff_value:.1f}"
+
+        if score_diff_value < 5:
+            parsed["comparison_summary"] = "Both messages have similar risk levels."
+        elif score_a_value > score_b_value:
+            parsed["comparison_summary"] = f"Message A is more suspicious by {score_diff_value:.1f}%."
+        else:
+            parsed["comparison_summary"] = f"Message B is more suspicious by {score_diff_value:.1f}%."
+
+    msg_a_match = re.search(
+        r"MESSAGE\s+A\s*\(Analysis\s+Result:[^)]+\):\s*(.*?)\s*MESSAGE\s+B\s*\(Analysis\s+Result:[^)]+\):",
+        original_msg,
+        re.IGNORECASE | re.DOTALL,
+    )
+    msg_b_match = re.search(
+        r"MESSAGE\s+B\s*\(Analysis\s+Result:[^)]+\):\s*(.*)$",
+        original_msg,
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    msg_a = msg_a_match.group(1).strip() if msg_a_match else ""
+    msg_b = msg_b_match.group(1).strip() if msg_b_match else ""
+
+    if msg_a or msg_b:
+        display_blocks = []
+        if msg_a:
+            display_blocks.append(f"Message A:\n{msg_a}")
+        if msg_b:
+            display_blocks.append(f"Message B:\n{msg_b}")
+        parsed["display_message"] = "\n\n".join(display_blocks)
+
+    return parsed
 
 
 def get_json_data(result: Dict[str, Any]) -> str:
@@ -163,8 +271,7 @@ def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[st
                 })
     
     # Determine risk class for CSS
-    risk_class_map = {"HIGH": "risk-high", "POTENTIAL": "risk-potential", "LOW": "risk-low", "SAFE": "risk-safe"}
-    risk_class = risk_class_map.get(risk, "")
+    risk_class = _risk_to_css_class(risk)
     
     # Process signals for bar chart
     signals_for_chart = []
@@ -282,10 +389,23 @@ def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[st
             "sources": api_sources
         }
     
+    # Parse comparison-mode export text so metadata is not mixed into evidence content
+    comparison_data = _parse_comparison_export_message(original_msg)
+    
     return {
         "report_id": report_id,
         "timestamp": timestamp.strftime('%Y-%m-%d %H:%M:%S'),
         "original_msg": original_msg,
+        "display_message": comparison_data["display_message"],
+        "is_comparison": comparison_data["is_comparison"],
+        "risk_level_a": comparison_data["risk_level_a"],
+        "risk_level_b": comparison_data["risk_level_b"],
+        "risk_class_a": comparison_data["risk_class_a"],
+        "risk_class_b": comparison_data["risk_class_b"],
+        "score_a": comparison_data["score_a"],
+        "score_b": comparison_data["score_b"],
+        "score_diff": comparison_data["score_diff"],
+        "comparison_summary": comparison_data["comparison_summary"],
         "risk_level": risk,
         "risk_class": risk_class,
         "signals_for_chart": signals_for_chart,
@@ -348,6 +468,8 @@ def get_html_report(result: Dict[str, Any], original_msg: str = "") -> str:
 
 def _generate_basic_html(data: Dict[str, Any]) -> str:
     """Generate basic HTML without Jinja2 (fallback)."""
+    display_message = data.get("display_message", data["original_msg"])
+
     signals_html = ""
     if data["signals"]:
         for sig in data["signals"]:
@@ -366,7 +488,7 @@ def _generate_basic_html(data: Dict[str, Any]) -> str:
 h1{{color:#1e3a5f;}}h3{{color:#2d5a87;}}</style></head>
 <body><h1>SocEngDetect Report</h1>
 <p>Report ID: {data['report_id']} | {data['timestamp']}</p>
-<div class="card"><h3>Message</h3><pre>{data['original_msg']}</pre></div>
+<div class="card"><h3>Message</h3><pre>{display_message}</pre></div>
 <div class="card"><h3>Summary</h3>
 <p><b>Risk:</b> {data['risk_level']} | <b>Confidence:</b> {data['confidence']}% | <b>Attack:</b> {data['attack_type']}</p></div>
 <div class="card"><h3>Indicators</h3><ul>{signals_html}</ul></div>
@@ -473,13 +595,13 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
             if isinstance(score, (int, float)) and score > 0.3:
                 confidence = "high" if score > 0.6 else "moderate"
                 label = signal_labels.get(key, key.replace("_", " ").title())
-                strong_signals.append(f"• {label} ({confidence} confidence)")
+                strong_signals.append(f"- {label} ({confidence} confidence)")
     
     if strong_signals:
         for sig in strong_signals[:5]:
             story.append(Paragraph(sig, bullet_style))
     else:
-        story.append(Paragraph("• No significant threat indicators detected", bullet_style))
+        story.append(Paragraph("- No significant threat indicators detected", bullet_style))
     story.append(Spacer(1, 8))
     
     # 5. URL ANALYSIS (if exists)
@@ -502,7 +624,7 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
         if cons_signals:
             story.append(Paragraph("Brand or context mismatch detected", body_style))
             for sig in cons_signals[:3]:
-                story.append(Paragraph(f"• {sig}", bullet_style))
+                story.append(Paragraph(f"- {sig}", bullet_style))
     else:
         story.append(Paragraph("No inconsistencies detected", body_style))
     story.append(Spacer(1, 8))
@@ -523,7 +645,7 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
         insights.append("Low similarity to known attack patterns in database")
     
     for insight in insights[:3]:
-        story.append(Paragraph(f"• {insight}", bullet_style))
+        story.append(Paragraph(f"- {insight}", bullet_style))
     story.append(Spacer(1, 10))
     
     # 7.5 ADD WHY FLAGGED
@@ -537,7 +659,7 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
             if not norm or key in seen_explanations:
                 continue
             seen_explanations.add(key)
-            story.append(Paragraph(f"• {norm}", bullet_style))
+            story.append(Paragraph(f"- {norm}", bullet_style))
         story.append(Spacer(1, 10))
 
     # 7.6 ADD SIMILAR ATTACK PATTERNS
@@ -548,7 +670,7 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
             similarity = pattern.get('similarity', 0)
             percentage = similarity * 100 if similarity <= 1.0 else similarity
             text = pattern.get('text', '').strip()
-            story.append(Paragraph(f"• {text} (Similarity: {percentage:.2f}%)", bullet_style))
+            story.append(Paragraph(f"- {text} (Similarity: {percentage:.2f}%)", bullet_style))
         story.append(Spacer(1, 10))
 
         story.append(Paragraph("<b>What You Should Do:</b>", body_style))
@@ -559,7 +681,7 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
             "Contact the claimed organization using verified contact info"
         ]
         for tip in dos[:3]:
-            story.append(Paragraph(f"• {tip}", bullet_style))
+            story.append(Paragraph(f"- {tip}", bullet_style))
         
         story.append(Spacer(1, 6))
         story.append(Paragraph("<b>What to Avoid:</b>", body_style))
@@ -570,10 +692,10 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
             "Do not reply with sensitive information"
         ]
         for tip in donts[:3]:
-            story.append(Paragraph(f"• {tip}", bullet_style))
+            story.append(Paragraph(f"- {tip}", bullet_style))
     else:
-        story.append(Paragraph("• Message appears safe, but always verify unexpected requests", bullet_style))
-        story.append(Paragraph("• When in doubt, contact the sender through known channels", bullet_style))
+        story.append(Paragraph("- Message appears safe, but always verify unexpected requests", bullet_style))
+        story.append(Paragraph("- When in doubt, contact the sender through known channels", bullet_style))
     
     # Footer
     story.append(Spacer(1, 20))
@@ -632,11 +754,11 @@ def _get_pdf_text(result: Dict[str, Any], original_msg: str = "") -> bytes:
             score = value.get("score", value) if isinstance(value, dict) else value
             if isinstance(score, (int, float)) and score > 0.3:
                 conf_level = "high" if score > 0.6 else "moderate"
-                lines.append(f"  • {key.replace('_', ' ').title()} ({conf_level})")
+                lines.append(f"  - {key.replace('_', ' ').title()} ({conf_level})")
                 found_signals = True
     
     if not found_signals:
-        lines.append("  • No significant indicators detected")
+        lines.append("  - No significant indicators detected")
     
     lines.extend([
         "",
@@ -660,16 +782,16 @@ def _get_pdf_text(result: Dict[str, Any], original_msg: str = "") -> bytes:
     if risk in ["HIGH", "POTENTIAL"]:
         lines.extend([
             "Do:",
-            "  • Verify sender through official channels",
-            "  • Report to IT/security team",
+            "  - Verify sender through official channels",
+            "  - Report to IT/security team",
             "Avoid:",
-            "  • Clicking links in message",
-            "  • Entering credentials or personal info",
+            "  - Clicking links in message",
+            "  - Entering credentials or personal info",
         ])
     else:
         lines.extend([
-            "  • Message appears safe",
-            "  • Always verify unexpected requests",
+            "  - Message appears safe",
+            "  - Always verify unexpected requests",
         ])
     
     lines.extend(["", "=" * 50])

@@ -27,6 +27,31 @@
 
     <main class="report-body">
         
+        {% if is_comparison %}
+        <section class="section comparison-results">
+            <h3 class="section-heading">Comparison Mode Summary</h3>
+            <div class="comparison-grid">
+                <div class="comp-box">
+                    <span class="comp-label">MESSAGE A</span>
+                    <span class="comp-value {{ risk_class_a }}">{{ risk_level_a or 'N/A' }}</span>
+                    <span class="comp-score">Score: {{ score_a or '0.0' }}%</span>
+                </div>
+                <div class="comp-diff">
+                    <div class="diff-value">{{ score_diff or '0.0' }}%</div>
+                    <div class="diff-label">Variance</div>
+                </div>
+                <div class="comp-box">
+                    <span class="comp-label">MESSAGE B</span>
+                    <span class="comp-value {{ risk_class_b }}">{{ risk_level_b or 'N/A' }}</span>
+                    <span class="comp-score">Score: {{ score_b or '0.0' }}%</span>
+                </div>
+            </div>
+            <div class="comparison-verdict">
+                {{ comparison_summary or 'Comparison summary unavailable.' }}
+            </div>
+        </section>
+        {% endif %}
+
         <section class="summary-grid">
             <div class="summary-item highlight">
                 <span class="label">Attack Classification</span>
@@ -43,13 +68,13 @@
 
         <section class="section">
             <h3 class="section-heading">Analyzed Evidence Content</h3>
-            <div class="evidence-box">
+            <div class="evidence-box main-msg-box">
                 <div class="evidence-toolbar">
                     <span class="dot"></span><span class="dot"></span><span class="dot"></span>
                     <span class="mode">RAW_DATA_EXTRACTION</span>
                 </div>
                 <div class="evidence-text">
-                    <code>{{ original_msg }}</code>
+                    <code>{{ display_message | e }}</code>
                 </div>
             </div>
         </section>
@@ -167,7 +192,7 @@
     </main>
 
     <footer class="report-footer">
-        Automated Forensic Report — SocEngDetect AI Security System — Internal Use Only
+        Automated Forensic Report - SocEngDetect AI Security System - Internal Use Only
     </footer>
 </div>
 </body>

@@ -216,21 +216,21 @@ st.markdown("""
 <style>
     /* ===== GLOBAL THEME ===== */
     :root {
-        --primary: #476a9c;
-        --primary-light: #6b8db5;
-        --accent: #00d4ff;
+        --primary: #ef4444; /* Red theme */
+        --primary-light: #fca5a5;
+        --accent: #dc2626;
         --success: #10b981;
         --warning: #f59e0b;
         --danger: #ef4444;
         --safe: #10b981;
-        --bg-dark: #0f172a; /* Slate 900 for main dashboard */
-        --bg-card: #182235;
+        --bg-dark: #000000; /* Dashboard as black */
+        --bg-card: #121212;
         --text-primary: #f8fafc;
         --text-muted: #cbd5e1;
         --border-radius: 8px;
         --shadow: 0 4px 15px rgba(0,0,0,0.4);
-        --glass-bg: #1e293b; /* Solid card background */
-        --glass-border: #334155;
+        --glass-bg: #111111; /* Dark shade for cards */
+        --glass-border: #222222;
     }
     
     /* Base layout */
@@ -501,12 +501,20 @@ st.markdown("""
         text-transform: uppercase;
         letter-spacing: 0.05em;
         transition: all 0.3s ease;
-        border: none;
+        background: #1e1e1e; /* Dark button bg */
+        color: #f8fafc;
+        border: 1px solid #333333;
     }
     .stButton>button[kind="primary"] {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+        box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
     }
-    .stButton>button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
+    .stButton>button:hover { 
+        transform: translateY(-2px); 
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        background: #991b1b;
+        color: #ffffff;
+    }
     
     /* ===== EXPANDER STYLING ===== */
     .streamlit-expanderHeader { background: var(--glass-bg); border-radius: 8px; }
@@ -633,9 +641,9 @@ if comparison_mode:
             
             # Display comparison results
             st.markdown("---")
-            st.subheader("Comparison Results")
+            st.markdown("<h2 style='text-align: center; margin-bottom: 30px;'> Analysis Comparison</h2>", unsafe_allow_html=True)
             
-            comp_col_a, comp_col_b = st.columns(2)
+            comp_col_a, comp_spacer, comp_col_b = st.columns([1, 0.1, 1])
             
             # === MESSAGE A RESULTS ===
             with comp_col_a:
@@ -673,17 +681,19 @@ if comparison_mode:
                 
                 # Analyzed text with highlights
                 breakdown_a = fused_a.get("per_signal_breakdown", {})
+                st.markdown("**Analyzed Text:**")
                 if risk_a in ["HIGH", "POTENTIAL"]:
-                    st.markdown("**Analyzed Text:**")
                     highlighted_a = highlight_suspicious_phrases(msg_a, breakdown_a)
                     st.markdown(f'<div class="analyzed-text-box">{highlighted_a}</div>', unsafe_allow_html=True)
+                else:
+                    # Reserve visual space so both comparison charts stay aligned.
+                    st.markdown('<div class="analyzed-text-box">&nbsp;</div>', unsafe_allow_html=True)
                 
                 # Bar chart
                 st.markdown("**Signal Analysis:**")
                 fig_a = create_bar_chart(fused_a)
                 st.plotly_chart(fig_a, use_container_width=True, key="chart_a")
             
-            # === MESSAGE B RESULTS ===
             with comp_col_b:
                 st.markdown('<div class="compare-header">Message B</div>', unsafe_allow_html=True)
                 risk_b = str(r_b.get("risk_level", "SAFE")).strip().upper()
@@ -719,10 +729,13 @@ if comparison_mode:
                 
                 # Analyzed text with highlights
                 breakdown_b = fused_b.get("per_signal_breakdown", {})
+                st.markdown("**Analyzed Text:**")
                 if risk_b in ["HIGH", "POTENTIAL"]:
-                    st.markdown("**Analyzed Text:**")
                     highlighted_b = highlight_suspicious_phrases(msg_b, breakdown_b)
                     st.markdown(f'<div class="analyzed-text-box">{highlighted_b}</div>', unsafe_allow_html=True)
+                else:
+                    # Reserve visual space so both comparison charts stay aligned.
+                    st.markdown('<div class="analyzed-text-box">&nbsp;</div>', unsafe_allow_html=True)
                 
                 # Bar chart
                 st.markdown("**Signal Analysis:**")
@@ -749,6 +762,66 @@ if comparison_mode:
             else:
                 st.warning(f"Message B is more suspicious (+{diff:.1f}%)")
             
+            # --- External Threat Intelligence in Comparison Mode ---
+            urls_a = r_a.get("context", {}).get("url", {}).get("urls", [])
+            urls_b = r_b.get("context", {}).get("url", {}).get("urls", [])
+            
+            if (urls_a or urls_b) and st.session_state.get("use_external_api", False) and API_AVAILABLE:
+                st.markdown("<h3 style='text-align: center; margin-top: 50px; margin-bottom: 25px;'>External Threat Intelligence Results</h3>", unsafe_allow_html=True)
+                t_col1, t_spacer, t_col2 = st.columns([1, 0.1, 1])
+                
+                with t_col1:
+                    if urls_a:
+                        with st.status("Detonating Message A URLs...", expanded=True) as status_a:
+                            ext_a = check_url_external(urls_a[0])
+                            threat_a = ext_a.get("threat_score", 0)
+                            summary_a = ext_a.get("summary", "No intelligence available")
+                            recommend_a = ext_a.get("recommendation", "Exercise caution")
+                            engines_a = ext_a.get("details", {}).get("malicious", 0)
+                            
+                            color_a = "#ff4b4b" if threat_a >= 0.5 else "#ffa500" if threat_a >= 0.25 else "#28a745"
+                            status_label_a = "DANGEROUS" if threat_a >= 0.5 else "SUSPICIOUS" if threat_a >= 0.25 else "CLEAN"
+                            
+                            st.markdown(f"""
+                                <div style="background: rgba(20,20,30,0.6); padding: 20px; border-radius: 8px; border-left: 5px solid {color_a};">
+                                    <div style="color: {color_a}; font-weight: bold; font-size: 0.8em; margin-bottom: 5px;">EXT_INTEL_A // {status_label_a}</div>
+                                    <div style="font-size: 1.1em; color: white; margin-bottom: 10px;">{summary_a}</div>
+                                    <div style="font-size: 0.9em; color: #888; border-top: 1px solid #333; padding-top: 10px;">
+                                        <b>Detections:</b> {engines_a} security engines flagged this<br>
+                                        <b>Recommendation:</b> {recommend_a}
+                                    </div>
+                                </div>
+                            """, unsafe_allow_html=True)
+                            status_a.update(label="Message A Intel Complete", state="complete")
+                    else:
+                        st.caption("No URLs detected in Message A")
+                        
+                with t_col2:
+                    if urls_b:
+                        with st.status("Detonating Message B URLs...", expanded=True) as status_b:
+                            ext_b = check_url_external(urls_b[0])
+                            threat_b = ext_b.get("threat_score", 0)
+                            summary_b = ext_b.get("summary", "No intelligence available")
+                            recommend_b = ext_b.get("recommendation", "Exercise caution")
+                            engines_b = ext_b.get("details", {}).get("malicious", 0)
+                            
+                            color_b = "#ff4b4b" if threat_b >= 0.5 else "#ffa500" if threat_b >= 0.25 else "#28a745"
+                            status_label_b = "DANGEROUS" if threat_b >= 0.5 else "SUSPICIOUS" if threat_b >= 0.25 else "CLEAN"
+                            
+                            st.markdown(f"""
+                                <div style="background: rgba(20,20,30,0.6); padding: 20px; border-radius: 8px; border-left: 5px solid {color_b};">
+                                    <div style="color: {color_b}; font-weight: bold; font-size: 0.8em; margin-bottom: 5px;">EXT_INTEL_B // {status_label_b}</div>
+                                    <div style="font-size: 1.1em; color: white; margin-bottom: 10px;">{summary_b}</div>
+                                    <div style="font-size: 0.9em; color: #888; border-top: 1px solid #333; padding-top: 10px;">
+                                        <b>Detections:</b> {engines_b} security engines flagged this<br>
+                                        <b>Recommendation:</b> {recommend_b}
+                                    </div>
+                                </div>
+                            """, unsafe_allow_html=True)
+                            status_b.update(label="Message B Intel Complete", state="complete")
+                    else:
+                        st.caption("No URLs detected in Message B")
+
             # Save for export
             comp_summary_text = (
                 f"COMPARISON MODE RESULTS:\n"
@@ -1152,19 +1225,21 @@ with st.sidebar:
     <style>
     /* Sidebar base */
     section[data-testid="stSidebar"] {
-        background-color: #020617 !important; /* Very dark slate 950 for high contrast */
-        border-right: 1px solid #334155;
+        background-color: #1a1a1a !important; /* Lighter shade of black / Dark grey for sidebar */
+        border-right: 1px solid #333333;
     }
-    /* Toggle styling */
+    /* Toggle styling - increased size by 50% */
     div[data-testid="stToggle"] {
-        background: #111827;
-        padding: 14px 18px;
+        background: #262626;
+        padding: 16px 20px;
         border-radius: 10px;
-        border: 1px solid #334155;
-        margin: 10px 0;
+        border: 1px solid #444444;
+        margin: 25px 0 !important;
+        transform: scale(1.5) !important;
+        transform-origin: left center !important;
     }
     div[data-testid="stToggle"] label {
-        font-size: 1rem !important;
+        font-size: 1.1rem !important;
         font-weight: 600 !important;
     }
     /* Status colors */

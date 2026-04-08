@@ -83,6 +83,79 @@ body {
 /* Body Spacing */
 .report-body { padding: 40px; }
 
+/* Comparison Mode Styles */
+.comparison-results {
+    background: #090B10;
+    border: 1px solid #23262F;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 40px;
+}
+
+.comparison-grid {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.comp-box {
+    flex: 1;
+    background: #14171F;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid #2D313A;
+}
+
+.comp-label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.comp-value {
+    display: block;
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 5px;
+}
+
+.comp-score {
+    font-size: 13px;
+    color: #888;
+}
+
+.comp-diff {
+    width: 100px;
+    text-align: center;
+}
+
+.diff-value {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--accent);
+}
+
+.diff-label {
+    font-size: 10px;
+    color: #666;
+    text-transform: uppercase;
+}
+
+.comparison-verdict {
+    background: rgba(255,255,255,0.03);
+    padding: 15px;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #CCC;
+    border-left: 3px solid var(--accent);
+    line-height: 1.5;
+}
+
 .section { margin-bottom: 40px; }
 .section-heading {
     font-size: 12px;
@@ -187,6 +260,10 @@ body {
     overflow: hidden;
 }
 
+.main-msg-box {
+    margin-top: 10px !important;
+}
+
 .evidence-toolbar {
     background: #161b22;
     padding: 8px 15px;
@@ -269,7 +346,7 @@ body {
     color: var(--text);
 }
 .reasons-list li::before, .patterns-list li::before {
-    content: "•";
+    content: "-";
     position: absolute;
     left: 0;
     color: var(--accent);
@@ -308,7 +385,7 @@ body {
     position: relative;
 }
 .api-sources li::before {
-    content: "→";
+    content: ">";
     position: absolute;
     left: 0;
     color: var(--info);
@@ -317,7 +394,7 @@ body {
 .protocol-box h4 { font-size: 13px; margin-bottom: 12px; }
 .protocol-box ul { list-style: none; font-size: 12px; }
 .protocol-box li { margin-bottom: 8px; padding-left: 15px; position: relative; }
-.protocol-box li::before { content: "•"; position: absolute; left: 0; opacity: 0.5; }
+.protocol-box li::before { content: "-"; position: absolute; left: 0; opacity: 0.5; }
 
 /* Footer */
 .report-footer {
