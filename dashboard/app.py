@@ -1092,25 +1092,19 @@ if not comparison_mode and st.button("ANALYZE MESSAGE", type="primary", use_cont
             
             st.markdown(f'''
             <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem;">
-                <div class="protocol-box" style="flex: 1; min-width: 250px; background: var(--glass-bg); border-left: 4px solid #10b981; border-radius: 8px; padding: 1.25rem; box-shadow: var(--shadow); transition: all 0.3s ease;">
+                <div style="flex: 1; min-width: 250px; background: var(--glass-bg); border-left: 4px solid #10b981; border-radius: 8px; padding: 1.25rem; box-shadow: var(--shadow);">
                     <h4 style="color: #6ee7b7; margin-top: 0; font-size: 1.1rem; margin-bottom: 1rem;">Required Actions</h4>
                     <ul style="margin: 0; padding-left: 1.2rem; color: var(--text-primary); line-height: 1.6;">
                         {req_actions}
                     </ul>
                 </div>
-                <div class="protocol-box" style="flex: 1; min-width: 250px; background: var(--glass-bg); border-left: 4px solid #ef4444; border-radius: 8px; padding: 1.25rem; box-shadow: var(--shadow); transition: all 0.3s ease;">
+                <div style="flex: 1; min-width: 250px; background: var(--glass-bg); border-left: 4px solid #ef4444; border-radius: 8px; padding: 1.25rem; box-shadow: var(--shadow);">
                     <h4 style="color: #fca5a5; margin-top: 0; font-size: 1.1rem; margin-bottom: 1rem;">Prohibited Actions</h4>
                     <ul style="margin: 0; padding-left: 1.2rem; color: var(--text-primary); line-height: 1.6;">
                         {prohib_actions}
                     </ul>
                 </div>
             </div>
-            <style>
-                .protocol-box:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 6px 15px rgba(0,0,0,0.5) !important;
-                }
-            </style>
             ''', unsafe_allow_html=True)
 
         # Safe message indicators
