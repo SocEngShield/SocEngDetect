@@ -49,7 +49,19 @@
                     <span class="mode">RAW_DATA_EXTRACTION</span>
                 </div>
                 <div class="evidence-text">
+                    {% if is_compare_mode %}
+                    <code><pre style="margin: 0; font-family: inherit; font-size: inherit; white-space: pre-wrap;">
+COMPARISON MODE RESULTS:
+Message A Risk Score: {{ compare_data.msg_a_score }} | Verdict: {{ compare_data.msg_a_verdict }}
+Message B Risk Score: {{ compare_data.msg_b_score }} | Verdict: {{ compare_data.msg_b_verdict }}
+Score Difference: {{ compare_data.score_diff }}
+------
+
+{{ compare_data.message_contents }}
+                    </pre></code>
+                    {% else %}
                     <code>{{ original_msg }}</code>
+                    {% endif %}
                 </div>
             </div>
         </section>

@@ -242,6 +242,30 @@ def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[st
             ]
         }
     
+    # Handle Comparison Mode Parsing
+    is_compare_mode = False
+    compare_data = {}
+    if original_msg.startswith("COMPARISON MODE RESULTS:"):
+        is_compare_mode = True
+        lines = original_msg.split('\n')
+        msg_a_score = lines[1].split('|')[0].replace('Message A Risk Score: ', '').strip()
+        msg_a_verdict = lines[1].split('|')[1].replace('Verdict: ', '').strip()
+        msg_b_score = lines[2].split('|')[0].replace('Message B Risk Score: ', '').strip()
+        msg_b_verdict = lines[2].split('|')[1].replace('Verdict: ', '').strip()
+        score_diff = lines[3].replace('Score Difference: ', '').strip()
+        
+        parts = original_msg.split('------\n\n')
+        message_contents = parts[1] if len(parts) > 1 else ""
+        
+        compare_data = {
+            "msg_a_score": msg_a_score,
+            "msg_a_verdict": msg_a_verdict,
+            "msg_b_score": msg_b_score,
+            "msg_b_verdict": msg_b_verdict,
+            "score_diff": score_diff,
+            "message_contents": message_contents
+        }
+    
     # Process external API results
     external_api = result.get("external_api")
     external_api_data = None
@@ -286,6 +310,8 @@ def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[st
         "report_id": report_id,
         "timestamp": timestamp.strftime('%Y-%m-%d %H:%M:%S'),
         "original_msg": original_msg,
+        "is_compare_mode": is_compare_mode,
+        "compare_data": compare_data,
         "risk_level": risk,
         "risk_class": risk_class,
         "signals_for_chart": signals_for_chart,
