@@ -103,6 +103,3 @@ def get_api_status() -> dict:
             "configured": bool(gsb_key),
         },
     }
-            "configured": bool(uh_key),
-        },
-    }
