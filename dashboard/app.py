@@ -223,14 +223,14 @@ st.markdown("""
         --warning: #f59e0b;
         --danger: #ef4444;
         --safe: #10b981;
-        --bg-dark: #0a0f18; /* Darker for better contrast */
+        --bg-dark: #0f172a; /* Slate 900 for main dashboard */
         --bg-card: #182235;
         --text-primary: #f8fafc;
         --text-muted: #cbd5e1;
         --border-radius: 8px;
         --shadow: 0 4px 15px rgba(0,0,0,0.4);
-        --glass-bg: #1e293b; /* Solid instead of mostly transparent */
-        --glass-border: #334155; /* Distinct border */
+        --glass-bg: #1e293b; /* Solid card background */
+        --glass-border: #334155;
     }
     
     /* Base layout */
@@ -307,6 +307,12 @@ st.markdown("""
         border-radius: var(--border-radius);
         border: 1px solid var(--glass-border);
         box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+    }
+    .risk-indicator:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.5);
+        border-color: #475569;
     }
 
     .risk-score {
@@ -425,6 +431,12 @@ st.markdown("""
         padding: 1rem 1.25rem;
         margin: 0.5rem 0;
         border: 1px solid var(--glass-border);
+        transition: all 0.3s ease;
+    }
+    .score-section:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.5);
+        border-color: #475569;
     }
     .score-title { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.25rem; }
     .score-value { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.4rem; }
@@ -579,7 +591,7 @@ st.subheader("Enter Message to Analyze")
 # Comparison mode toggle
 comp_cols = st.columns([4, 1])
 with comp_cols[1]:
-    comparison_mode = st.checkbox("Compare", key="comparison_mode", help="Compare two messages side-by-side")
+    comparison_mode = st.toggle("Compare", key="comparison_mode", help="Compare two messages side-by-side")
 
 if comparison_mode:
     col_a, col_b = st.columns(2)
@@ -738,11 +750,21 @@ if comparison_mode:
                 st.warning(f"Message B is more suspicious (+{diff:.1f}%)")
             
             # Save for export
+            comp_summary_text = (
+                f"COMPARISON MODE RESULTS:\n"
+                f"Message A Risk Score: {score_a:.1f}% | Verdict: {risk_a}\n"
+                f"Message B Risk Score: {score_b:.1f}% | Verdict: {risk_b}\n"
+                f"Score Difference: {diff:.1f}%\n"
+                f"------\n\n"
+                f"MESSAGE A (Analysis Result: {risk_a}):\n{msg_a}\n\n"
+                f"MESSAGE B (Analysis Result: {risk_b}):\n{msg_b}"
+            )
+            
             st.session_state["last_analysis"] = {
-                "message": f"COMPARISON MODE\n\nMESSAGE A:\n{msg_a}\n\nMESSAGE B:\n{msg_b}",
+                "message": comp_summary_text,
                 "risk_level": risk_a if score_a > score_b else risk_b,
                 "attack_type": r_a.get("attack_type", "") if score_a > score_b else r_b.get("attack_type", ""),
-                "categories": r_a.get("categories", []) + r_b.get("categories", []),
+                "categories": list(set(r_a.get("categories", []) + r_b.get("categories", []))),
                 "rag_confidence": max(rag_a, rag_b),
                 "rule_confidence": max(rule_score_a, rule_score_b),
                 "overall_confidence": max(score_a, score_b),
@@ -750,7 +772,7 @@ if comparison_mode:
                 "fusion_meta": fused_a.get("fusion_meta", {}) if score_a > score_b else fused_b.get("fusion_meta", {}),
                 "context": r_a.get("context", {}) if score_a > score_b else r_b.get("context", {}),
                 "why_flagged": r_a.get("why_flagged", []) + r_b.get("why_flagged", []),
-                "similar_attack_patterns": r_a.get("similar_attack_patterns", []) if score_a > score_b else r_b.get("similar_attack_patterns", []),
+                "similar_attack_patterns": (r_a.get("similar_attack_patterns", []) if score_a >= score_b else r_b.get("similar_attack_patterns", []))[:5],
             }
 
 else:
@@ -1063,16 +1085,27 @@ if not comparison_mode and st.button("ANALYZE MESSAGE", type="primary", use_cont
             # ---------------------------
 
             st.markdown("---")
-            d1, d2 = st.columns(2)
-            with d1:
-                st.subheader("What You Should Do")
-                for tip in dos:
-                    st.markdown(f"- {tip}")
-
-            with d2:
-                st.subheader("What You Should Avoid")
-                for tip in donts:
-                    st.markdown(f"- {tip}")
+            st.subheader("Incident Response Protocol")
+            
+            req_actions = "".join([f"<li style='margin-bottom: 0.5rem;'>{tip}</li>" for tip in dos])
+            prohib_actions = "".join([f"<li style='margin-bottom: 0.5rem;'>{tip}</li>" for tip in donts])
+            
+            st.markdown(f'''
+            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem;">
+                <div style="flex: 1; min-width: 250px; background: var(--glass-bg); border-left: 4px solid #10b981; border-radius: 8px; padding: 1.25rem; box-shadow: var(--shadow);">
+                    <h4 style="color: #6ee7b7; margin-top: 0; font-size: 1.1rem; margin-bottom: 1rem;">Required Actions</h4>
+                    <ul style="margin: 0; padding-left: 1.2rem; color: var(--text-primary); line-height: 1.6;">
+                        {req_actions}
+                    </ul>
+                </div>
+                <div style="flex: 1; min-width: 250px; background: var(--glass-bg); border-left: 4px solid #ef4444; border-radius: 8px; padding: 1.25rem; box-shadow: var(--shadow);">
+                    <h4 style="color: #fca5a5; margin-top: 0; font-size: 1.1rem; margin-bottom: 1rem;">Prohibited Actions</h4>
+                    <ul style="margin: 0; padding-left: 1.2rem; color: var(--text-primary); line-height: 1.6;">
+                        {prohib_actions}
+                    </ul>
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
 
         # Safe message indicators
         if risk == "SAFE":
@@ -1119,8 +1152,8 @@ with st.sidebar:
     <style>
     /* Sidebar base */
     section[data-testid="stSidebar"] {
-        background-color: #090e14 !important;
-        border-right: 1px solid #1e293b;
+        background-color: #020617 !important; /* Very dark slate 950 for high contrast */
+        border-right: 1px solid #334155;
     }
     /* Toggle styling */
     div[data-testid="stToggle"] {
