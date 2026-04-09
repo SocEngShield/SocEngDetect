@@ -1,4 +1,4 @@
-# Social Engineering Detection System
+# Social Engineering Attack Detection System
 
 A Python-based system that detects social engineering attacks in messages using a hybrid approach combining RAG-based semantic detection with rule-based signal analysis.
 
@@ -28,7 +28,7 @@ A Python-based system that detects social engineering attacks in messages using 
 - Signal breakdown showing which manipulation tactics were detected and their strength
 - Attack type classification (credential harvesting, OTP theft, reward scams, etc.)
 - Domain classification identifying target sectors (Banking, Government, Tech, etc.)
-- Similar attack patterns from knowledge base with similarity scores
+- Similar attack patterns from the knowledge base and external datasets with similarity scores
 - Category-specific actionable recommendations
 
 **Multilingual Keyword Detection**
@@ -152,6 +152,11 @@ social_engineering_detector/
 │   ├── simulator.py       # Attack generator
 │   └── bar_chart.py       # Visualizations
 ├── nlp_pipeline/          # Detection engine
+│   ├── external_dataset/   # External RAG pattern sources
+│   │   ├── spam.csv
+│   │   ├── phishing_dataset_with_category.csv
+│   │   ├── sms_dataset.py
+│   │   └── category_dataset.py
 │   ├── integrated_detector.py
 │   ├── rag_detector.py
 │   ├── knowledge_base.py
@@ -177,7 +182,8 @@ social_engineering_detector/
 
 **Detection Model**
 - RAG: `sentence-transformers/all-MiniLM-L6-v2`
-- Knowledge Base: 550+ patterns
+- Knowledge Base: Static social engineering patterns in `nlp_pipeline/knowledge_base.py`
+- External Datasets: `spam.csv` (SMS_DATASET) and `phishing_dataset_with_category.csv` (CATEGORY_DATASET)
 - Fusion Weights: 60% RAG / 40% Rules
 - Risk Thresholds: SAFE (0-24%), LOW (25-49%), POTENTIAL (50-74%), HIGH (75-100%)
 
@@ -226,7 +232,7 @@ Use the dashboard's Attack Simulator mode to:
 - Non-Latin scripts (Chinese, Japanese, Russian, Arabic) have limited support
 - Very short messages (under 10 characters) cannot be analyzed effectively
 - The system analyzes text content only; it does not validate actual URLs or email addresses
-- Performance depends on the quality and coverage of the knowledge base patterns
+- Performance depends on the quality and coverage of the knowledge base plus external dataset patterns
 
 ## Performance Considerations
 
