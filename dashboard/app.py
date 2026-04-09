@@ -64,12 +64,11 @@ from utils.export import get_json_data, get_csv_data, get_pdf_data
 
 # API IMPORTS (optional features)
 try:
-    from utils.api_config import get_api_status, API_ENABLED
+    from utils.api_config import get_api_status
     from utils.api_integrations import check_url_external
     API_AVAILABLE = True
 except ImportError:
     API_AVAILABLE = False
-    API_ENABLED = False
 
 
 # ---------------------------
@@ -938,6 +937,9 @@ if not comparison_mode and st.button("ANALYZE MESSAGE", type="primary", use_cont
                 if urls:
                     with st.spinner("Checking URLs with external APIs..."):
                         external_api_result = check_url_external(urls[0])
+                        st.session_state["external_api_result"] = external_api_result
+                else:
+                    st.session_state["external_api_result"] = None
 
         attack = r["attack_detected"]
         cats = r["categories"]
@@ -1322,13 +1324,21 @@ with st.sidebar:
     # =====================
     if API_AVAILABLE:
         api_status = get_api_status()
+        vt_ok = api_status["virustotal"]["configured"]
+        gsb_ok = api_status["google_safebrowsing"]["configured"]
+        aip_ok = api_status["abuseipdb"]["configured"]
+        any_api_configured = any([vt_ok, gsb_ok, aip_ok])
+
+        if "use_external_api" not in st.session_state:
+            st.session_state["use_external_api"] = bool(
+                api_status.get("api_enabled", False) and any_api_configured
+            )
         
         use_external_api = st.toggle(
             "Enable External API Checks",
-            value=False,
+            key="use_external_api",
             help="Query threat intelligence APIs for URL verification"
         )
-        st.session_state["use_external_api"] = use_external_api
         
         # Dynamic privacy status based on toggle
         if use_external_api:
@@ -1339,10 +1349,6 @@ with st.sidebar:
         # API Status Display (only when enabled)
         if use_external_api:
             st.markdown("#### API Status")
-            
-            vt_ok = api_status["virustotal"]["configured"]
-            gsb_ok = api_status["google_safebrowsing"]["configured"]
-            aip_ok = api_status["abuseipdb"]["configured"]
             
             # Color-coded status using HTML
             vt_color = "#4ade80" if vt_ok else "#f87171"
@@ -1358,7 +1364,7 @@ with st.sidebar:
             """, unsafe_allow_html=True)
 
             if not any([vt_ok, gsb_ok, aip_ok]):
-                st.caption("No API keys detected right now. Check .env key names and re-run analysis after saving.")
+                st.caption("API keys not found yet. Add them to .env and the app will auto-connect.")
     else:
         st.session_state["use_external_api"] = False
         st.success("**Privacy Mode Active** — All analysis runs locally")

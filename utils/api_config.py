@@ -19,6 +19,15 @@ def _clean_env_value(value: str) -> str:
     return cleaned
 
 
+def _clean_dotenv_value(value: str) -> str:
+    """Normalize .env values and strip inline comments for unquoted values."""
+    raw = str(value).strip()
+    if raw and raw[0] not in ('"', "'"):
+        # Support values like KEY=value # note
+        raw = raw.split(" #", 1)[0].strip()
+    return _clean_env_value(raw)
+
+
 # Load .env file directly (no dependency on python-dotenv)
 def _load_env_file():
     """Load .env file manually without external dependencies."""
@@ -34,9 +43,11 @@ def _load_env_file():
                 if '=' in line:
                     key, _, value = line.partition('=')
                     key = key.strip()
-                    value = _clean_env_value(value)
-                    if key:
+                    value = _clean_dotenv_value(value)
+                    if key and value:
                         os.environ[key] = value
+                    elif key and key not in os.environ:
+                        os.environ[key] = ""
     except Exception:
         pass
 

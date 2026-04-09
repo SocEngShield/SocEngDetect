@@ -16,12 +16,7 @@ try:
 except ImportError:
     REQUESTS_AVAILABLE = False
 
-from .api_config import (
-    VIRUSTOTAL_API_KEY, VIRUSTOTAL_ENABLED,
-    ABUSEIPDB_API_KEY, ABUSEIPDB_ENABLED,
-    GOOGLE_SAFEBROWSING_API_KEY, GOOGLE_SAFEBROWSING_ENABLED,
-    API_CACHE_ENABLED, API_CACHE_TTL_SECONDS,
-)
+from . import api_config
 
 # Simple in-memory cache
 _cache: Dict[str, Tuple[float, dict]] = {}
@@ -29,19 +24,32 @@ _cache: Dict[str, Tuple[float, dict]] = {}
 
 def _get_cached(key: str) -> Optional[dict]:
     """Get cached result if valid."""
-    if not API_CACHE_ENABLED:
+    if not api_config.API_CACHE_ENABLED:
         return None
     if key in _cache:
         timestamp, data = _cache[key]
-        if time.time() - timestamp < API_CACHE_TTL_SECONDS:
+        if time.time() - timestamp < api_config.API_CACHE_TTL_SECONDS:
             return data
     return None
 
 
 def _set_cache(key: str, data: dict):
     """Store result in cache."""
-    if API_CACHE_ENABLED:
+    if api_config.API_CACHE_ENABLED:
         _cache[key] = (time.time(), data)
+
+
+def _get_runtime_api_state() -> Dict[str, object]:
+    """Read API status/keys at runtime to avoid stale import-time state."""
+    status = api_config.get_api_status()
+    return {
+        "virustotal_enabled": bool(status.get("virustotal", {}).get("enabled")),
+        "abuseipdb_enabled": bool(status.get("abuseipdb", {}).get("enabled")),
+        "google_safebrowsing_enabled": bool(status.get("google_safebrowsing", {}).get("enabled")),
+        "virustotal_key": api_config.get_virustotal_key(),
+        "abuseipdb_key": api_config.get_abuseipdb_key(),
+        "google_safebrowsing_key": api_config.get_safebrowsing_key(),
+    }
 
 
 # ---------------------------
@@ -62,8 +70,9 @@ def check_url_virustotal(url: str) -> dict:
             - error: str (if any)
     """
     result = {"enabled": False, "source": "virustotal"}
+    runtime = _get_runtime_api_state()
     
-    if not VIRUSTOTAL_ENABLED or not REQUESTS_AVAILABLE:
+    if not runtime["virustotal_enabled"] or not REQUESTS_AVAILABLE:
         return result
     
     result["enabled"] = True
@@ -79,7 +88,7 @@ def check_url_virustotal(url: str) -> dict:
         # VirusTotal URL lookup (requires URL ID)
         url_id = base64.urlsafe_b64encode(url.encode()).decode().strip("=")
         
-        headers = {"x-apikey": VIRUSTOTAL_API_KEY}
+        headers = {"x-apikey": runtime["virustotal_key"]}
         response = requests.get(
             f"https://www.virustotal.com/api/v3/urls/{url_id}",
             headers=headers,
@@ -144,8 +153,9 @@ def check_url_safebrowsing(url: str) -> dict:
             - error: str (if any)
     """
     result = {"enabled": False, "source": "google_safebrowsing"}
+    runtime = _get_runtime_api_state()
     
-    if not GOOGLE_SAFEBROWSING_ENABLED or not REQUESTS_AVAILABLE:
+    if not runtime["google_safebrowsing_enabled"] or not REQUESTS_AVAILABLE:
         return result
     
     result["enabled"] = True
@@ -158,7 +168,10 @@ def check_url_safebrowsing(url: str) -> dict:
         return cached
     
     try:
-        api_url = f"https://safebrowsing.googleapis.com/v4/threatMatches:find?key={GOOGLE_SAFEBROWSING_API_KEY}"
+        api_url = (
+            "https://safebrowsing.googleapis.com/v4/threatMatches:find"
+            f"?key={runtime['google_safebrowsing_key']}"
+        )
         
         payload = {
             "client": {
@@ -221,8 +234,9 @@ def check_ip_abuseipdb(ip: str) -> dict:
             - error: str (if any)
     """
     result = {"enabled": False, "source": "abuseipdb"}
+    runtime = _get_runtime_api_state()
     
-    if not ABUSEIPDB_ENABLED or not REQUESTS_AVAILABLE:
+    if not runtime["abuseipdb_enabled"] or not REQUESTS_AVAILABLE:
         return result
     
     result["enabled"] = True
@@ -236,7 +250,7 @@ def check_ip_abuseipdb(ip: str) -> dict:
     
     try:
         headers = {
-            "Key": ABUSEIPDB_API_KEY,
+            "Key": runtime["abuseipdb_key"],
             "Accept": "application/json"
         }
         
@@ -301,12 +315,14 @@ def check_url_external(url: str) -> dict:
     if not REQUESTS_AVAILABLE:
         result["summary"] = "requests library not installed"
         return result
+
+    runtime = _get_runtime_api_state()
     
     threat_signals = 0
     total_sources = 0
     
     # VirusTotal check
-    if VIRUSTOTAL_ENABLED:
+    if runtime["virustotal_enabled"]:
         vt_result = check_url_virustotal(url)
         result["sources"].append(vt_result)
         if vt_result.get("enabled"):
@@ -318,7 +334,7 @@ def check_url_external(url: str) -> dict:
                 threat_signals += 1
     
     # Google Safe Browsing check
-    if GOOGLE_SAFEBROWSING_ENABLED:
+    if runtime["google_safebrowsing_enabled"]:
         gsb_result = check_url_safebrowsing(url)
         result["sources"].append(gsb_result)
         if gsb_result.get("enabled"):
@@ -328,7 +344,7 @@ def check_url_external(url: str) -> dict:
                 threat_signals += 2
     
     # Extract IP from URL and check AbuseIPDB
-    if ABUSEIPDB_ENABLED:
+    if runtime["abuseipdb_enabled"]:
         try:
             import socket
             domain = urlparse(url).netloc.split(":")[0]
