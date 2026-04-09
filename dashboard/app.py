@@ -21,8 +21,45 @@ from nlp_pipeline.rag_detector import get_detector
 # REQUIRED IMPORTS
 from security_logic.rule_engine import analyze_text
 from security_logic.signal_fusion import fuse_signals
-from bar_chart import create_bar_chart, get_top_signals
-from simulator import generate_attack_message_details
+
+try:
+    from bar_chart import create_bar_chart, get_top_signals
+except ImportError:
+    from dashboard.bar_chart import create_bar_chart, get_top_signals
+
+try:
+    import simulator as _simulator_module
+except ImportError:
+    # Fallback for environments that resolve imports from repository root.
+    from dashboard import simulator as _simulator_module
+
+
+if hasattr(_simulator_module, "generate_attack_message_details"):
+    generate_attack_message_details = _simulator_module.generate_attack_message_details
+elif hasattr(_simulator_module, "generate_attack_message"):
+    def generate_attack_message_details(tactics):
+        """Backward-compatible adapter for older simulator modules."""
+        message = _simulator_module.generate_attack_message(tactics)
+        selected = sorted(
+            {
+                str(t).strip().lower()
+                for t in (tactics or [])
+                if str(t).strip()
+            }
+        )
+        return {
+            "message": message,
+            "attack_family": "Legacy Simulator Template",
+            "selected_tactics": selected,
+            "template_tactics": selected,
+            "source_refs": [],
+            "sources": [],
+        }
+else:
+    raise ImportError(
+        "Simulator module missing expected exports: "
+        "generate_attack_message_details or generate_attack_message"
+    )
 from utils.export import get_json_data, get_csv_data, get_pdf_data
 
 # API IMPORTS (optional features)
