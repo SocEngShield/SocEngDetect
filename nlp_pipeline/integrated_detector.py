@@ -847,6 +847,12 @@ class IntegratedSocialEngineeringDetector:
         return any(rx.search(msg) for rx in rxs)
 
     @staticmethod
+    def _contains_whole_term(msg: str, kw: str) -> bool:
+        """Match keyword as a standalone term/phrase, not a substring of another word."""
+        escaped = re.escape(kw)
+        return re.search(rf"(?<!\w){escaped}(?!\w)", msg, re.IGNORECASE) is not None
+
+    @staticmethod
     def _merge_signals(sig_original: Dict, sig_normalized: Dict) -> Dict:
         """Merge signals from original and normalized text, taking max of each."""
         merged = {}
@@ -872,7 +878,7 @@ class IntegratedSocialEngineeringDetector:
         return {
             "fear": [kw for kw in self.FEAR_KW if kw in msg],
             "deadline": [kw for kw in self.DEADLINE_KW if kw in msg],
-            "gov": [kw for kw in self.GOV_KW if kw in msg],
+            "gov": [kw for kw in self.GOV_KW if self._contains_whole_term(msg, kw)],
             "identity": any(rx.search(msg) for rx in self._IDENTITY_RX),
             "brand": [kw for kw in self.BRAND_KW if kw in msg],
             "authority": [
