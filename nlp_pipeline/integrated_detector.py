@@ -482,14 +482,14 @@ def extract_pattern_features(text: str) -> Dict:
     }
 
 
-def get_similar_patterns(top_k_results: List[Dict], max_patterns: int = 5, min_similarity: float = 0.25) -> List[Dict]:
+def get_similar_patterns(top_k_results: List[Dict], max_patterns: int = 5, min_similarity: float = 0.20) -> List[Dict]:
     """
     Get similar attack patterns from knowledge base.
     
     Args:
         top_k_results: Top K results from RAG retrieval
         max_patterns: Maximum number of patterns to return (default 5)
-        min_similarity: Minimum similarity threshold (0-1 scale, default 0.25 = 25%)
+        min_similarity: Minimum similarity threshold (0-1 scale, default 0.20 = 20%)
     
     Returns:
         List of similar patterns with text, category, and similarity score
@@ -543,6 +543,17 @@ def get_similar_patterns(top_k_results: List[Dict], max_patterns: int = 5, min_s
             break
 
     return selected
+
+
+def _sentence_case(text: str) -> str:
+    """Capitalize the first alphabetic character while preserving the rest of the string."""
+    if not text:
+        return text
+
+    for index, char in enumerate(text):
+        if char.isalpha():
+            return text[:index] + char.upper() + text[index + 1:]
+    return text
 
 
 def get_advice(category: str) -> Dict:
@@ -935,11 +946,12 @@ class IntegratedSocialEngineeringDetector:
         self._current_sender = sender
         self._current_headers = email_headers
         
-        top_k_results = self.rag.retrieve_top_k(message, k=8)
+        # Pull a larger candidate pool so post-filtering can still surface 5 unique similar patterns.
+        top_k_results = self.rag.retrieve_top_k(message, k=12)
         rule_signals = extract_rule_signals(message)
 
         if self._whitelisted(msg, sig):
-            similar_patterns = get_similar_patterns(top_k_results)
+            similar_patterns = get_similar_patterns(top_k_results, max_patterns=8)
             advice = get_advice("normal_communication")
             return {
                 "attack_detected": False,
@@ -970,7 +982,7 @@ class IntegratedSocialEngineeringDetector:
             sig["reward"],
             sig["deadline"],
         ]):
-            similar_patterns = get_similar_patterns(top_k_results)
+            similar_patterns = get_similar_patterns(top_k_results, max_patterns=8)
             advice = get_advice("normal_communication")
             return {
                 "attack_detected": False,
@@ -1031,7 +1043,7 @@ class IntegratedSocialEngineeringDetector:
 
         dominant_display = result["categories"][0] if result["categories"] else rag_cat
         dominant_internal = DISPLAY_TO_INTERNAL_CATEGORY.get(dominant_display, rag_cat)
-        similar_patterns = get_similar_patterns(top_k_results)
+        similar_patterns = get_similar_patterns(top_k_results, max_patterns=8)
         advice = get_advice(dominant_internal)
         why_flagged = generate_explanation(
             text=message,
