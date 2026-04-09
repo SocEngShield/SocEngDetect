@@ -76,8 +76,26 @@ def _secrets_file_candidates() -> list:
     ]
 
 
+def _parse_env_line(line: str) -> tuple:
+    """Parse a single .env line and return (key, value) pair."""
+    raw = str(line).strip()
+    if not raw or raw.startswith("#"):
+        return "", ""
+
+    # Accept shell-style entries (e.g. "export KEY=value") for compatibility.
+    if raw.lower().startswith("export "):
+        raw = raw[7:].lstrip()
+
+    if "=" not in raw:
+        return "", ""
+
+    key, _, value = raw.partition("=")
+    return key.strip(), _clean_dotenv_value(value)
+
+
 def _read_env_file_values() -> dict:
-    """Read key/value pairs from the first available .env file."""
+    """Read and merge key/value pairs from available .env files."""
+    merged_values = {}
     seen_paths = set()
     for env_path in _env_file_candidates():
         try:
@@ -92,27 +110,24 @@ def _read_env_file_values() -> dict:
         if not env_path.exists():
             continue
 
-        values = {}
+        file_values = {}
         try:
             # utf-8-sig handles BOM safely (common from Windows editors)
             with open(env_path, 'r', encoding='utf-8-sig') as f:
                 for line in f:
-                    line = line.strip()
-                    if not line or line.startswith('#'):
-                        continue
-                    if '=' in line:
-                        key, _, value = line.partition('=')
-                        key = key.strip()
-                        value = _clean_dotenv_value(value)
-                        if key:
-                            values[key] = value
+                    key, value = _parse_env_line(line)
+                    if key:
+                        file_values[key] = value
         except Exception:
             continue
 
-        if values:
-            return values
+        # Preserve candidate priority order, but let non-empty values replace empty ones.
+        for key, value in file_values.items():
+            existing = merged_values.get(key, "")
+            if key not in merged_values or (not existing and value):
+                merged_values[key] = value
 
-    return {}
+    return merged_values
 
 
 def _from_mapping(mapping, key: str):
