@@ -7,6 +7,18 @@ Enable via .env file or environment variables.
 import os
 from pathlib import Path
 
+
+def _clean_env_value(value: str) -> str:
+    """Normalize env values from .env/system sources."""
+    if value is None:
+        return ""
+    cleaned = str(value).strip()
+    # Strip one matching quote pair.
+    if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] in ('"', "'"):
+        cleaned = cleaned[1:-1].strip()
+    return cleaned
+
+
 # Load .env file directly (no dependency on python-dotenv)
 def _load_env_file():
     """Load .env file manually without external dependencies."""
@@ -22,8 +34,8 @@ def _load_env_file():
                 if '=' in line:
                     key, _, value = line.partition('=')
                     key = key.strip()
-                    value = value.strip()
-                    if key and value:
+                    value = _clean_env_value(value)
+                    if key:
                         os.environ[key] = value
     except Exception:
         pass
@@ -34,7 +46,7 @@ _load_env_file()
 
 def _get_env(key: str, default: str = "") -> str:
     """Get environment variable."""
-    return os.environ.get(key, default)
+    return _clean_env_value(os.environ.get(key, default))
 
 
 def get_virustotal_key() -> str:
@@ -82,7 +94,10 @@ API_CACHE_TTL_SECONDS = 3600
 
 
 def get_api_status() -> dict:
-    """Get current API configuration status (reads fresh)."""
+    """Get current API configuration status (reloads .env on each call)."""
+    # Reload every call so Streamlit reflects .env edits without requiring module reload.
+    _load_env_file()
+
     vt_key = get_virustotal_key()
     aip_key = get_abuseipdb_key()
     gsb_key = get_safebrowsing_key()

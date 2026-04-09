@@ -835,6 +835,7 @@ if comparison_mode:
             
             st.session_state["last_analysis"] = {
                 "message": comp_summary_text,
+                "full_message": comp_summary_text,
                 "risk_level": risk_a if score_a > score_b else risk_b,
                 "attack_type": r_a.get("attack_type", "") if score_a > score_b else r_b.get("attack_type", ""),
                 "categories": list(set(r_a.get("categories", []) + r_b.get("categories", []))),
@@ -898,6 +899,7 @@ if not comparison_mode and st.button("ANALYZE MESSAGE", type="primary", use_cont
         # Store for export
         st.session_state["last_analysis"] = {
             "message": msg,
+            "full_message": msg,
             "risk_level": risk,
             "attack_type": r.get("attack_type", ""),
             "categories": cats,
@@ -1297,6 +1299,9 @@ with st.sidebar:
                 <span><span style="color: {aip_color}; font-size: 1.2em;">●</span> AbuseIPDB</span>
             </div>
             """, unsafe_allow_html=True)
+
+            if not any([vt_ok, gsb_ok, aip_ok]):
+                st.caption("No API keys detected right now. Check .env key names and re-run analysis after saving.")
     else:
         st.session_state["use_external_api"] = False
         st.success("**Privacy Mode Active** — All analysis runs locally")
@@ -1330,7 +1335,11 @@ with st.sidebar:
         st.markdown("#### Export Report")
 
         analysis = st.session_state["last_analysis"]
-        original_msg = analysis.get("message", "")
+        original_msg = (
+            analysis.get("full_message")
+            or analysis.get("message")
+            or analysis.get("context", {}).get("text", {}).get("original", "")
+        )
         
         # Get external_api_result if it exists in session
         ext_api = st.session_state.get("external_api_result", None)
@@ -1338,6 +1347,7 @@ with st.sidebar:
         report = {
             "timestamp": datetime.now().isoformat(),
             "message": original_msg[:200],
+            "full_message": original_msg,
             "risk_level": analysis.get("risk_level"),
             "attack_type": analysis.get("attack_type", ""),
             "categories": analysis.get("categories"),
