@@ -622,6 +622,7 @@ class IntegratedSocialEngineeringDetector:
         "income tax", "deactivated", "permanently", "frozen",
         "action will be taken", "credentials", "share info",
         "card blocked", "payment failed", "transaction declined",
+        "penalty review",
         # Tech support scam patterns
         "infected", "virus", "malware", "trojan", "spyware",
         "sending spam", "call this number", "download fix",
