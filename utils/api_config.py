@@ -28,6 +28,27 @@ _KEY_ALIASES = {
     "SOCENG_API_ENABLED": ["API_ENABLED", "EXTERNAL_API_ENABLED"],
 }
 
+_FUZZY_KEY_PATTERNS = {
+    "VIRUSTOTAL_API_KEY": [
+        ("virustotal",),
+        ("vt", "api", "key"),
+    ],
+    "ABUSEIPDB_API_KEY": [
+        ("abuseipdb",),
+        ("aipdb",),
+    ],
+    "GOOGLE_SAFEBROWSING_API_KEY": [
+        ("safebrowsing",),
+        ("safe", "browsing"),
+        ("gsb",),
+    ],
+    "SOCENG_API_ENABLED": [
+        ("api", "enabled"),
+        ("external", "api", "enabled"),
+        ("external", "checks", "enabled"),
+    ],
+}
+
 
 def _key_candidates(key: str) -> list:
     """Return canonical key and accepted aliases."""
@@ -37,6 +58,16 @@ def _key_candidates(key: str) -> list:
 def _normalize_key(name: str) -> str:
     """Normalize key strings for case-insensitive alias matching."""
     return re.sub(r"[^a-z0-9]", "", str(name).lower())
+
+
+def _match_fuzzy_key(found_key: str, target_key: str) -> bool:
+    """Return True when found_key appears to represent target_key."""
+    normalized = _normalize_key(found_key)
+    patterns = _FUZZY_KEY_PATTERNS.get(target_key, [])
+    for tokens in patterns:
+        if all(token in normalized for token in tokens):
+            return True
+    return False
 
 
 def _clean_env_value(value: str) -> str:
@@ -191,6 +222,40 @@ def _resolve_value_from_mapping(mapping, key: str) -> str:
             if cleaned:
                 return cleaned
 
+    # Fuzzy fallback for deployment variations (e.g., *_API, gsb_key, etc.)
+    for found_key, value in _iter_mapping_scalars(mapping):
+        if _match_fuzzy_key(found_key, key):
+            cleaned = _clean_env_value(value)
+            if cleaned:
+                return cleaned
+
+    return ""
+
+
+def _resolve_value_from_environ(key: str) -> str:
+    """Resolve key from process environment using exact, normalized, then fuzzy matching."""
+    # Exact lookup on canonical key + aliases first.
+    for candidate in _key_candidates(key):
+        value = _clean_env_value(os.environ.get(candidate, ""))
+        if value:
+            return value
+
+    normalized_targets = {_normalize_key(c) for c in _key_candidates(key)}
+
+    # Case-insensitive env-var name matching.
+    for env_key, env_value in os.environ.items():
+        if _normalize_key(env_key) in normalized_targets:
+            value = _clean_env_value(env_value)
+            if value:
+                return value
+
+    # Fuzzy fallback for alternate env names in cloud/deployment setups.
+    for env_key, env_value in os.environ.items():
+        if _match_fuzzy_key(env_key, key):
+            value = _clean_env_value(env_value)
+            if value:
+                return value
+
     return ""
 
 
@@ -270,10 +335,9 @@ _load_env_file()
 
 def _get_env(key: str, default: str = "") -> str:
     """Get environment variable."""
-    for candidate in _key_candidates(key):
-        value = _clean_env_value(os.environ.get(candidate, ""))
-        if value:
-            return value
+    env_value = _resolve_value_from_environ(key)
+    if env_value:
+        return env_value
 
     # Fallback to direct .env parsing so UI status remains stable
     # even if process environment became stale.
