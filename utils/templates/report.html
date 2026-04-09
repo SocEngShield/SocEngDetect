@@ -74,7 +74,7 @@
                     <span class="mode">RAW_DATA_EXTRACTION</span>
                 </div>
                 <div class="evidence-text">
-                    <code>{{ display_message | e }}</code>
+                    <code>{{ (display_message or original_msg or '(No analyzed message captured)') | e }}</code>
                 </div>
             </div>
         </section>

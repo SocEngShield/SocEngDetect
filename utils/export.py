@@ -230,6 +230,13 @@ def get_pdf_data(result: Dict[str, Any], original_msg: str = "") -> bytes:
 
 def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[str, Any]:
     """Prepare data for template rendering (shared by WeasyPrint and ReportLab)."""
+    effective_original_msg = (
+        original_msg
+        or result.get("full_message", "")
+        or result.get("message", "")
+        or result.get("context", {}).get("text", {}).get("original", "")
+    )
+
     url_info = result.get("context", {}).get("url", {})
     consistency = result.get("context", {}).get("consistency", {})
     signals_raw = result.get("signals", result.get("context", {}).get("signals", {}))
@@ -242,7 +249,7 @@ def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[st
     
     # Generate report ID
     timestamp = datetime.now()
-    report_id = hashlib.md5(f"{timestamp.isoformat()}{original_msg[:50]}".encode()).hexdigest()[:8].upper()
+    report_id = hashlib.md5(f"{timestamp.isoformat()}{effective_original_msg[:50]}".encode()).hexdigest()[:8].upper()
     
     # Process signals
     signal_labels = {
@@ -390,13 +397,15 @@ def _prepare_template_data(result: Dict[str, Any], original_msg: str) -> Dict[st
         }
     
     # Parse comparison-mode export text so metadata is not mixed into evidence content
-    comparison_data = _parse_comparison_export_message(original_msg)
+    comparison_data = _parse_comparison_export_message(effective_original_msg)
+
+    display_message = comparison_data.get("display_message") or effective_original_msg
     
     return {
         "report_id": report_id,
         "timestamp": timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-        "original_msg": original_msg,
-        "display_message": comparison_data["display_message"],
+        "original_msg": effective_original_msg,
+        "display_message": display_message,
         "is_comparison": comparison_data["is_comparison"],
         "risk_level_a": comparison_data["risk_level_a"],
         "risk_level_b": comparison_data["risk_level_b"],
@@ -512,6 +521,12 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
     risk = str(result.get("risk_level", result.get("risk", "N/A"))).upper()
     theme_colors = {"HIGH": "#f85149", "POTENTIAL": "#d29922", "LOW": "#58a6ff", "SAFE": "#3fb950"}
     theme_color = theme_colors.get(risk, "#58a6ff")
+    effective_original_msg = (
+        original_msg
+        or result.get("full_message", "")
+        or result.get("message", "")
+        or result.get("context", {}).get("text", {}).get("original", "")
+    )
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
@@ -541,7 +556,7 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
     
     # Generate report ID
     timestamp = datetime.now()
-    report_id = hashlib.md5(f"{timestamp.isoformat()}{original_msg[:50]}".encode()).hexdigest()[:8].upper()
+    report_id = hashlib.md5(f"{timestamp.isoformat()}{effective_original_msg[:50]}".encode()).hexdigest()[:8].upper()
     
     # 1. HEADER
     story.append(Paragraph("SocEngDetect Report", title_style))
@@ -551,9 +566,9 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
     story.append(Spacer(1, 12))
     
     # 2. ANALYZED MESSAGE
-    if original_msg:
+    if effective_original_msg:
         story.append(Paragraph("Analyzed Message", section_style))
-        safe_msg = original_msg.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        safe_msg = effective_original_msg.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         safe_msg = safe_msg.replace('\n', '<br/>')
         story.append(Paragraph(safe_msg, message_style))
         story.append(Spacer(1, 8))
@@ -716,6 +731,13 @@ def _get_pdf_reportlab(result: Dict[str, Any], original_msg: str) -> bytes:
 
 def _get_pdf_text(result: Dict[str, Any], original_msg: str = "") -> bytes:
     """Fallback: generate plain text as bytes."""
+    effective_original_msg = (
+        original_msg
+        or result.get("full_message", "")
+        or result.get("message", "")
+        or result.get("context", {}).get("text", {}).get("original", "")
+    )
+
     url_info = result.get("context", {}).get("url", {})
     consistency = result.get("context", {}).get("consistency", {})
     signals = result.get("signals", result.get("context", {}).get("signals", {}))
@@ -734,7 +756,7 @@ def _get_pdf_text(result: Dict[str, Any], original_msg: str = "") -> bytes:
         "",
         "ANALYZED MESSAGE",
         "-" * 30,
-        original_msg if original_msg else "(No message provided)",
+        effective_original_msg if effective_original_msg else "(No message provided)",
         "",
         "DETECTION SUMMARY",
         "-" * 30,
