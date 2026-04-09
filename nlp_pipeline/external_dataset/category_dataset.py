@@ -1,6 +1,5 @@
 """
 External category-labeled phishing dataset loader.
-
 Loads phishing_dataset_with_category.csv and prepares CATEGORY_DATASET
 for RAG pattern expansion without modifying the original knowledge base.
 """
