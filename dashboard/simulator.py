@@ -215,6 +215,247 @@ ATTACK_EXAMPLES: List[Dict[str, Any]] = [
 ]
 
 
+ADDITIONAL_ATTACK_EXAMPLES: List[Dict[str, Any]] = [
+    {
+        "attack_family": "Urgent Threat Escalation",
+        "tactics": {"fear", "urgency"},
+        "text": "Final warning: suspicious activity was detected and your account will be suspended in 30 minutes unless you verify immediately.",
+        "source_refs": ["FTC_PHISHING_2022", "APWG_Q1_2025"],
+    },
+    {
+        "attack_family": "Urgent Threat Escalation",
+        "tactics": {"fear", "urgency"},
+        "text": "Legal action will be initiated within 24 hours unless payment is submitted immediately to resolve this security case.",
+        "source_refs": ["SSA_SCAM_2026", "IRS_SCAM_2026"],
+    },
+    {
+        "attack_family": "Urgent Threat Escalation",
+        "tactics": {"fear", "urgency"},
+        "text": "Last chance: your account is compromised and will be permanently deactivated in 1 hour if no action is taken now.",
+        "source_refs": ["FTC_PHISHING_2022", "MDDR_2023"],
+    },
+    {
+        "attack_family": "Urgent Threat Escalation",
+        "tactics": {"fear", "urgency"},
+        "text": "Critical alert: card blocked after a suspicious transaction. Confirm within 10 minutes to prevent permanent closure.",
+        "source_refs": ["FTC_PHISHING_2022", "IC3_2023"],
+    },
+    {
+        "attack_family": "Urgent Threat Escalation",
+        "tactics": {"fear", "urgency"},
+        "text": "Income tax investigation notice: respond immediately before authorities proceed with prosecution and account seizure.",
+        "source_refs": ["IRS_SCAM_2026", "SSA_SCAM_2026"],
+    },
+    {
+        "attack_family": "Urgent Threat Escalation",
+        "tactics": {"fear", "urgency"},
+        "text": "Security breach alert: your credentials were leaked on the dark web. Act now or access expires within the next 24 hours.",
+        "source_refs": ["MDDR_2023", "FTC_PHISHING_2022"],
+    },
+    {
+        "attack_family": "BEC Deadline Pressure",
+        "tactics": {"authority", "urgency"},
+        "text": "From CEO Office: process payment instructions in 1 hour and send confirmation. This is a priority and cannot wait.",
+        "source_refs": ["IC3_2023", "APWG_Q1_2025"],
+    },
+    {
+        "attack_family": "BEC Deadline Pressure",
+        "tactics": {"authority", "urgency"},
+        "text": "CFO request: complete this wire transfer immediately before cutoff. Delays will impact the transaction window.",
+        "source_refs": ["IC3_2023", "APWG_Q1_2025"],
+    },
+    {
+        "attack_family": "BEC Deadline Pressure",
+        "tactics": {"authority", "urgency"},
+        "text": "Director escalation: invoice attached and payment must be released within 24 hours to avoid contract penalties.",
+        "source_refs": ["IC3_2023"],
+    },
+    {
+        "attack_family": "BEC Deadline Pressure",
+        "tactics": {"authority", "urgency"},
+        "text": "Manager directive: updated payment details require immediate processing. Complete now before end-of-day closure.",
+        "source_refs": ["APWG_Q1_2025", "IC3_2023"],
+    },
+    {
+        "attack_family": "BEC Deadline Pressure",
+        "tactics": {"authority", "urgency"},
+        "text": "Executive request: process payment now and keep this confidential until the transfer is complete.",
+        "source_refs": ["IC3_2023", "SSA_SCAM_2026"],
+    },
+    {
+        "attack_family": "Brand Impersonation with Deadline",
+        "tactics": {"impersonation", "urgency"},
+        "text": "This is Amazon support. Your payment failed and the account expires in 30 minutes unless you confirm details immediately.",
+        "source_refs": ["FTC_PHISHING_2022", "APWG_Q1_2025"],
+    },
+    {
+        "attack_family": "Brand Impersonation with Deadline",
+        "tactics": {"impersonation", "urgency"},
+        "text": "Customer support notice: your profile requires immediate verification in 1 hour to avoid account suspension.",
+        "source_refs": ["FTC_PHISHING_2022", "MDDR_2023"],
+    },
+    {
+        "attack_family": "Brand Impersonation with Deadline",
+        "tactics": {"impersonation", "urgency"},
+        "text": "This is PayPal security team. Confirm your login now or your account will be locked within 24 hours.",
+        "source_refs": ["FTC_PHISHING_2022", "MDDR_2023"],
+    },
+    {
+        "attack_family": "Brand Impersonation with Deadline",
+        "tactics": {"impersonation", "urgency"},
+        "text": "This is bank team support. Complete identity verification within 10 minutes to restore blocked access.",
+        "source_refs": ["FTC_PHISHING_2022", "IC3_2023"],
+    },
+    {
+        "attack_family": "Brand Impersonation with Deadline",
+        "tactics": {"impersonation", "urgency"},
+        "text": "This is Microsoft support. Security review expires in 30 minutes and immediate action is required to prevent deactivation.",
+        "source_refs": ["MDDR_2023", "FTC_PHISHING_2022"],
+    },
+    {
+        "attack_family": "Reward Pressure Campaign",
+        "tactics": {"reward", "urgency"},
+        "text": "You are selected for a bonus reward. Claim in 30 minutes or this prize offer expires.",
+        "source_refs": ["FTC_PHISHING_2022"],
+    },
+    {
+        "attack_family": "Reward Pressure Campaign",
+        "tactics": {"reward", "urgency"},
+        "text": "Winner notice: your cashback reward is ready, but final confirmation is needed immediately before cutoff.",
+        "source_refs": ["FTC_PHISHING_2022", "APWG_Q1_2025"],
+    },
+    {
+        "attack_family": "Reward Pressure Campaign",
+        "tactics": {"reward", "urgency"},
+        "text": "Last chance to receive your free gift. This selected offer closes in 1 hour.",
+        "source_refs": ["FTC_PHISHING_2022"],
+    },
+    {
+        "attack_family": "Reward Pressure Campaign",
+        "tactics": {"reward", "urgency"},
+        "text": "Promotional prize release: complete verification now because the reward expires within 24 hours.",
+        "source_refs": ["FTC_PHISHING_2022", "IRS_SCAM_2026"],
+    },
+    {
+        "attack_family": "Government Imposter Threat",
+        "tactics": {"authority", "fear", "impersonation"},
+        "text": "This is an officer from Social Security support. Your record is flagged for suspicious activity and legal action may follow.",
+        "source_refs": ["SSA_SCAM_2026", "IC3_2023"],
+    },
+    {
+        "attack_family": "Government Imposter Threat",
+        "tactics": {"authority", "fear", "impersonation"},
+        "text": "This is income tax department support. Your account is under investigation and penalties apply if you do not comply.",
+        "source_refs": ["IRS_SCAM_2026", "SSA_SCAM_2026"],
+    },
+    {
+        "attack_family": "Government Imposter Threat",
+        "tactics": {"authority", "fear", "impersonation"},
+        "text": "This is a federal bureau representative. Your identity is linked to illegal activity and immediate verification is required.",
+        "source_refs": ["SSA_SCAM_2026", "IC3_2023"],
+    },
+    {
+        "attack_family": "Government Imposter Threat",
+        "tactics": {"authority", "fear", "impersonation"},
+        "text": "Government case notice: your social security profile may be suspended due to unresolved compliance issues.",
+        "source_refs": ["SSA_SCAM_2026", "FTC_PHISHING_2022"],
+    },
+    {
+        "attack_family": "Payment Update Fraud",
+        "tactics": {"authority", "impersonation", "urgency"},
+        "text": "This is finance support. Updated payment instructions are attached and must be processed immediately before bank cutoff.",
+        "source_refs": ["IC3_2023", "APWG_Q1_2025"],
+    },
+    {
+        "attack_family": "Payment Update Fraud",
+        "tactics": {"authority", "impersonation", "urgency"},
+        "text": "This is accounts manager support. Confirm the new vendor bank account in 1 hour and complete wire transfer now.",
+        "source_refs": ["IC3_2023", "APWG_Q1_2025"],
+    },
+    {
+        "attack_family": "Payment Update Fraud",
+        "tactics": {"authority", "impersonation", "urgency"},
+        "text": "This is payroll help desk. Updated payment details need immediate approval to avoid processing delays.",
+        "source_refs": ["IC3_2023"],
+    },
+    {
+        "attack_family": "Payment Update Fraud",
+        "tactics": {"authority", "impersonation", "urgency"},
+        "text": "This is procurement support. Process payment instructions now and return confirmation within 30 minutes.",
+        "source_refs": ["APWG_Q1_2025", "IC3_2023"],
+    },
+    {
+        "attack_family": "Credential Crisis Impersonation",
+        "tactics": {"fear", "impersonation"},
+        "text": "This is technical support. We detected compromised login credentials and account suspension risk unless verification is completed.",
+        "source_refs": ["MDDR_2023", "FTC_PHISHING_2022"],
+    },
+    {
+        "attack_family": "Credential Crisis Impersonation",
+        "tactics": {"fear", "impersonation"},
+        "text": "This is bank fraud support. Suspicious activity triggered account frozen status pending identity confirmation.",
+        "source_refs": ["FTC_PHISHING_2022", "IC3_2023"],
+    },
+    {
+        "attack_family": "Credential Crisis Impersonation",
+        "tactics": {"fear", "impersonation"},
+        "text": "Customer support alert: your profile was breached and recovery requires immediate credential confirmation.",
+        "source_refs": ["MDDR_2023", "FTC_PHISHING_2022"],
+    },
+    {
+        "attack_family": "Credential Crisis Impersonation",
+        "tactics": {"fear", "impersonation"},
+        "text": "This is IRS support. Your account is marked compromised and action will be taken without verification.",
+        "source_refs": ["IRS_SCAM_2026", "FTC_PHISHING_2022"],
+    },
+    {
+        "attack_family": "High-Risk Hybrid Escalation",
+        "tactics": {"authority", "fear", "urgency", "impersonation"},
+        "text": "This is cyber cell support. Legal action starts in 24 hours unless identity and payment details are verified immediately.",
+        "source_refs": ["SSA_SCAM_2026", "IC3_2023", "IRS_SCAM_2026"],
+    },
+    {
+        "attack_family": "High-Risk Hybrid Escalation",
+        "tactics": {"authority", "fear", "urgency", "impersonation"},
+        "text": "This is executive security team. Your account is compromised and will be terminated in 1 hour unless recovery is completed now.",
+        "source_refs": ["MDDR_2023", "IC3_2023"],
+    },
+    {
+        "attack_family": "Fear-Only Severe Threat",
+        "tactics": {"fear"},
+        "text": "Security warning: account compromised and legal action may follow due to suspicious activity.",
+        "source_refs": ["FTC_PHISHING_2022", "SSA_SCAM_2026"],
+    },
+    {
+        "attack_family": "Urgency-Only Countdown Pressure",
+        "tactics": {"urgency"},
+        "text": "Immediate action required: complete verification now, this request expires in 30 minutes.",
+        "source_refs": ["FTC_PHISHING_2022"],
+    },
+    {
+        "attack_family": "Authority-Only Directive",
+        "tactics": {"authority"},
+        "text": "CFO directive: process payment instructions from the executive office and send confirmation today.",
+        "source_refs": ["IC3_2023"],
+    },
+    {
+        "attack_family": "Impersonation-Only Support Pretext",
+        "tactics": {"impersonation"},
+        "text": "This is customer support. We need account verification details to complete a pending security update.",
+        "source_refs": ["FTC_PHISHING_2022", "MDDR_2023"],
+    },
+    {
+        "attack_family": "Reward-Only Marketing Lure",
+        "tactics": {"reward"},
+        "text": "You are selected for a free bonus reward and can claim this prize after quick confirmation.",
+        "source_refs": ["FTC_PHISHING_2022"],
+    },
+]
+
+
+ATTACK_EXAMPLES.extend(ADDITIONAL_ATTACK_EXAMPLES)
+
+
 def _normalize_tactics(tactics: List[str]) -> Set[str]:
     """Normalize tactic names to lowercase set."""
     valid = {"fear", "urgency", "reward", "authority", "impersonation"}

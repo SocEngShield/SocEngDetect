@@ -39,7 +39,7 @@ Note: Detection works by recognizing specific keywords (e.g., "urgente" -> "urge
 
 **Attack Simulator**
 - Generates realistic phishing messages based on selected manipulation tactics
-- 30+ templates covering single and multi-tactic combinations
+- 65+ templates covering single and multi-tactic combinations
 - Source-backed templates mapped to documented scam patterns (government imposters, BEC, credential phishing, QR phishing, fake refunds)
 - Useful for testing detection capabilities and security training
 
