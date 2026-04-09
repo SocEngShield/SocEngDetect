@@ -1447,7 +1447,7 @@ with st.sidebar:
     - LOW: 25-49%
     - SAFE: 0-24%
     """)
-    st.markdown(f"**Knowledge Base:** {len(SOCIAL_ENGINEERING_DATASET)} patterns")
+    st.markdown(f"**Knowledge Base:** {len(SOCIAL_ENGINEERING_DATASET) + len(_to_rag_patterns(SMS_DATASET)) + len(_to_rag_patterns(CATEGORY_DATASET))} patterns")
     
     # =====================
     # SECTION 3: Export (only if analysis exists)
