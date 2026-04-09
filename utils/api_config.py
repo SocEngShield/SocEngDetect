@@ -8,6 +8,23 @@ import os
 from pathlib import Path
 
 
+_KEY_ALIASES = {
+    "VIRUSTOTAL_API_KEY": ["VIRUSTOTAL_KEY", "VT_API_KEY"],
+    "ABUSEIPDB_API_KEY": ["ABUSEIPDB_KEY"],
+    "GOOGLE_SAFEBROWSING_API_KEY": [
+        "GOOGLE_SAFE_BROWSING_API_KEY",
+        "GOOGLE_SAFEBROWSING_KEY",
+        "SAFE_BROWSING_API_KEY",
+    ],
+    "SOCENG_API_ENABLED": ["API_ENABLED", "EXTERNAL_API_ENABLED"],
+}
+
+
+def _key_candidates(key: str) -> list:
+    """Return canonical key and accepted aliases."""
+    return [key, *_KEY_ALIASES.get(key, [])]
+
+
 def _clean_env_value(value: str) -> str:
     """Normalize env values from .env/system sources."""
     if value is None:
@@ -75,6 +92,52 @@ def _read_env_file_values() -> dict:
     return {}
 
 
+def _from_mapping(mapping, key: str):
+    """Best-effort mapping lookup across dict-like objects."""
+    try:
+        if hasattr(mapping, "get"):
+            value = mapping.get(key)
+            if value is not None:
+                return value
+    except Exception:
+        pass
+
+    try:
+        if key in mapping:
+            return mapping[key]
+    except Exception:
+        pass
+
+    return None
+
+
+def _read_streamlit_secret(key: str) -> str:
+    """Read a key from Streamlit Secrets (root or common nested sections)."""
+    try:
+        import streamlit as st
+        secrets = st.secrets
+    except Exception:
+        return ""
+
+    for candidate in _key_candidates(key):
+        root_val = _from_mapping(secrets, candidate)
+        cleaned = _clean_env_value(root_val)
+        if cleaned:
+            return cleaned
+
+    for section_name in ("api", "apis", "keys", "secrets"):
+        section = _from_mapping(secrets, section_name)
+        if section is None:
+            continue
+        for candidate in _key_candidates(key):
+            nested_val = _from_mapping(section, candidate)
+            cleaned = _clean_env_value(nested_val)
+            if cleaned:
+                return cleaned
+
+    return ""
+
+
 # Load .env file directly (no dependency on python-dotenv)
 def _load_env_file():
     """Load .env file manually without external dependencies."""
@@ -96,15 +159,24 @@ _load_env_file()
 
 def _get_env(key: str, default: str = "") -> str:
     """Get environment variable."""
-    value = _clean_env_value(os.environ.get(key, ""))
-    if value:
-        return value
+    for candidate in _key_candidates(key):
+        value = _clean_env_value(os.environ.get(candidate, ""))
+        if value:
+            return value
 
     # Fallback to direct .env parsing so UI status remains stable
     # even if process environment became stale.
     values = _read_env_file_values()
-    if key in values:
-        return _clean_env_value(values.get(key, ""))
+    for candidate in _key_candidates(key):
+        if candidate in values:
+            cleaned = _clean_env_value(values.get(candidate, ""))
+            if cleaned:
+                return cleaned
+
+    # Deployment fallback: Streamlit Secrets (when .env is unavailable).
+    secret_value = _read_streamlit_secret(key)
+    if secret_value:
+        return secret_value
 
     return _clean_env_value(default)
 

@@ -1420,7 +1420,10 @@ with st.sidebar:
             """, unsafe_allow_html=True)
 
             if not any([vt_ok, gsb_ok, aip_ok]):
-                st.caption("API keys not found yet. Add them to .env and the app will auto-connect.")
+                st.caption(
+                    "API keys not detected. Add them to .env (local) or Streamlit Secrets "
+                    "(deployed) and the app will auto-connect."
+                )
     else:
         st.session_state["use_external_api"] = False
         st.success("**Privacy Mode Active** — All analysis runs locally")
