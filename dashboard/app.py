@@ -109,10 +109,18 @@ except ImportError:
 # UTILS
 # ---------------------------
 
-def filter_similar_patterns(similar_patterns, max_items=5, min_similarity=25.0):
+def filter_similar_patterns(similar_patterns, max_items=5, min_similarity=20.0):
     """Filter similar patterns to remove duplicates and low-similarity matches."""
     if not similar_patterns:
         return []
+
+    def sentence_case(text):
+        if not text:
+            return text
+        for index, char in enumerate(text):
+            if char.isalpha():
+                return text[:index] + char.upper() + text[index + 1:]
+        return text
 
     def similarity_value(item):
         raw = float(item.get("similarity", 0.0))
@@ -145,7 +153,7 @@ def filter_similar_patterns(similar_patterns, max_items=5, min_similarity=25.0):
         if is_duplicate:
             continue
 
-        selected.append(item)
+        selected.append({**item, "text": sentence_case(text)})
         if len(selected) == max_items:
             break
 
