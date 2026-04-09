@@ -18,6 +18,39 @@ from nlp_pipeline.integrated_detector import IntegratedSocialEngineeringDetector
 from nlp_pipeline.knowledge_base import SOCIAL_ENGINEERING_DATASET
 from nlp_pipeline.rag_detector import get_detector
 
+# Import SMS dataset for RAG expansion (optional - graceful fallback if missing)
+try:
+    from nlp_pipeline.external_dataset.sms_dataset import SMS_DATASET
+except (ImportError, ModuleNotFoundError):
+    SMS_DATASET = []
+
+# Import category dataset for RAG expansion (optional - graceful fallback if missing)
+try:
+    from nlp_pipeline.external_dataset.category_dataset import CATEGORY_DATASET
+except (ImportError, ModuleNotFoundError):
+    CATEGORY_DATASET = []
+
+
+def _to_rag_patterns(patterns):
+    """Normalize external patterns into detector-compatible schema."""
+    normalized = []
+    for item in patterns:
+        text = item.get("text")
+        if not text:
+            continue
+        if all(k in item for k in ("label", "category", "confidence")):
+            normalized.append(item)
+            continue
+        normalized.append(
+            {
+                "text": text,
+                "label": "social_engineering",
+                "category": item.get("label", "generic_phishing"),
+                "confidence": 0.85,
+            }
+        )
+    return normalized
+
 # REQUIRED IMPORTS
 from security_logic.rule_engine import analyze_text
 from security_logic.signal_fusion import fuse_signals
@@ -506,7 +539,7 @@ st.markdown("""
     }
     .sim-high { background: rgba(16,185,129,0.2); color: #34d399; }
     .sim-medium { background: rgba(245,158,11,0.2); color: #fbbf24; }
-    .sim-low { background: rgba(148,163,184,0.2); color: #94a3b8; }
+    .sim-low { background: rgba(16,185,129,0.2); color: #34d399; }
     
     /* ===== COMPARISON CARDS ===== */
     .compare-card {
@@ -567,7 +600,14 @@ st.markdown("""
 def init():
     try:
         rag = get_detector()
-        rag.add_patterns(SOCIAL_ENGINEERING_DATASET)
+        sms_patterns = _to_rag_patterns(SMS_DATASET)
+        category_patterns = _to_rag_patterns(CATEGORY_DATASET)
+        print(f"SMS dataset loaded: {len(sms_patterns)} samples")
+        print(f"Category dataset loaded: {len(category_patterns)} samples")
+
+        # Combine original knowledge base + external datasets for expanded RAG coverage
+        combined_patterns = SOCIAL_ENGINEERING_DATASET + sms_patterns + category_patterns
+        rag.add_patterns(combined_patterns)
         return IntegratedSocialEngineeringDetector(), None
     except Exception as e:
         return None, str(e)
