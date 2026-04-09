@@ -277,7 +277,7 @@ def create_signal_card_html(signal_name: str, score: float, is_active: bool, ml_
 # ---------------------------
 
 st.set_page_config(
-    page_title="Social Engineering Detection System",
+    page_title="Social Engineering Attack Detection System",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -625,7 +625,7 @@ if err:
 # HEADER (Clean minimal title)
 # ---------------------------
 
-st.title("Social Engineering Detection")
+st.title("Social Engineering Attack Detection")
 st.caption("RAG + NLP + Rule Engine | Weighted Ensemble (0.6 RAG / 0.4 Rules) | Privacy-First")
 
 
