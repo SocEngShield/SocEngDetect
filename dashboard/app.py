@@ -10,6 +10,7 @@ from pathlib import Path
 import time
 import re
 import json
+import importlib
 from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -97,8 +98,15 @@ from utils.export import get_json_data, get_csv_data, get_pdf_data
 
 # API IMPORTS (optional features)
 try:
-    from utils.api_config import get_api_status
-    from utils.api_integrations import check_url_external
+    import utils.api_config as _api_config
+    import utils.api_integrations as _api_integrations
+
+    # Streamlit can keep module objects hot across reruns; reload to prevent stale API state.
+    _api_config = importlib.reload(_api_config)
+    _api_integrations = importlib.reload(_api_integrations)
+
+    get_api_status = _api_config.get_api_status
+    check_url_external = _api_integrations.check_url_external
     API_AVAILABLE = True
 except ImportError:
     API_AVAILABLE = False

@@ -28,26 +28,65 @@ def _clean_dotenv_value(value: str) -> str:
     return _clean_env_value(raw)
 
 
+def _env_file_candidates() -> list:
+    """Return possible .env locations in priority order."""
+    return [
+        Path(__file__).resolve().parent.parent / ".env",  # project root via module path
+        Path.cwd() / ".env",  # current process working directory
+    ]
+
+
+def _read_env_file_values() -> dict:
+    """Read key/value pairs from the first available .env file."""
+    seen_paths = set()
+    for env_path in _env_file_candidates():
+        try:
+            resolved = str(env_path.resolve()).lower()
+        except Exception:
+            resolved = str(env_path).lower()
+
+        if resolved in seen_paths:
+            continue
+        seen_paths.add(resolved)
+
+        if not env_path.exists():
+            continue
+
+        values = {}
+        try:
+            # utf-8-sig handles BOM safely (common from Windows editors)
+            with open(env_path, 'r', encoding='utf-8-sig') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    if '=' in line:
+                        key, _, value = line.partition('=')
+                        key = key.strip()
+                        value = _clean_dotenv_value(value)
+                        if key:
+                            values[key] = value
+        except Exception:
+            continue
+
+        if values:
+            return values
+
+    return {}
+
+
 # Load .env file directly (no dependency on python-dotenv)
 def _load_env_file():
     """Load .env file manually without external dependencies."""
-    env_path = Path(__file__).parent.parent / ".env"
-    if not env_path.exists():
+    values = _read_env_file_values()
+    if not values:
         return
     try:
-        with open(env_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith('#'):
-                    continue
-                if '=' in line:
-                    key, _, value = line.partition('=')
-                    key = key.strip()
-                    value = _clean_dotenv_value(value)
-                    if key and value:
-                        os.environ[key] = value
-                    elif key and key not in os.environ:
-                        os.environ[key] = ""
+        for key, value in values.items():
+            if key and value:
+                os.environ[key] = value
+            elif key and key not in os.environ:
+                os.environ[key] = ""
     except Exception:
         pass
 
@@ -57,7 +96,17 @@ _load_env_file()
 
 def _get_env(key: str, default: str = "") -> str:
     """Get environment variable."""
-    return _clean_env_value(os.environ.get(key, default))
+    value = _clean_env_value(os.environ.get(key, ""))
+    if value:
+        return value
+
+    # Fallback to direct .env parsing so UI status remains stable
+    # even if process environment became stale.
+    values = _read_env_file_values()
+    if key in values:
+        return _clean_env_value(values.get(key, ""))
+
+    return _clean_env_value(default)
 
 
 def get_virustotal_key() -> str:
