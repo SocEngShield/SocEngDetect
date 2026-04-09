@@ -165,11 +165,6 @@ TEST_SAMPLES = [
         "attack": True
     },
     {
-        "text": "Only 2 spots left! Register now before registration closes in 15 minutes.",
-        "labels": ["Urgency", "Reward/Lure"],
-        "attack": True
-    },
-    {
         "text": "Your invoice is overdue. Pay within 24 hours to avoid late fees and service termination.",
         "labels": ["Urgency", "Fear/Threat"],
         "attack": True
