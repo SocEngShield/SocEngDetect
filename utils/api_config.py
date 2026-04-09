@@ -5,16 +5,25 @@ Enable via .env file or environment variables.
 """
 
 import os
+import re
 from pathlib import Path
+
+try:
+    import tomllib
+except Exception:
+    tomllib = None
 
 
 _KEY_ALIASES = {
-    "VIRUSTOTAL_API_KEY": ["VIRUSTOTAL_KEY", "VT_API_KEY"],
-    "ABUSEIPDB_API_KEY": ["ABUSEIPDB_KEY"],
+    "VIRUSTOTAL_API_KEY": ["VIRUSTOTAL_KEY", "VT_API_KEY", "VIRUSTOTAL", "VT_KEY"],
+    "ABUSEIPDB_API_KEY": ["ABUSEIPDB_KEY", "ABUSEIPDB"],
     "GOOGLE_SAFEBROWSING_API_KEY": [
         "GOOGLE_SAFE_BROWSING_API_KEY",
         "GOOGLE_SAFEBROWSING_KEY",
         "SAFE_BROWSING_API_KEY",
+        "GOOGLE_SAFEBROWSING",
+        "GOOGLE_SAFE_BROWSING",
+        "SAFE_BROWSING",
     ],
     "SOCENG_API_ENABLED": ["API_ENABLED", "EXTERNAL_API_ENABLED"],
 }
@@ -23,6 +32,11 @@ _KEY_ALIASES = {
 def _key_candidates(key: str) -> list:
     """Return canonical key and accepted aliases."""
     return [key, *_KEY_ALIASES.get(key, [])]
+
+
+def _normalize_key(name: str) -> str:
+    """Normalize key strings for case-insensitive alias matching."""
+    return re.sub(r"[^a-z0-9]", "", str(name).lower())
 
 
 def _clean_env_value(value: str) -> str:
@@ -50,6 +64,15 @@ def _env_file_candidates() -> list:
     return [
         Path(__file__).resolve().parent.parent / ".env",  # project root via module path
         Path.cwd() / ".env",  # current process working directory
+    ]
+
+
+def _secrets_file_candidates() -> list:
+    """Return possible Streamlit secrets.toml locations."""
+    return [
+        Path(__file__).resolve().parent.parent / ".streamlit" / "secrets.toml",
+        Path.cwd() / ".streamlit" / "secrets.toml",
+        Path.home() / ".streamlit" / "secrets.toml",
     ]
 
 
@@ -111,6 +134,51 @@ def _from_mapping(mapping, key: str):
     return None
 
 
+def _iter_mapping_scalars(mapping, prefix: str = "", depth: int = 0):
+    """Yield scalar key/value pairs from nested mapping-like objects."""
+    if depth > 5 or mapping is None:
+        return
+
+    try:
+        items = mapping.items()
+    except Exception:
+        return
+
+    for key, value in items:
+        key_str = str(key)
+        full_key = f"{prefix}.{key_str}" if prefix else key_str
+        if isinstance(value, (str, int, float, bool)):
+            # Yield both full path and leaf key to support nested secret schemas.
+            yield full_key, value
+            if full_key != key_str:
+                yield key_str, value
+        elif value is not None:
+            yield from _iter_mapping_scalars(value, full_key, depth + 1)
+
+
+def _resolve_value_from_mapping(mapping, key: str) -> str:
+    """Resolve value from mapping using exact and normalized key matching."""
+    if mapping is None:
+        return ""
+
+    # Exact lookup on canonical + aliases.
+    for candidate in _key_candidates(key):
+        value = _from_mapping(mapping, candidate)
+        cleaned = _clean_env_value(value)
+        if cleaned:
+            return cleaned
+
+    # Case-insensitive / punctuation-insensitive lookup.
+    normalized_targets = {_normalize_key(c) for c in _key_candidates(key)}
+    for found_key, value in _iter_mapping_scalars(mapping):
+        if _normalize_key(found_key) in normalized_targets:
+            cleaned = _clean_env_value(value)
+            if cleaned:
+                return cleaned
+
+    return ""
+
+
 def _read_streamlit_secret(key: str) -> str:
     """Read a key from Streamlit Secrets (root or common nested sections)."""
     try:
@@ -119,21 +187,49 @@ def _read_streamlit_secret(key: str) -> str:
     except Exception:
         return ""
 
-    for candidate in _key_candidates(key):
-        root_val = _from_mapping(secrets, candidate)
-        cleaned = _clean_env_value(root_val)
-        if cleaned:
-            return cleaned
+    root_value = _resolve_value_from_mapping(secrets, key)
+    if root_value:
+        return root_value
 
     for section_name in ("api", "apis", "keys", "secrets"):
         section = _from_mapping(secrets, section_name)
         if section is None:
             continue
-        for candidate in _key_candidates(key):
-            nested_val = _from_mapping(section, candidate)
-            cleaned = _clean_env_value(nested_val)
-            if cleaned:
-                return cleaned
+        nested_value = _resolve_value_from_mapping(section, key)
+        if nested_value:
+            return nested_value
+
+    return ""
+
+
+def _read_streamlit_secrets_toml(key: str) -> str:
+    """Read key from local/deployed Streamlit secrets.toml when available."""
+    if tomllib is None:
+        return ""
+
+    seen_paths = set()
+    for path in _secrets_file_candidates():
+        try:
+            resolved = str(path.resolve()).lower()
+        except Exception:
+            resolved = str(path).lower()
+
+        if resolved in seen_paths:
+            continue
+        seen_paths.add(resolved)
+
+        if not path.exists():
+            continue
+
+        try:
+            with open(path, "rb") as f:
+                data = tomllib.load(f)
+        except Exception:
+            continue
+
+        value = _resolve_value_from_mapping(data, key)
+        if value:
+            return value
 
     return ""
 
@@ -167,16 +263,19 @@ def _get_env(key: str, default: str = "") -> str:
     # Fallback to direct .env parsing so UI status remains stable
     # even if process environment became stale.
     values = _read_env_file_values()
-    for candidate in _key_candidates(key):
-        if candidate in values:
-            cleaned = _clean_env_value(values.get(candidate, ""))
-            if cleaned:
-                return cleaned
+    file_value = _resolve_value_from_mapping(values, key)
+    if file_value:
+        return file_value
 
     # Deployment fallback: Streamlit Secrets (when .env is unavailable).
     secret_value = _read_streamlit_secret(key)
     if secret_value:
         return secret_value
+
+    # Additional fallback for secrets.toml-based deployments.
+    toml_secret_value = _read_streamlit_secrets_toml(key)
+    if toml_secret_value:
+        return toml_secret_value
 
     return _clean_env_value(default)
 
