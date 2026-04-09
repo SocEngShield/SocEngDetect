@@ -40,7 +40,16 @@ Note: Detection works by recognizing specific keywords (e.g., "urgente" -> "urge
 **Attack Simulator**
 - Generates realistic phishing messages based on selected manipulation tactics
 - 30+ templates covering single and multi-tactic combinations
+- Source-backed templates mapped to documented scam patterns (government imposters, BEC, credential phishing, QR phishing, fake refunds)
 - Useful for testing detection capabilities and security training
+
+**Attack Simulator Data Sources**
+- FTC: How To Recognize and Avoid Phishing Scams - https://consumer.ftc.gov/articles/how-recognize-and-avoid-phishing-scams
+- SSA OIG: Protect Yourself from Scams - https://www.ssa.gov/scam/
+- IRS: Recognize Tax Scams and Fraud - https://www.irs.gov/help/tax-scams/recognize-tax-scams-and-fraud
+- APWG: Phishing Activity Trends Report Q1 2025 - https://docs.apwg.org/reports/apwg_trends_report_q1_2025.pdf
+- FBI IC3: Internet Crime Report 2023 - https://www.ic3.gov/Media/PDF/AnnualReport/2023_IC3Report.pdf
+- Microsoft Digital Defense Report 2023 - https://www.microsoft.com/en-us/security/security-insider/microsoft-digital-defense-report-2023
 
 **Evaluation Framework**
 - Comprehensive test dataset with labeled samples

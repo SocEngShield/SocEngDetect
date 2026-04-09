@@ -22,7 +22,7 @@ from nlp_pipeline.rag_detector import get_detector
 from security_logic.rule_engine import analyze_text
 from security_logic.signal_fusion import fuse_signals
 from bar_chart import create_bar_chart, get_top_signals
-from simulator import generate_attack_message
+from simulator import generate_attack_message_details
 from utils.export import get_json_data, get_csv_data, get_pdf_data
 
 # API IMPORTS (optional features)
@@ -582,10 +582,30 @@ with st.expander("Attack Simulation Mode", expanded=False):
 
     if st.button("Generate Simulated Attack", key="sim_generate"):
         if selected_tactics:
-            generated = generate_attack_message(selected_tactics)
-            st.session_state.simulated_message = generated
-            st.code(generated, language=None)
-            st.success("Message generated. Click ANALYZE to test detection.")
+            simulated = generate_attack_message_details(selected_tactics)
+            generated = simulated.get("message", "")
+
+            if generated:
+                st.session_state.simulated_message = generated
+                st.code(generated, language=None)
+                st.caption(
+                    f"Attack family: {simulated.get('attack_family', 'Unknown')} | "
+                    f"Template tactics: {', '.join(simulated.get('template_tactics', []))}"
+                )
+
+                sources = simulated.get("sources", [])
+                if sources:
+                    with st.expander("Simulator data sources", expanded=False):
+                        for source in sources:
+                            st.markdown(f"- [{source['title']}]({source['url']}): {source['evidence']}")
+                        st.caption(
+                            "Templates are synthetic reconstructions based on documented patterns, "
+                            "not copied victim messages."
+                        )
+
+                st.success("Message generated. Click ANALYZE to test detection.")
+            else:
+                st.warning("No matching simulator template found for selected tactics.")
         else:
             st.warning("Select at least one tactic.")
 
