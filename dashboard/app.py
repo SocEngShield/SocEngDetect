@@ -1646,28 +1646,31 @@ st.markdown("""
     <div style="flex: 1; padding-left: 2rem;">
         <h4 style="margin-top: 0; color: #e0e0e0;">Project Info</h4>
         <ul style="list-style-type: none; padding-left: 0; margin-top: 0.5rem; line-height: 1.8;">
-            <li><a href="#" style="color: #60a5fa; text-decoration: none;">Features</a></li>
-            <li><a href="#" style="color: #60a5fa; text-decoration: none;">Methodology</a></li>
+            <li><a href="https://github.com/SocEngShield/SocEngDetect#readme" target="_blank" style="color: #60a5fa; text-decoration: none;">Features</a></li>
+            <li><a href="https://github.com/SocEngShield/SocEngDetect/blob/main/PROJECT_DOCUMENTATION.md" target="_blank" style="color: #60a5fa; text-decoration: none;">Methodology</a></li>
         </ul>
     </div>
     <div style="flex: 1; padding-left: 2rem;">
         <h4 style="margin-top: 0; color: #e0e0e0;">Developers</h4>
         <ul style="list-style-type: none; padding-left: 0; margin-top: 0.5rem; line-height: 1.8;">
-            <li><a href="#" style="color: #60a5fa; text-decoration: none;">Documentation</a></li>
+            <li><a href="https://github.com/SocEngShield/SocEngDetect/blob/main/PROJECT_DOCUMENTATION.md" target="_blank" style="color: #60a5fa; text-decoration: none;">Documentation</a></li>
             <li><a href="https://github.com/SocEngShield/SocEngDetect" target="_blank" style="color: #60a5fa; text-decoration: none;">GitHub</a></li>
         </ul>
     </div>
     <div style="flex: 1; padding-left: 2rem;">
         <h4 style="margin-top: 0; color: #e0e0e0;">Contact Us</h4>
-        <p style="margin-top: 0.5rem;"><a href="nisarg33.bhatt@gmail.com" style="color: #60a5fa; text-decoration: none;">nisarg33.bhatt@gmail.com</a></p>
+        <p style="margin-top: 0.5rem;">
+            &#9993; <a href="mailto:nisarg33.bhatt@gmail.com" style="color: #60a5fa; text-decoration: none;">nisarg33.bhatt@gmail.com</a><br>
+            <span style="display: inline-block; margin-top: 0.2rem;">&#9993; <a href="mailto:mansi.arora13570@gmail.com" style="color: #60a5fa; text-decoration: none;">mansi.arora13570@gmail.com</a></span>
+        </p>
     </div>
 </div>
 <div style="display: flex; justify-content: space-between; border-top: 1px solid #333; padding-top: 1rem; color: #666; font-size: 0.8rem;">
-    <div>© 2026 SOCIAL ENGINEERING DETECTOR. ALL RIGHTS RESERVED.</div>
+    <div>OPEN SOURCE. PRIVACY FOCUSED. NO PERSISTENT DATA STORAGE.</div>
     <div>
-        <a href="#" style="color: #666; text-decoration: none; margin-right: 1rem;">PRIVACY POLICY</a>
-        <a href="#" style="color: #666; text-decoration: none; margin-right: 1rem;">TERMS OF SERVICE</a>
-        <a href="#" style="color: #666; text-decoration: none;">COOKIE POLICY</a>
+        <a href="https://github.com/SocEngShield/SocEngDetect" target="_blank" style="color: #666; text-decoration: none; margin-right: 1rem;">OPEN SOURCE</a>
+        <a href="#" style="color: #666; text-decoration: none; margin-right: 1rem; cursor: default;">TRANSIENT CLOUD PROCESSING</a>
+        <a href="#" style="color: #666; text-decoration: none; cursor: default;">NO TRACKING COOKIES</a>
     </div>
 </div>
 """, unsafe_allow_html=True)
