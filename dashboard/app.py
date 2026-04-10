@@ -1398,9 +1398,9 @@ with st.sidebar:
         
         # Dynamic privacy status based on toggle
         if use_external_api:
-            st.warning("**External Mode** — URLs sent to threat intelligence APIs")
+            st.warning("**External Mode** — URLs sent to third party threat intelligence APIs")
         else:
-            st.success("**Privacy Mode Active** — Data onnly sent to  Streamlit servers")
+            st.success("**Privacy Mode Active** — Data sent to  Streamlit servers only")
         
         # API Status Display (only when enabled)
         if use_external_api:

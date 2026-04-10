@@ -856,7 +856,6 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "Your code review for PR #1234 has been approved.", "label": "legitimate", "category": "safe", "confidence": 0.98},
     {"text": "Slack workspace invite: Join the engineering team channel.", "label": "legitimate", "category": "safe", "confidence": 0.97},
     {"text": "GitHub: You were mentioned in issue #567.", "label": "legitimate", "category": "safe", "confidence": 0.98},
-    {"text": "Your annual performance review is scheduled for next Monday.", "label": "legitimate", "category": "safe", "confidence": 0.97},
     {"text": "Conference registration confirmed. Badge pickup at registration desk.", "label": "legitimate", "category": "safe", "confidence": 0.98},
     {"text": "Office closed for holiday. Normal hours resume Tuesday.", "label": "legitimate", "category": "safe", "confidence": 0.99},
     {"text": "Your expense report for Q3 has been processed.", "label": "legitimate", "category": "safe", "confidence": 0.97},
@@ -869,7 +868,6 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "Your Spotify Wrapped is ready! See your top songs of the year.", "label": "legitimate", "category": "safe", "confidence": 0.97},
     {"text": "New episode available: Your favorite podcast released a new episode.", "label": "legitimate", "category": "safe", "confidence": 0.98},
     {"text": "Movie tickets confirmed: 2 tickets for Saturday 7 PM showing.", "label": "legitimate", "category": "safe", "confidence": 0.98},
-    {"text": "Your food delivery is on the way. Estimated arrival: 25 minutes.", "label": "legitimate", "category": "safe", "confidence": 0.98},
     {"text": "Thank you for your purchase at Target. Receipt attached.", "label": "legitimate", "category": "safe", "confidence": 0.98},
 
 ]
