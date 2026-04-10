@@ -11,13 +11,19 @@ import time
 import re
 import json
 import importlib
+from difflib import SequenceMatcher
 from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from nlp_pipeline.integrated_detector import IntegratedSocialEngineeringDetector
-from nlp_pipeline.knowledge_base import SOCIAL_ENGINEERING_DATASET
+from nlp_pipeline.knowledge_base import (
+    SOCIAL_ENGINEERING_DATASET,
+    INDIA_GENERATED_PATTERN_COUNT,
+    INDIA_KB_SOURCES,
+)
 from nlp_pipeline.rag_detector import get_detector
+from test_dataset import TEST_SAMPLES, VALIDATION_SAMPLES
 
 # Import SMS dataset for RAG expansion (optional - graceful fallback if missing)
 try:
@@ -51,6 +57,89 @@ def _to_rag_patterns(patterns):
             }
         )
     return normalized
+
+
+def _normalize_similarity_text(text: str) -> str:
+    """Normalize text for overlap and similarity checks."""
+    normalized = str(text).lower().strip()
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized
+
+
+def _best_similarity_score(text_norm: str, kb_norm_texts):
+    """Return best string similarity score and matching KB text."""
+    best_score = 0.0
+    best_match = ""
+    for candidate in kb_norm_texts:
+        sim = SequenceMatcher(None, text_norm, candidate).ratio()
+        if sim > best_score:
+            best_score = sim
+            best_match = candidate
+    return best_score, best_match
+
+
+@st.cache_data(show_spinner=False)
+def compute_kb_similarity_audit():
+    """Compute overlap and similarity between active RAG index and evaluation datasets."""
+    core_texts = [p.get("text", "") for p in SOCIAL_ENGINEERING_DATASET if p.get("text")]
+    active_patterns = SOCIAL_ENGINEERING_DATASET + _to_rag_patterns(SMS_DATASET) + _to_rag_patterns(CATEGORY_DATASET)
+    kb_texts = [p.get("text", "") for p in active_patterns if p.get("text")]
+    kb_norm_texts = [_normalize_similarity_text(text) for text in kb_texts]
+    kb_norm_set = set(kb_norm_texts)
+
+    def summarize(samples):
+        total = len(samples)
+        exact_overlap = 0
+        near_duplicates = 0
+        similarity_sum = 0.0
+        max_similarity = 0.0
+        exact_examples = []
+        near_examples = []
+
+        for sample in samples:
+            sample_text = sample.get("text", "")
+            sample_norm = _normalize_similarity_text(sample_text)
+            if not sample_norm:
+                continue
+
+            if sample_norm in kb_norm_set:
+                exact_overlap += 1
+                if len(exact_examples) < 3:
+                    exact_examples.append(sample_text)
+
+            best_similarity, best_match = _best_similarity_score(sample_norm, kb_norm_texts)
+            similarity_sum += best_similarity
+            max_similarity = max(max_similarity, best_similarity)
+
+            if best_similarity >= 0.90:
+                near_duplicates += 1
+                if len(near_examples) < 3:
+                    near_examples.append(
+                        {
+                            "sample": sample_text,
+                            "similarity": round(best_similarity, 3),
+                            "match": best_match,
+                        }
+                    )
+
+        mean_similarity = (similarity_sum / total) if total else 0.0
+
+        return {
+            "count": total,
+            "exact_overlap": exact_overlap,
+            "near_duplicates": near_duplicates,
+            "mean_best_similarity": round(mean_similarity, 3),
+            "max_best_similarity": round(max_similarity, 3),
+            "exact_examples": exact_examples,
+            "near_examples": near_examples,
+        }
+
+    return {
+        "kb_core_count": len(core_texts),
+        "kb_active_count": len(kb_texts),
+        "test": summarize(TEST_SAMPLES),
+        "validation": summarize(VALIDATION_SAMPLES),
+    }
 
 # REQUIRED IMPORTS
 from security_logic.rule_engine import analyze_text
@@ -116,7 +205,7 @@ except ImportError:
 # UTILS
 # ---------------------------
 
-def filter_similar_patterns(similar_patterns, max_items=5, min_similarity=20.0):
+def filter_similar_patterns(similar_patterns, max_items=5, min_similarity=50.0):
     """Filter similar patterns to remove duplicates and low-similarity matches."""
     if not similar_patterns:
         return []
@@ -623,13 +712,20 @@ def init():
         # Combine original knowledge base + external datasets for expanded RAG coverage
         combined_patterns = SOCIAL_ENGINEERING_DATASET + sms_patterns + category_patterns
         rag.add_patterns(combined_patterns)
-        return IntegratedSocialEngineeringDetector(), None
+        runtime_meta = {
+            "kb_core_count": len(SOCIAL_ENGINEERING_DATASET),
+            "india_generated_count": INDIA_GENERATED_PATTERN_COUNT,
+            "sms_count": len(sms_patterns),
+            "category_count": len(category_patterns),
+            "combined_count": len(combined_patterns),
+        }
+        return IntegratedSocialEngineeringDetector(), None, runtime_meta
     except Exception as e:
-        return None, str(e)
+        return None, str(e), {}
 
 
 with st.spinner("Loading models..."):
-    detector, err = init()
+    detector, err, runtime_meta = init()
 
 if err:
     st.error(f"Initialization error: {err}")
@@ -641,7 +737,10 @@ if err:
 # ---------------------------
 
 st.title("Social Engineering Attack Detection")
-st.caption("RAG + NLP + Rule Engine | Weighted Ensemble (0.6 RAG / 0.4 Rules) | Privacy-First")
+st.caption(
+    "RAG + NLP + Rule Engine | Weighted Ensemble (0.6 RAG / 0.4 Rules) | "
+    f"RAG index patterns: {runtime_meta.get('combined_count', 0)} | Privacy-First"
+)
 
 
 # ---------------------------
@@ -1372,9 +1471,9 @@ with st.sidebar:
     }
     </style>
     """, unsafe_allow_html=True)
-    
+
     st.markdown("### Settings")
-    
+
     # =====================
     # SECTION 1: Privacy & API Toggle
     # =====================
@@ -1389,28 +1488,28 @@ with st.sidebar:
             st.session_state["use_external_api"] = bool(
                 api_status.get("api_enabled", False) and any_api_configured
             )
-        
+
         use_external_api = st.toggle(
             "Enable External API Checks",
             key="use_external_api",
             help="Query threat intelligence APIs for URL verification"
         )
-        
+
         # Dynamic privacy status based on toggle
         if use_external_api:
             st.warning("**External Mode** — URLs sent to third party threat intelligence APIs")
         else:
             st.success("**Privacy Mode Active** — Data sent to  Streamlit servers only")
-        
+
         # API Status Display (only when enabled)
         if use_external_api:
             st.markdown("#### API Status")
-            
+
             # Color-coded status using HTML
             vt_color = "#4ade80" if vt_ok else "#f87171"
             gsb_color = "#4ade80" if gsb_ok else "#f87171"
             aip_color = "#4ade80" if aip_ok else "#f87171"
-            
+
             st.markdown(f"""
             <div style="display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 0.9rem;">
                 <span><span style="color: {vt_color}; font-size: 1.2em;">●</span> VirusTotal</span>
@@ -1428,9 +1527,9 @@ with st.sidebar:
         st.session_state["use_external_api"] = False
         st.success("**Privacy Mode Active** — All analysis runs locally")
         st.caption("API module not available")
-    
+
     st.markdown("---")
-    
+
     # =====================
     # SECTION 2: System Information (always expanded)
     # =====================
@@ -1440,15 +1539,22 @@ with st.sidebar:
     - RAG/ML: Semantic analysis (60%)
     - Rules: Pattern matching (40%)
     - Ensemble: Weighted fusion
-    
+
     **Risk Thresholds**
     - HIGH: 75-100%
     - POTENTIAL: 50-74%
     - LOW: 25-49%
     - SAFE: 0-24%
     """)
-    st.markdown(f"**Knowledge Base:** {len(SOCIAL_ENGINEERING_DATASET) + len(_to_rag_patterns(SMS_DATASET)) + len(_to_rag_patterns(CATEGORY_DATASET))} patterns")
-    
+
+    sidebar_total = runtime_meta.get(
+        "combined_count",
+        len(SOCIAL_ENGINEERING_DATASET)
+        + len(_to_rag_patterns(SMS_DATASET))
+        + len(_to_rag_patterns(CATEGORY_DATASET)),
+    )
+    st.markdown(f"**Knowledge Base:** {sidebar_total} patterns")
+
     # =====================
     # SECTION 3: Export (only if analysis exists)
     # =====================
@@ -1462,10 +1568,10 @@ with st.sidebar:
             or analysis.get("message")
             or analysis.get("context", {}).get("text", {}).get("original", "")
         )
-        
+
         # Get external_api_result if it exists in session
         ext_api = st.session_state.get("external_api_result", None)
-        
+
         report = {
             "timestamp": datetime.now().isoformat(),
             "message": original_msg[:200],
@@ -1495,13 +1601,13 @@ with st.sidebar:
         }
 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        
+
         json_data = get_json_data(report)
         csv_data = get_csv_data(report)
         pdf_data = get_pdf_data(report, original_msg)
 
         col1, col2, col3 = st.columns(3)
-        
+
         with col1:
             st.download_button(
                 label="JSON",
@@ -1509,7 +1615,7 @@ with st.sidebar:
                 file_name=f"report_{timestamp}.json",
                 mime="application/json",
             )
-        
+
         with col2:
             st.download_button(
                 label="CSV",
@@ -1517,7 +1623,7 @@ with st.sidebar:
                 file_name=f"report_{timestamp}.csv",
                 mime="text/csv",
             )
-        
+
         with col3:
             st.download_button(
                 label="PDF",
@@ -1525,3 +1631,5 @@ with st.sidebar:
                 file_name=f"report_{timestamp}.pdf",
                 mime="application/pdf",
             )
+
+

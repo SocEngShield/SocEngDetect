@@ -1,9 +1,6 @@
 """
 Social Engineering Attack Patterns Knowledge Base.
 
-This module keeps a curated static dataset and then deterministically expands it
-with India-context scam patterns generated from official advisory themes.
-
 Primary global references:
   - FBI IC3 Annual Reports (2022-2023)
   - APWG Phishing Activity Trends Reports (Q3-Q4 2023)
