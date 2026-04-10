@@ -1,39 +1,28 @@
 """
 Social Engineering Attack Patterns Knowledge Base.
-Static expanded dataset, grouped by category.
 
-Sources:
+This module keeps a curated static dataset and then deterministically expands it
+with India-context scam patterns generated from official advisory themes.
+
+Primary global references:
   - FBI IC3 Annual Reports (2022-2023)
   - APWG Phishing Activity Trends Reports (Q3-Q4 2023)
   - FTC Consumer Sentinel Network Data Book (2024)
   - Microsoft Digital Defense Report (2023)
-  - IRS/SSA Official Scam Alerts
+  - IRS/SSA official scam alerts
 
-Distribution (updated):
-  - urgency             : 91
-  - reward_lure         : 81
-  - authority           : 76
-  - impersonation       : 81
-  - fear_threat         : 96
-  - qr_phishing         : 15  (NEW - Source: FBI IC3 2023)
-  - bec                 : 10  (NEW - Source: FBI IC3 2023)
-  - crypto_scam         : 10  (NEW - Source: FTC 2024, APWG Q4 2023)
-  - gov_impersonation   : 10  (NEW - Source: IRS, SSA, FBI)
-  - delivery_scam       : 8   (NEW - Source: USPS, FTC 2024)
-  - tech_support        : 8   (NEW - Source: Microsoft, FTC)
-  - smishing            : 8   (NEW - Source: FBI IC3 2023)
-  - romance_scam        : 10  (NEW - Source: FBI IC3 2023)
-  - job_scam            : 10  (NEW - Source: FTC 2024, BBB)
-  - invoice_fraud       : 8   (NEW - Source: FBI IC3 2023)
-  - utility_scam        : 5   (NEW - Source: FTC 2024)
-  - advance_fee         : 7   (NEW - Source: FBI IC3, FTC)
-  - charity_scam        : 5   (NEW - Source: FTC, FEMA)
-  - health_scam         : 5   (NEW - Source: OIG, FTC 2024)
-  - legitimate_but_tricky: 46
-  - normal_communication: 46
-  - safe                : 85  (expanded)
-  - total               : ~700+
+India-context references used for generated pattern themes:
+  - CERT-In advisories (phishing, smishing, malware): https://www.cert-in.org.in/
+  - RBI public awareness and KYC/UPI fraud guidance: https://www.rbi.org.in/
+  - NPCI UPI fraud awareness guidance: https://www.npci.org.in/
+  - National Cyber Crime Reporting Portal (I4C/MHA): https://www.cybercrime.gov.in/
+  - Press Information Bureau advisories (digital arrest/fraud): https://www.pib.gov.in/
+  - India Post phishing alert notices: https://www.indiapost.gov.in/
+  - NHAI/FASTag advisories: https://www.nhai.gov.in/
+  - DoT subscriber safety guidance (SIM/KYC misuse): https://dot.gov.in/
 """
+
+from itertools import product
 
 SOCIAL_ENGINEERING_DATASET = [
 
@@ -870,4 +859,383 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "Movie tickets confirmed: 2 tickets for Saturday 7 PM showing.", "label": "legitimate", "category": "safe", "confidence": 0.98},
     {"text": "Thank you for your purchase at Target. Receipt attached.", "label": "legitimate", "category": "safe", "confidence": 0.98},
 
+    # ==============================================================
+    #  INDIA CONTEXTUAL SCAMS (RTO/eChallan, UPI, KYC, FASTag)
+    # ============================================================== 
+    {"text": "RTO notice: Your eChallan is pending. Pay immediately to avoid license suspension.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.95},
+    {"text": "Traffic police alert: Unpaid challan detected. Download receipt at the link below now.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.93},
+    {"text": "Parivahan update required. Install RTO Challan APK to verify your vehicle details.", "label": "social_engineering", "category": "impersonation", "confidence": 0.97},
+    {"text": "Final warning from transport office: Penalty doubles after midnight. Clear challan now.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.94},
+    {"text": "MParivahan team: Your vehicle is blacklisted due to challan non-payment. Verify now.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.95},
+    {"text": "Court action will start for unpaid traffic challan. Click to settle before hearing date.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.96},
+    {"text": "Road safety authority: Pay eChallan via this private QR code to avoid legal notice.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.94},
+    {"text": "State transport portal verification failed. Re-enter RC, DL and OTP in this form.", "label": "social_engineering", "category": "impersonation", "confidence": 0.92},
+    {"text": "Your driving license renewal is blocked due to pending challan. Update payment details now.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.91},
+    {"text": "Highway police message: Vehicle seizure scheduled in 24 hours unless challan is paid.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.95},
+    {"text": "Transport compliance desk: Confirm identity and pay challan with card to prevent FIR filing.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.95},
+    {"text": "RTO helpdesk: Install update package to auto-clear your eChallan penalties.", "label": "social_engineering", "category": "impersonation", "confidence": 0.96},
+
+    {"text": "NPCI alert: Your UPI ID will be blocked in 30 minutes. Verify UPI PIN to continue.", "label": "social_engineering", "category": "smishing", "confidence": 0.97},
+    {"text": "Bank KYC expired. Update PAN, Aadhaar and account number now to avoid account freeze.", "label": "social_engineering", "category": "authority", "confidence": 0.94},
+    {"text": "Your UPI transaction failed due to KYC suspension. Click link and confirm MPIN immediately.", "label": "social_engineering", "category": "smishing", "confidence": 0.96},
+    {"text": "SBI security team: Share OTP to reverse unauthorized UPI debit.", "label": "social_engineering", "category": "impersonation", "confidence": 0.96},
+    {"text": "Aadhaar and PAN mismatch detected. Your netbanking access will be disabled tonight.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.93},
+    {"text": "UPI support desk: Enter debit card details to reactivate your daily transfer limit.", "label": "social_engineering", "category": "impersonation", "confidence": 0.94},
+    {"text": "Immediate KYC action required. Submit selfie and OTP from this secure form.", "label": "social_engineering", "category": "urgency", "confidence": 0.90},
+    {"text": "Your mobile SIM eKYC is invalid. Bank services will stop in 2 hours unless verified.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.92},
+    {"text": "UPI fraud monitor: Device change detected. Confirm your UPI PIN to secure your wallet.", "label": "social_engineering", "category": "impersonation", "confidence": 0.95},
+    {"text": "RBI compliance message: Your account is flagged for suspicious transfers. Verify now.", "label": "social_engineering", "category": "authority", "confidence": 0.93},
+    {"text": "Netbanking lock alert: Share one-time code with support to unlock payments.", "label": "social_engineering", "category": "impersonation", "confidence": 0.95},
+    {"text": "Aadhaar update pending. Pension and subsidy credits may stop unless details are confirmed.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.91},
+    {"text": "UPI chargeback approved. Pay Rs 10 verification fee to receive refund instantly.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.90},
+    {"text": "PhonePe support: Your account audit is incomplete. Enter CVV and OTP to retain access.", "label": "social_engineering", "category": "impersonation", "confidence": 0.96},
+    {"text": "Paytm security: Merchant verification failed. Confirm bank credentials to avoid suspension.", "label": "social_engineering", "category": "impersonation", "confidence": 0.94},
+
+    {"text": "FASTag blacklisted due to insufficient balance. Recharge from this link now.", "label": "social_engineering", "category": "utility_scam", "confidence": 0.93},
+    {"text": "NHAI notice: FASTag will be permanently blocked unless KYC is revalidated today.", "label": "social_engineering", "category": "authority", "confidence": 0.92},
+    {"text": "India Post: Parcel held at sorting center. Pay customs fee through this short URL.", "label": "social_engineering", "category": "delivery_scam", "confidence": 0.95},
+    {"text": "Courier update: Package cannot be delivered until address is verified with OTP.", "label": "social_engineering", "category": "delivery_scam", "confidence": 0.90},
+    {"text": "Electricity board warning: Connection disconnection scheduled today. Pay pending bill now.", "label": "social_engineering", "category": "utility_scam", "confidence": 0.94},
+    {"text": "Water utility alert: Bill overdue by 3 days. Immediate payment required to avoid cut-off.", "label": "social_engineering", "category": "utility_scam", "confidence": 0.91},
+    {"text": "Gas agency notice: Subsidy stopped due to KYC failure. Update bank details using this form.", "label": "social_engineering", "category": "utility_scam", "confidence": 0.92},
+    {"text": "FASTag penalty notice: Toll violations found. Pay now using this private payment gateway.", "label": "social_engineering", "category": "utility_scam", "confidence": 0.93},
+
+    {"text": "PM subsidy disbursement approved. Verify bank account to receive Rs 12,500 today.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.90},
+    {"text": "Government relief grant: You are shortlisted. Pay processing fee to release payment.", "label": "social_engineering", "category": "advance_fee", "confidence": 0.94},
+    {"text": "Ayushman card update: Confirm details and OTP to unlock free health benefits.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.91},
+    {"text": "PM Kisan installment pending. Verify Aadhaar and account PIN from this portal.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.92},
+    {"text": "Income tax refund ready: Submit card details for instant credit of Rs 8,400.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.93},
+    {"text": "State scholarship office: Confirm student KYC and transfer fee to release scholarship.", "label": "social_engineering", "category": "advance_fee", "confidence": 0.90},
+    {"text": "Public distribution scheme update: Your ration benefits are paused until re-verification.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.89},
+    {"text": "Election commission notice: Voter card suspended due to profile mismatch. Verify now.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.88},
+    {"text": "District office support: Welfare payout is ready. Share OTP to complete beneficiary check.", "label": "social_engineering", "category": "authority", "confidence": 0.90},
+    {"text": "Municipal tax waiver approved for your property. Pay a small activation fee to claim.", "label": "social_engineering", "category": "advance_fee", "confidence": 0.91},
+
+    {"text": "Part-time online task: Rate hotels and earn Rs 3,000 per day. No experience required.", "label": "social_engineering", "category": "job_scam", "confidence": 0.95},
+    {"text": "Work from home data entry role. Security deposit required before onboarding.", "label": "social_engineering", "category": "job_scam", "confidence": 0.94},
+    {"text": "Crypto mentor group: Guaranteed 5x returns in one week. Join premium channel now.", "label": "social_engineering", "category": "crypto_scam", "confidence": 0.95},
+    {"text": "Telegram investment desk: Daily profit assured if you transfer funds immediately.", "label": "social_engineering", "category": "crypto_scam", "confidence": 0.93},
+    {"text": "Freelance project approved. Pay registration fee and submit ID to start today.", "label": "social_engineering", "category": "job_scam", "confidence": 0.91},
+    {"text": "Instant loan approval with no documents. Pay insurance premium first to disburse amount.", "label": "social_engineering", "category": "advance_fee", "confidence": 0.92},
+    {"text": "Trading bot access for selected members only. Guaranteed monthly income if you invest now.", "label": "social_engineering", "category": "crypto_scam", "confidence": 0.94},
+    {"text": "You are shortlisted for airport ground staff role. Submit training fee in 2 hours.", "label": "social_engineering", "category": "job_scam", "confidence": 0.92},
+    {"text": "Remote support executive hiring. Share Aadhaar, PAN and bank details to confirm offer.", "label": "social_engineering", "category": "job_scam", "confidence": 0.90},
+    {"text": "Special IPO allocation available. Transfer booking amount immediately for guaranteed listing gains.", "label": "social_engineering", "category": "reward_lure", "confidence": 0.91},
+
+    # ============================================================== 
+    #  INDIA CONTEXTUAL BENIGN / SAFE
+    # ============================================================== 
+    {"text": "UPI payment of Rs 450 successful to merchant. UTR ending 1294.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Your IRCTC ticket booking is confirmed for train 12627. Chart will be prepared later.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "FASTag recharge of Rs 500 completed successfully through the official app.", "label": "legitimate", "category": "safe", "confidence": 0.97},
+    {"text": "Electricity bill payment received. Next due date is 15th of next month.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Your gas cylinder booking has been confirmed. Delivery expected in 2 days.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "State transport portal confirms challan payment. Download receipt from official dashboard.", "label": "legitimate", "category": "safe", "confidence": 0.97},
+    {"text": "Aadhaar authentication completed successfully for your bank branch eKYC request.", "label": "legitimate", "category": "safe", "confidence": 0.96},
+    {"text": "Income tax portal message: Your ITR has been successfully e-verified.", "label": "legitimate", "category": "safe", "confidence": 0.97},
+    {"text": "Your passport appointment is scheduled for 11:30 AM on Tuesday at PSK center.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Municipal office notification: Property tax receipt is available in your online account.", "label": "legitimate", "category": "safe", "confidence": 0.97},
+    {"text": "Your bank confirms fixed deposit renewal as requested at branch.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Courier update: Shipment reached local hub and is out for delivery.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "University admissions office: Document verification slot confirmed for Monday.", "label": "legitimate", "category": "safe", "confidence": 0.97},
+    {"text": "Hospital appointment reminder: OPD consultation is confirmed for 4 PM tomorrow.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "Metro card recharge successful. Available balance updated in app.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+
 ]
+
+
+INDIA_KB_SOURCES = [
+  {
+    "title": "CERT-In advisories on phishing, smishing, and malicious mobile campaigns",
+    "url": "https://www.cert-in.org.in/",
+  },
+  {
+    "title": "RBI consumer guidance on KYC/UPI and banking fraud prevention",
+    "url": "https://www.rbi.org.in/",
+  },
+  {
+    "title": "NPCI awareness guidance for UPI fraud and safe transaction behavior",
+    "url": "https://www.npci.org.in/",
+  },
+  {
+    "title": "National Cyber Crime Reporting Portal (I4C/MHA) fraud trend alerts",
+    "url": "https://www.cybercrime.gov.in/",
+  },
+  {
+    "title": "Press Information Bureau advisories on digital arrest and impersonation scams",
+    "url": "https://www.pib.gov.in/",
+  },
+  {
+    "title": "India Post cautions about fake parcel, customs, and delivery messages",
+    "url": "https://www.indiapost.gov.in/",
+  },
+  {
+    "title": "NHAI/FASTag guidance on official recharge channels and fraud avoidance",
+    "url": "https://www.nhai.gov.in/",
+  },
+  {
+    "title": "Department of Telecommunications subscriber safety guidance",
+    "url": "https://dot.gov.in/",
+  },
+]
+
+
+INDIA_GENERATED_PATTERN_COUNT = 0
+
+
+def _append_generated_india_patterns():
+  """Expand India-context patterns using deterministic template combinations."""
+  global INDIA_GENERATED_PATTERN_COUNT
+
+  existing = {
+    str(item.get("text", "")).strip().lower()
+    for item in SOCIAL_ENGINEERING_DATASET
+    if item.get("text")
+  }
+  generated = []
+
+  def add_pattern(text, label, category, confidence):
+    normalized = " ".join(str(text).split()).strip()
+    if not normalized:
+      return
+    key = normalized.lower()
+    if key in existing:
+      return
+    existing.add(key)
+    generated.append(
+      {
+        "text": normalized,
+        "label": label,
+        "category": category,
+        "confidence": confidence,
+      }
+    )
+
+  # Government and digital-arrest impersonation themes (CERT-In, PIB, I4C).
+  gov_senders = [
+    "Cyber Crime Cell notice",
+    "State police cyber desk",
+    "Income Tax compliance office",
+    "Telecom compliance authority",
+    "e-Governance verification center",
+    "District legal enforcement unit",
+  ]
+  gov_pretexts = [
+    "Your Aadhaar-linked SIM is under investigation",
+    "A complaint was registered for suspicious digital transactions",
+    "Your KYC profile is marked non-compliant",
+    "A cyber fraud FIR is being prepared against this mobile number",
+  ]
+  gov_actions = [
+    "Verify identity by sharing OTP and Aadhaar details now",
+    "Complete verification form with PAN, bank account and UPI PIN",
+    "Call the officer number in this message and confirm account credentials",
+  ]
+  gov_consequences = [
+    "or legal proceedings will begin today",
+    "to avoid account freezing and legal action",
+  ]
+
+  for sender, pretext, action, consequence in product(
+    gov_senders, gov_pretexts, gov_actions, gov_consequences
+  ):
+    add_pattern(
+      f"{sender}: {pretext}. {action} {consequence}.",
+      "social_engineering",
+      "gov_impersonation",
+      0.95,
+    )
+
+  # UPI/KYC and wallet impersonation themes (RBI, NPCI, CERT-In).
+  upi_brands = [
+    "NPCI UPI monitoring",
+    "SBI security desk",
+    "PhonePe compliance team",
+    "Paytm risk control",
+    "Netbanking fraud support",
+    "Bank KYC verification center",
+  ]
+  upi_events = [
+    "unusual UPI device login detected",
+    "KYC revalidation pending for your profile",
+    "wallet audit shows suspicious transfers",
+    "UPI handle flagged for temporary suspension",
+  ]
+  upi_requests = [
+    "share OTP to secure the account",
+    "confirm UPI PIN and card details for reactivation",
+    "verify identity on this link with Aadhaar and PAN",
+  ]
+  upi_deadlines = [
+    "within 10 minutes",
+    "before midnight today",
+  ]
+
+  for brand, event, request, deadline in product(
+    upi_brands, upi_events, upi_requests, upi_deadlines
+  ):
+    add_pattern(
+      f"{brand}: {event}; {request} {deadline} to prevent permanent block.",
+      "social_engineering",
+      "smishing",
+      0.95,
+    )
+
+  # Delivery and customs scam themes (India Post and courier alerts).
+  delivery_senders = [
+    "India Post dispatch",
+    "Courier customs desk",
+    "Parcel routing center",
+    "Express delivery support",
+  ]
+  delivery_issues = [
+    "parcel held due to address mismatch",
+    "shipment paused for customs verification",
+    "delivery stopped for incomplete KYC",
+  ]
+  delivery_actions = [
+    "pay release fee via this payment link",
+    "submit card details and OTP for redelivery",
+    "scan QR and complete address verification now",
+  ]
+  delivery_threats = [
+    "or package will be returned",
+    "to avoid legal disposal of shipment",
+  ]
+
+  for sender, issue, action, threat in product(
+    delivery_senders, delivery_issues, delivery_actions, delivery_threats
+  ):
+    add_pattern(
+      f"{sender}: {issue}; {action} {threat}.",
+      "social_engineering",
+      "delivery_scam",
+      0.93,
+    )
+
+  # FASTag and utility billing extortion themes (NHAI and utility advisories).
+  utility_senders = [
+    "FASTag support",
+    "State electricity board",
+    "Water utility operations",
+    "Gas service compliance",
+  ]
+  utility_issues = [
+    "service profile marked inactive",
+    "billing KYC verification failed",
+    "account flagged for immediate disconnection",
+  ]
+  utility_actions = [
+    "pay pending amount through this private link",
+    "verify card credentials and OTP in the attached form",
+    "complete recharge using this QR code now",
+  ]
+  utility_deadlines = [
+    "within 30 minutes",
+    "before service is permanently disconnected",
+  ]
+
+  for sender, issue, action, deadline in product(
+    utility_senders, utility_issues, utility_actions, utility_deadlines
+  ):
+    add_pattern(
+      f"{sender}: {issue}; {action} {deadline}.",
+      "social_engineering",
+      "utility_scam",
+      0.92,
+    )
+
+  # Grant/refund and advance-fee hooks seen in regional fraud advisories.
+  benefit_programs = [
+    "PM subsidy desk",
+    "tax refund processing center",
+    "scholarship benefit office",
+    "municipal rebate division",
+  ]
+  benefit_lures = [
+    "benefit amount approved",
+    "cash rebate ready for instant credit",
+    "grant release pending final verification",
+  ]
+  benefit_actions = [
+    "pay small activation fee",
+    "share OTP and account details",
+    "confirm card credentials for transfer",
+  ]
+
+  for program, lure, action in product(benefit_programs, benefit_lures, benefit_actions):
+    category = "advance_fee" if "pay" in action else "reward_lure"
+    add_pattern(
+      f"{program}: {lure}; {action} to receive funds today.",
+      "social_engineering",
+      category,
+      0.91,
+    )
+
+  # Job and investment trap templates (high-volume vectors in cybercrime reports).
+  scam_channels = [
+    "Telegram hiring group",
+    "WhatsApp recruiter",
+    "online trading mentor",
+    "remote task coordinator",
+  ]
+  scam_claims = [
+    "earn Rs 3000 per day from home",
+    "guaranteed crypto profit every week",
+    "airport and IT support jobs available immediately",
+  ]
+  scam_steps = [
+    "pay registration fee before onboarding",
+    "share Aadhaar, PAN and bank details to unlock payout",
+    "transfer initial investment for guaranteed returns",
+  ]
+
+  for channel, claim, step in product(scam_channels, scam_claims, scam_steps):
+    if "investment" in step:
+      category = "crypto_scam"
+    elif "registration fee" in step:
+      category = "job_scam"
+    elif "guaranteed" in claim:
+      category = "crypto_scam"
+    else:
+      category = "job_scam"
+    add_pattern(
+      f"{channel}: {claim}; {step} right now to keep your slot.",
+      "social_engineering",
+      category,
+      0.92,
+    )
+
+  # Legitimate India-context notifications to reduce over-flagging.
+  safe_services = [
+    "UPI app",
+    "IRCTC",
+    "India Post",
+    "FASTag official app",
+    "electricity board",
+    "passport seva",
+  ]
+  safe_updates = [
+    "transaction completed successfully",
+    "appointment confirmed in the official portal",
+    "receipt available in your account dashboard",
+    "payment posted with no action required",
+  ]
+  safe_context = [
+    "No OTP sharing is required",
+    "Please use only official app channels",
+  ]
+
+  for service, update, context in product(safe_services, safe_updates, safe_context):
+    add_pattern(
+      f"{service}: {update}. {context}.",
+      "legitimate",
+      "safe",
+      0.98,
+    )
+
+  SOCIAL_ENGINEERING_DATASET.extend(generated)
+  INDIA_GENERATED_PATTERN_COUNT = len(generated)
+
+
+_append_generated_india_patterns()
