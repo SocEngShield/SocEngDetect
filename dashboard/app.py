@@ -1666,11 +1666,9 @@ st.markdown("""
     </div>
 </div>
 <div style="display: flex; justify-content: space-between; border-top: 1px solid #333; padding-top: 1rem; color: #666; font-size: 0.8rem;">
-    <div>OPEN SOURCE. PRIVACY FOCUSED. NO PERSISTENT DATA STORAGE.</div>
+    <div>OPEN SOURCE. PRIVACY FOCUSED. NO PERSISTENT DATA STORAGE.TRANSIENT CLOUD PROCESSING.</div>
     <div>
         <a href="https://github.com/SocEngShield/SocEngDetect" target="_blank" style="color: #666; text-decoration: none; margin-right: 1rem;">OPEN SOURCE</a>
-        <a href="#" style="color: #666; text-decoration: none; margin-right: 1rem; cursor: default;">TRANSIENT CLOUD PROCESSING</a>
-        <a href="#" style="color: #666; text-decoration: none; cursor: default;">NO TRACKING COOKIES</a>
     </div>
 </div>
 """, unsafe_allow_html=True)
