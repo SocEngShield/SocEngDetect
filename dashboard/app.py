@@ -1400,7 +1400,7 @@ with st.sidebar:
         if use_external_api:
             st.warning("**External Mode** — URLs sent to threat intelligence APIs")
         else:
-            st.success("**Privacy Mode Active** — All analysis runs locally")
+            st.success("**Privacy Mode Active** — Data onnly sent to  Streamlit servers")
         
         # API Status Display (only when enabled)
         if use_external_api:
