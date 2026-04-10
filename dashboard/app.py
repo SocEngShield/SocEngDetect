@@ -1632,4 +1632,44 @@ with st.sidebar:
                 mime="application/pdf",
             )
 
+# ---------------------------
+# FOOTER
+# ---------------------------
+
+st.markdown("---")
+st.markdown("""
+<div style="display: flex; justify-content: space-between; padding-top: 2rem; padding-bottom: 2rem; color: #a0a0a0; font-size: 0.9rem;">
+    <div style="flex: 1;">
+        <h4 style="margin-top: 0; color: #e0e0e0;">Social Engineering Detector</h4>
+        <p style="margin-bottom: 0.5rem; max-width: 300px;">Building intelligent detection and response infrastructure for the modern web.</p>
+    </div>
+    <div style="flex: 1; padding-left: 2rem;">
+        <h4 style="margin-top: 0; color: #e0e0e0;">Project Info</h4>
+        <ul style="list-style-type: none; padding-left: 0; margin-top: 0.5rem; line-height: 1.8;">
+            <li><a href="#" style="color: #60a5fa; text-decoration: none;">Features</a></li>
+            <li><a href="#" style="color: #60a5fa; text-decoration: none;">Methodology</a></li>
+        </ul>
+    </div>
+    <div style="flex: 1; padding-left: 2rem;">
+        <h4 style="margin-top: 0; color: #e0e0e0;">Developers</h4>
+        <ul style="list-style-type: none; padding-left: 0; margin-top: 0.5rem; line-height: 1.8;">
+            <li><a href="#" style="color: #60a5fa; text-decoration: none;">Documentation</a></li>
+            <li><a href="https://github.com/SocEngShield/SocEngDetect" target="_blank" style="color: #60a5fa; text-decoration: none;">GitHub</a></li>
+        </ul>
+    </div>
+    <div style="flex: 1; padding-left: 2rem;">
+        <h4 style="margin-top: 0; color: #e0e0e0;">Contact Us</h4>
+        <p style="margin-top: 0.5rem;"><a href="nisarg33.bhatt@gmail.com" style="color: #60a5fa; text-decoration: none;">nisarg33.bhatt@gmail.com</a></p>
+    </div>
+</div>
+<div style="display: flex; justify-content: space-between; border-top: 1px solid #333; padding-top: 1rem; color: #666; font-size: 0.8rem;">
+    <div>© 2026 SOCIAL ENGINEERING DETECTOR. ALL RIGHTS RESERVED.</div>
+    <div>
+        <a href="#" style="color: #666; text-decoration: none; margin-right: 1rem;">PRIVACY POLICY</a>
+        <a href="#" style="color: #666; text-decoration: none; margin-right: 1rem;">TERMS OF SERVICE</a>
+        <a href="#" style="color: #666; text-decoration: none;">COOKIE POLICY</a>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
 
