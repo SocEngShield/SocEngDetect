@@ -938,6 +938,20 @@ SOCIAL_ENGINEERING_DATASET = [
     {"text": "Hospital appointment reminder: OPD consultation is confirmed for 4 PM tomorrow.", "label": "legitimate", "category": "safe", "confidence": 0.98},
     {"text": "Metro card recharge successful. Available balance updated in app.", "label": "legitimate", "category": "safe", "confidence": 0.98},
 
+    # ==============================================================
+    #  INDIA CONTEXTUAL ADDON (Demo extension)
+    # ============================================================== 
+    {"text": "State cyber cell warning: Your UPI profile is linked to suspicious transfers. Verify now.", "label": "social_engineering", "category": "fear_threat", "confidence": 0.93},
+    {"text": "GST portal alert: E-way bill access suspended. Confirm credentials from this link immediately.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.92},
+    {"text": "Municipal parking challan overdue. Download payment app update to avoid court notice.", "label": "social_engineering", "category": "gov_impersonation", "confidence": 0.91},
+    {"text": "Airtel Payments Bank support: KYC expired. Share OTP to keep wallet active.", "label": "social_engineering", "category": "impersonation", "confidence": 0.94},
+    {"text": "Cooperative bank message: Fixed deposit release pending. Verify card and CVV for payout.", "label": "social_engineering", "category": "impersonation", "confidence": 0.93},
+    {"text": "Courier franchise part-time job: Pay onboarding deposit and start earning from home.", "label": "social_engineering", "category": "job_scam", "confidence": 0.92},
+    {"text": "NPCI UPI Lite top-up of Rs 200 completed successfully on your registered device.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+    {"text": "DigiLocker notice: Document shared successfully with your selected organization.", "label": "legitimate", "category": "safe", "confidence": 0.97},
+    {"text": "GST filing reminder: Return due this week. Please use the official portal login.", "label": "legitimate", "category": "safe", "confidence": 0.97},
+    {"text": "FASTag monthly statement is now available in your account dashboard.", "label": "legitimate", "category": "safe", "confidence": 0.98},
+
 ]
 
 
