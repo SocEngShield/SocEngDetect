@@ -1661,7 +1661,7 @@ st.markdown("""
         <h4 style="margin-top: 0; color: #e0e0e0;">Contact Us</h4>
         <p style="margin-top: 0.5rem;">
             &#9993; <a href="mailto:nisarg33.bhatt@gmail.com" style="color: #60a5fa; text-decoration: none;">nisarg33.bhatt@gmail.com</a><br>
-            <span style="display: inline-block; margin-top: 0.2rem;">&#9993; <a href="mailto:mansi.arora13570@gmail.com" style="color: #60a5fa; text-decoration: none;">mansi.arora13570@gmail.com</a></span>
+            <span style="display: inline-block; margin-top: 0.2rem;">&#9993; <a href="mailto:mansiarora1701@gmail.com" style="color: #60a5fa; text-decoration: none;">mansiarora1701@gmail.com</a></span>
         </p>
     </div>
 </div>
